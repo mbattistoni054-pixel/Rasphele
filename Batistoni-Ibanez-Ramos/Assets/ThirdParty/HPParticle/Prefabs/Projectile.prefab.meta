@@ -1,0 +1,11 @@
+fileFormatVersion: 2
+guid: dc86eaa0a878e45b2b751ee0effe31ef
+NativeFormatImporter:
+  userData: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 21856
+  packageName: HP Particles
+  packageVersion: 1.1
+  assetPath: Assets/HPParticle/Prefabs/Projectile.prefab
+  uploadId: 103078

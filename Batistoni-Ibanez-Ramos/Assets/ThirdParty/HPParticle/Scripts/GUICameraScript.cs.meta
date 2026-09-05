@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 2c4b4df6e33c24d5f866cbc36d564d89
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 21856
+  packageName: HP Particles
+  packageVersion: 1.1
+  assetPath: Assets/HPParticle/Scripts/GUICameraScript.cs
+  uploadId: 103078
