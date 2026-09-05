@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20f67deaa73c71b46bda1d24991013c8, type: 3}
+  m_Name: Data_Hongo
+  m_EditorClassIdentifier: 
+  maxFiringUpgrades: 2
+  maxImpactUpgrades: 1
+  weaponName: Hongos
+  weaponIcon: {fileID: 1915053626, guid: 2c5911e469db04a4aa950113922f05ff, type: 3}
+  projectilePrefab: {fileID: 9136211849381488765, guid: a4b1f2aed2c40b64d82093505c9df449, type: 3}
+  attackSound: {fileID: 0}
+  damageType: 4
+  baseDamage: 8
+  baseCooldown: 10
+  baseRange: 1
+  baseDuration: 10
+  multipleShots: 3
+  chainBounces: 0
+  explosiveRadius: 0
+  electricStormChance: 0
+  baseEffects:
+    critChance: 0
+    bleedPercent: 0
+    burnDamage: 0
+    freezePercent: 0
+    stunChance: 0
+    poisonDamage: 0

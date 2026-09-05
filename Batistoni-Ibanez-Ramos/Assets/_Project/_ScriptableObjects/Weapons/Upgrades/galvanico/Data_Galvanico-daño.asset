@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79fa657cfae0d234cb4f6c97a7ba2dae, type: 3}
+  m_Name: "Data_Galvanico-da\xF1o"
+  m_EditorClassIdentifier: 
+  exclusiveWeapon: {fileID: 11400000, guid: 221595d343719994389f68acb22894a6, type: 2}
+  baseName: "Da\xF1o"
+  icon: {fileID: 21300000, guid: 550fd5dfdd296cb4c95239ac7f29e915, type: 3}
+  category: 0
+  type: 5
+  levelValues:
+  - 2
+  - 2
+  - 2
+  - 3
+  - 3
+  - 4
+  levelDescriptions:
+  - "aumenta el da\xF1o en 2"
+  - "aumenta el da\xF1o en 2"
+  - "aumenta el da\xF1o en 2"
+  - "aumenta el da\xF1o en 3"
+  - "aumenta el da\xF1o en 3"
+  - "aumenta el da\xF1o en 4"

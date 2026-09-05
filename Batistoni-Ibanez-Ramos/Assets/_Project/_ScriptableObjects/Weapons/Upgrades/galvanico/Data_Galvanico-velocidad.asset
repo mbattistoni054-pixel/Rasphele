@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79fa657cfae0d234cb4f6c97a7ba2dae, type: 3}
+  m_Name: Data_Galvanico-velocidad
+  m_EditorClassIdentifier: 
+  exclusiveWeapon: {fileID: 11400000, guid: 221595d343719994389f68acb22894a6, type: 2}
+  baseName: Velocidad de Ataque
+  icon: {fileID: 21300000, guid: ba217047b3bda094da7840c88ebb8503, type: 3}
+  category: 1
+  type: 21
+  levelValues:
+  - 0.9
+  - 0.8
+  - 0.7
+  - 0.6
+  - 0.5
+  levelDescriptions:
+  - ataca cada 0.9
+  - ataca cada 0.8
+  - ataca cada 0.7
+  - ataca cada 0.6
+  - ataca cada 0.5

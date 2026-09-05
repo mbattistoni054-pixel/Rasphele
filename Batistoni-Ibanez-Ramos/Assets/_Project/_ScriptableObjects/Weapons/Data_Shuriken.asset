@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20f67deaa73c71b46bda1d24991013c8, type: 3}
+  m_Name: Data_Shuriken
+  m_EditorClassIdentifier: 
+  maxFiringUpgrades: 2
+  maxImpactUpgrades: 2
+  weaponName: Shurikens
+  weaponIcon: {fileID: -577883700, guid: 1afbb0c0fb23b4d46968e8ca0f34e9b2, type: 3}
+  projectilePrefab: {fileID: 5868414706774911068, guid: 91fff3f43d3244e458fe52dd86e7eeee, type: 3}
+  attackSound: {fileID: 0}
+  damageType: 0
+  baseDamage: 5
+  baseCooldown: 1
+  baseRange: 15
+  baseDuration: 0
+  multipleShots: 3
+  chainBounces: 0
+  explosiveRadius: 0
+  electricStormChance: 0
+  baseEffects:
+    critChance: 0
+    bleedPercent: 0
+    burnDamage: 0
+    freezePercent: 0
+    stunChance: 0
+    poisonDamage: 0

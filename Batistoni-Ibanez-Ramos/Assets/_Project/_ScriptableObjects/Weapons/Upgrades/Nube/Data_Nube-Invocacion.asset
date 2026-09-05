@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79fa657cfae0d234cb4f6c97a7ba2dae, type: 3}
+  m_Name: Data_Nube-Invocacion
+  m_EditorClassIdentifier: 
+  exclusiveWeapon: {fileID: 11400000, guid: dbaf875361bcc62439f501c74c49aec0, type: 2}
+  baseName: Velocidad de Invocacion
+  icon: {fileID: 21300000, guid: ba217047b3bda094da7840c88ebb8503, type: 3}
+  category: 1
+  type: 3
+  levelValues:
+  - 8
+  - 7
+  - 6
+  levelDescriptions:
+  - cada cuanto se invoca
+  - 
+  - 
