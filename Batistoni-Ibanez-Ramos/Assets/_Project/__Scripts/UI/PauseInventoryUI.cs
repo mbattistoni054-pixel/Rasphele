@@ -2,6 +2,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
+using PatronesAplicados;
+using PatronesAplicados.RealImplementation;
 
 [System.Serializable]
 public struct PauseWeaponPanel
@@ -16,11 +18,11 @@ public struct PauseWeaponPanel
 
 public class PauseInventoryUI : MonoBehaviour
 {
-    [Header("Configuraci髇 de 蛅ems (Abajo)")]
+    [Header("Configuraci贸n de 脥tems (Abajo)")]
     public Transform itemsContainer;
     public GameObject itemPrefab;
 
-    [Header("Configuraci髇 de Armas (Arriba)")]
+    [Header("Configuraci贸n de Armas (Arriba)")]
     public PauseWeaponPanel[] weaponPanels;
 
     private void OnEnable()
@@ -61,7 +63,7 @@ public class PauseInventoryUI : MonoBehaviour
             TextMeshProUGUI cantText = iconObj.GetComponentInChildren<TextMeshProUGUI>();
             if (cantText != null) cantText.text = "x" + cantidad;
 
-            // AGIA! Le agregamos el Tooltip por c骴igo y le pasamos la descripci髇
+            // 隆MAGIA! Le agregamos el Tooltip por c贸digo y le pasamos la descripci贸n
             AddTooltip(iconObj, itemData.itemName, itemData.description);
         }
     }
@@ -71,7 +73,7 @@ public class PauseInventoryUI : MonoBehaviour
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player == null) return;
 
-        WeaponBase[] playerWeapons = player.GetComponentsInChildren<WeaponBase>();
+        WeaponBaseRealRefactored[] playerWeapons = player.GetComponentsInChildren<WeaponBaseRealRefactored>();
 
         for (int i = 0; i < weaponPanels.Length; i++)
         {
@@ -79,51 +81,62 @@ public class PauseInventoryUI : MonoBehaviour
             if (i < playerWeapons.Length)
             {
                 weaponPanels[i].panelObject.SetActive(true);
-                WeaponBase weapon = playerWeapons[i];
+                WeaponBaseRealRefactored weapon = playerWeapons[i];
+                int captureIndex = i; // Necesario para el callback del evento
 
 
                 for (int j = 0; j < weapon.data.maxFiringUpgrades; j++)
                 {
-                    weaponPanels[i].bgFire[j].gameObject.SetActive(true);
+                    weaponPanels[captureIndex].bgFire[j].gameObject.SetActive(true);
                 }
                 for (int j = 0; j < weapon.data.maxImpactUpgrades; j++)
                 {
-                    weaponPanels[i].bgImpact[j].gameObject.SetActive(true);
+                    weaponPanels[captureIndex].bgImpact[j].gameObject.SetActive(true);
                 }
 
                 print(weapon.data.maxFiringUpgrades);
                 print(weapon.data.maxImpactUpgrades);   
 
-                // Configurar Icono del Arma y su Tooltip (Estad韘ticas din醡icas)
-                weaponPanels[i].weaponIcon.sprite = weapon.data.weaponIcon;
+                // Configurar Icono del Arma y su Tooltip (Estad铆sticas din谩micas)
+                weaponPanels[captureIndex].weaponIcon.sprite = weapon.data.weaponIcon;
 
-                // Calculamos el da駉 final (Base + Buffs Globales)
+                // Calculamos el da帽o final (Base + Buffs Globales)
                 float finalDamage = weapon.CurrentBaseDamage;
-                if (PlayerStats.Instance != null) finalDamage *= PlayerStats.Instance.globalDamageMultiplier;
+                if (EventManager.Instance != null)
+                {
+                    EventManager.Instance.TriggerEvent<System.Action<PlayerStatsRefactored>>("RequestCurrentStats", (stats) => 
+                    {
+                        if (stats != null) finalDamage *= stats.globalDamageMultiplier;
+                    });
+                }
 
-                string statsText = $"Da駉: {finalDamage}\nTipo: {weapon.DamageType}\nProb. Cr韙ico: {weapon.CurrentEffects.critChance}%";
-                AddTooltip(weaponPanels[i].weaponIcon.gameObject, weapon.data.weaponName, statsText);
+                string statsText = $"Da帽o: {finalDamage}\nTipo: {weapon.CurrentDamageType}\nProb. Cr铆tico: {weapon.CurrentEffects.critChance}%";
+                AddTooltip(weaponPanels[captureIndex].weaponIcon.gameObject, weapon.data.weaponName, statsText);
 
                 // Configurar los iconos de las mejoras
-                if (UpgradeManager.Instance != null)
+                if (EventManager.Instance != null)
                 {
-                    WeaponUpgradeProfile profile = UpgradeManager.Instance.GetProfile(weapon);
-
-                    // Extraemos los datos de las mejoras para saber sus nombres y descripciones
-                    List<UpgradeData> fireUpgrades = new List<UpgradeData>();
-                    List<UpgradeData> impactUpgrades = new List<UpgradeData>();
-
-                    foreach (var kvp in profile.levels)
+                    EventManager.Instance.TriggerEvent<WeaponBaseRealRefactored, System.Action<WeaponUpgradeProfile>>("RequestUpgradeProfile", weapon, (profile) => 
                     {
-                        if (kvp.Key.category == UpgradeCategory.Firing) fireUpgrades.Add(kvp.Key);
-                        else if (kvp.Key.category == UpgradeCategory.Impact) impactUpgrades.Add(kvp.Key);
-                    }
+                        if (profile != null)
+                        {
+                            // Extraemos los datos de las mejoras para saber sus nombres y descripciones
+                            List<UpgradeData> fireUpgrades = new List<UpgradeData>();
+                            List<UpgradeData> impactUpgrades = new List<UpgradeData>();
 
-                    // Llenamos Huecos de Disparo (Azules)
-                    FillUpgradeSlots(weaponPanels[i].fireSlots, profile.firingIcons, fireUpgrades, profile);
+                            foreach (var kvp in profile.levels)
+                            {
+                                if (kvp.Key.category == UpgradeCategory.Firing) fireUpgrades.Add(kvp.Key);
+                                else if (kvp.Key.category == UpgradeCategory.Impact) impactUpgrades.Add(kvp.Key);
+                            }
 
-                    // Llenamos Huecos de Impacto (Rojos)
-                    FillUpgradeSlots(weaponPanels[i].impactSlots, profile.impactIcons, impactUpgrades, profile);
+                            // Llenamos Huecos de Disparo (Azules)
+                            FillUpgradeSlots(weaponPanels[captureIndex].fireSlots, profile.firingIcons, fireUpgrades, profile);
+
+                            // Llenamos Huecos de Impacto (Rojos)
+                            FillUpgradeSlots(weaponPanels[captureIndex].impactSlots, profile.impactIcons, impactUpgrades, profile);
+                        }
+                    });
                 }
             }
             else
@@ -144,11 +157,11 @@ public class PauseInventoryUI : MonoBehaviour
                 slots[f].sprite = icons[f];
                 slots[f].color = Color.white;
 
-                // Le pasamos el nombre de la mejora y su descripci髇 actual seg鷑 el nivel
+                // Le pasamos el nombre de la mejora y su descripci贸n actual seg煤n el nivel
                 UpgradeData data = upgradesData[f];
                 int currentLevel = profile.levels[data];
 
-                string desc = "Mejora al m醲imo";
+                string desc = "Mejora al m谩ximo";
                 if (currentLevel - 1 >= 0 && currentLevel - 1 < data.levelDescriptions.Length)
                 {
                     desc = data.levelDescriptions[currentLevel - 1];

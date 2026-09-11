@@ -8,8 +8,14 @@ public class CanvasLookCamera : MonoBehaviour
 
     private void Start()
     {
-        HUDManager.Instance.interactText = useText;
-        useText.text = null;
+        if (HUDManager.Instance != null)
+        {
+            HUDManager.Instance.interactText = useText;
+        }
+        if (useText != null)
+        {
+            useText.text = null;
+        }
     }
 
     void Update()

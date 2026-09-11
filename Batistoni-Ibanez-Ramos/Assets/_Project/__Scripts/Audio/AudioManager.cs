@@ -41,7 +41,7 @@ public class AudioManager : MonoBehaviour
             if (!mixerGroups.ContainsKey(group.name))
             {
                 mixerGroups.Add(group.name, group); 
-                print(group.name);
+                //print(group.name);
             }
         }
 

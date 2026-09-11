@@ -1,10 +1,10 @@
-using UnityEngine;
+Ôªøusing UnityEngine;
 
 public class ExperienceOrb : MonoBehaviour
 {
     [Header("Ajustes de la Gema")]
     public float xpAmount = 20f;
-    public float magnetRadius = 5f;   // Distancia a la que empieza a ser atraÌda
+    public float magnetRadius = 5f;   // Distancia a la que empieza a ser atra√≠da
     public float moveSpeed = 10f;     // Velocidad a la que vuela hacia el jugador
 
     private Transform player;
@@ -21,13 +21,13 @@ public class ExperienceOrb : MonoBehaviour
     {
         if (player == null) return;
 
-        // Si el jugador est· cerca, la gema empieza a ser atraÌda
+        // Si el jugador est√° cerca, la gema empieza a ser atra√≠da
         if (!isAttracted && Vector3.Distance(transform.position, player.position) <= magnetRadius)
         {
             isAttracted = true;
         }
 
-        // Si est· siendo atraÌda, vuela hacia el jugador
+        // Si est√° siendo atra√≠da, vuela hacia el jugador
         if (isAttracted)
         {
             transform.position = Vector3.MoveTowards(transform.position, player.position, moveSpeed * Time.deltaTime);
@@ -38,10 +38,10 @@ public class ExperienceOrb : MonoBehaviour
     {
         player = targetPlayer;
         isAttracted = true;
-        moveSpeed *= 2f; // Que vuelen m·s r·pido cuando se usa el im·n
+        moveSpeed *= 2f; // Que vuelen m√°s r√°pido cuando se usa el im√°n
     }
 
-    // Cuando la gema choca fÌsicamente con el jugador
+    // Cuando la gema choca f√≠sicamente con el jugador
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
@@ -51,6 +51,15 @@ public class ExperienceOrb : MonoBehaviour
             {
                 xpScript.AddExperience(xpAmount);
                 Destroy(gameObject); // La gema desaparece
+            }
+            else
+            {
+                PatronesAplicados.PlayerExperienceRefactored newXp = other.GetComponent<PatronesAplicados.PlayerExperienceRefactored>();
+                if (newXp != null)
+                {
+                    newXp.AddExperience(xpAmount);
+                    Destroy(gameObject);
+                }
             }
         }
     }
