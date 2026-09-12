@@ -3,9 +3,9 @@ using UnityEngine;
 public class BulletEnemy : MonoBehaviour
 {
     Transform player;
-    public float damage;
     public float offset;
-    [SerializeField] int speed = 80;
+    public float damageMultiplier = 1;
+    public EnemyData data;
 
     private void Start()
     {
@@ -25,7 +25,7 @@ public class BulletEnemy : MonoBehaviour
     private void Update()
     {
         // Se sigue moviendo hacia la dirección que calculó al nacer
-        transform.position += transform.up * speed * Time.deltaTime;
+        transform.position += transform.up * data.BulletSpeed * Time.deltaTime;
     }
 
     private void OnTriggerEnter(Collider other)
@@ -36,7 +36,7 @@ public class BulletEnemy : MonoBehaviour
 
             if (pHealth != null)
             {
-                pHealth.TakeDamage(damage);
+                pHealth.TakeDamage(data.AttackDamage * damageMultiplier);
                 Destroy(gameObject);
             }
         }

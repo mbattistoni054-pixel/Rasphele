@@ -6,11 +6,11 @@ using System.Collections.Generic;
 public abstract class EnemyBase : MonoBehaviour, IDamageable
 {
     [Header("Datos Base (Read-Only)")]
-    protected EnemyData data;
+    [SerializeField]protected EnemyData data;
 
     [Header("Estadísticas Base")]
-    public float maxHealth = 100f;
-    public float baseSpeed = 3f;
+    public float maxHealth;
+    public float baseSpeed;
 
     [Header("Multiplicador de Dificultad")]
     protected float damageMultiplier = 1f;
@@ -26,8 +26,6 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
     [Header("UI y Recompensas")]
     public GameObject xpOrbPrefab;
     public GameObject damagePopupPrefab;
-    [Tooltip("Cantidad de dinero que suelta al morir")]
-    public int goldReward = 5;
 
     [Header("Efectos Visuales")]
     public Material flashMaterial;
@@ -55,9 +53,9 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
     protected virtual void Start()
     {
         activeEnemyCount++;
-
-        currentHealth = maxHealth;
-        currentSpeed = baseSpeed;
+        maxHealth = data.MaxHealth;
+        currentHealth = data.MaxHealth;
+        currentSpeed = data.BaseSpeed;
 
         agent = GetComponent<NavMeshAgent>();
         rb = GetComponent<Rigidbody>();
@@ -242,7 +240,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
     {
         if (activeSlows.Count >= 3) return;
 
-        float speedReduction = baseSpeed * (slowPercent / 100f);
+        float speedReduction = data.BaseSpeed * (slowPercent / 100f);
         StartCoroutine(FreezeRoutine(speedReduction));
     }
 
@@ -259,13 +257,13 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
 
     private void RecalculateSpeed()
     {
-        currentSpeed = baseSpeed;
+        currentSpeed = data.BaseSpeed;
         foreach (float reduction in activeSlows)
         {
             currentSpeed -= reduction;
         }
 
-        if (currentSpeed < baseSpeed * 0.1f) currentSpeed = baseSpeed * 0.1f;
+        if (currentSpeed < data.BaseSpeed * 0.1f) currentSpeed = data.BaseSpeed * 0.1f;
         if (agent != null) agent.speed = currentSpeed;
     }
 
@@ -316,7 +314,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         if (xpOrbPrefab != null) Instantiate(xpOrbPrefab, transform.position, Quaternion.identity);
         if (PlayerStats.Instance != null)
         {
-            PlayerStats.Instance.AddMoney(goldReward);
+            PlayerStats.Instance.AddMoney(data.GoldReward);
         }
         Destroy(gameObject);
     }

@@ -4,15 +4,15 @@ using UnityEngine;
 
 public class EnemyKamikaze : EnemyBase
 {
-    [Header("Estadísticas Kamikaze")]
-    public float explosionDamage = 40f;
-    public float explosionRadius = 4f;
-    public float triggerDistance = 2.5f;
-    public float explosionDelay = 1.5f;
-    public float rotationForce = 30f;
+   // [Header("Estadísticas Kamikaze")]
+    //public float explosionDamage = 40f;
+    //public float explosionRadius = 4f;
+   // public float triggerDistance = 2.5f;
+   // public float explosionDelay = 1.5f;
+   // public float rotationForce = 30f;
 
-    [Header("Efectos")]
-    public GameObject explosionVisualPrefab;
+    //[Header("Efectos")]
+    //public GameObject explosionVisualPrefab;
 
     private bool isTriggered = false;
     private Renderer rend;
@@ -41,7 +41,7 @@ public class EnemyKamikaze : EnemyBase
 
         if (agent != null)
         {
-            agent.stoppingDistance = triggerDistance - 0.5f;
+            agent.stoppingDistance = data.RangeAttack - 0.5f;
             agent.acceleration = 60f;      // Frena en seco para no patinar hacia ti
             agent.angularSpeed = 600f;
         }
@@ -65,7 +65,7 @@ public class EnemyKamikaze : EnemyBase
             float distance = Vector3.Distance(player.position, transform.position);
             if (!isTriggered)
             {
-                if (distance > triggerDistance)
+                if (distance > data.RangeAttack)
                 {
                     agent.isStopped = false;
 
@@ -88,7 +88,7 @@ public class EnemyKamikaze : EnemyBase
             }
 
             // Sigue mirándote fijamente incluso si ya se detuvo a explotar
-            if (distance <= triggerDistance || isTriggered)
+            if (distance <= data.RangeAttack || isTriggered)
             {
                 Vector3 directionToPlayer = (player.position - transform.position).normalized;
                 directionToPlayer.y = 0;
@@ -96,7 +96,7 @@ public class EnemyKamikaze : EnemyBase
                 if (directionToPlayer != Vector3.zero)
                 {
                     Quaternion targetRotation = Quaternion.LookRotation(directionToPlayer);
-                    transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * rotationForce);
+                    transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 30f);
                 }
             }
 
@@ -114,7 +114,7 @@ public class EnemyKamikaze : EnemyBase
         if (agent != null) agent.isStopped = true;
         if (animator != null && hasMoveParam) animator.SetBool("Move", false);
 
-        float timer = explosionDelay;
+        float timer = data.ExplosionDelay;
 
         while (timer > 0)
         {
@@ -131,20 +131,20 @@ public class EnemyKamikaze : EnemyBase
 
     private void Explode()
     {
-        if (explosionVisualPrefab != null)
+        if (data.ExplosionVisualPrefab != null)
         {
-            GameObject visual = Instantiate(explosionVisualPrefab, transform.position, Quaternion.identity);
-            float visualScale = explosionRadius * 2f;
+            GameObject visual = Instantiate(data.ExplosionVisualPrefab, transform.position, Quaternion.identity);
+            float visualScale = data.ExplosionRadius * 2f;
             visual.transform.localScale = new Vector3(visualScale, visualScale, visualScale);
         }
 
-        Collider[] hitObjects = Physics.OverlapSphere(transform.position, explosionRadius);
+        Collider[] hitObjects = Physics.OverlapSphere(transform.position, data.ExplosionRadius);
         foreach (Collider hit in hitObjects)
         {
             if (hit.CompareTag("Player"))
             {
                 PlayerHealth pHealth = hit.GetComponent<PlayerHealth>();
-                if (pHealth != null) pHealth.TakeDamage(explosionDamage * damageMultiplier);
+                if (pHealth != null) pHealth.TakeDamage(data.AttackDamage * damageMultiplier);
             }
         }
 
@@ -154,8 +154,8 @@ public class EnemyKamikaze : EnemyBase
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, triggerDistance);
+        Gizmos.DrawWireSphere(transform.position, data.RangeAttack);
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, explosionRadius);
+        Gizmos.DrawWireSphere(transform.position, data.RangeAttack);
     }
 }

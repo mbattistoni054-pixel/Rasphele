@@ -5,9 +5,9 @@ using System.Collections;
 public abstract class EnemySorcererBase : EnemyBase
 {
     [Header("Comportamiento de Hechicero")]
-    public float attackRange = 40f;   // Distancia a la que se frena para atacar
-    public float fleeDistance = 20f;  // Si el jugador entra en esta zona, el hechicero huye
-    public float attackCooldown = 10f; // Tiempo entre ataques
+    //public float attackRange = 40f;   // Distancia a la que se frena para atacar
+   // public float fleeDistance = 20f;  // Si el jugador entra en esta zona, el hechicero huye
+    //public float attackCooldown = 10f; // Tiempo entre ataques
 
     [Header("Animación")]
     public Animator animator;
@@ -69,11 +69,11 @@ public abstract class EnemySorcererBase : EnemyBase
             }
 
             // DECIDIR SI HUYE
-            if (distance <= fleeDistance)
+            if (distance <= data.FleeDistance)
             {
                 isFleeing = true;
             }
-            else if (distance >= attackRange)
+            else if (distance >= data.RangeAttack)
             {
                 isFleeing = false; // Ya se alejó lo suficiente
             }
@@ -104,14 +104,14 @@ public abstract class EnemySorcererBase : EnemyBase
             }
             else
             {
-                agent.stoppingDistance = attackRange - 1f; // Restauramos la distancia de frenado
+                agent.stoppingDistance = data.RangeAttack - 1f; // Restauramos la distancia de frenado
 
-                if (distance <= attackRange)
+                if (distance <= data.RangeAttack)
                 {
                     agent.isStopped = true;
                     if (animator != null && hasMoveParam) animator.SetBool("Move", false);
 
-                    if (Time.time >= lastAttackTime + attackCooldown)
+                    if (Time.time >= lastAttackTime + data.AttackCooldown)
                     {
                         StartCoroutine(PerformAttackRoutine());
                     }

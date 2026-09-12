@@ -3,8 +3,6 @@ using UnityEngine;
 public class EnemyMelee : EnemyBase
 {
     [Header("Estadísticas de Ataque")]
-    public float attackDamage = 10f;
-    public float attackCooldown = 1f;
 
     private float lastAttackTime;
     private float lastFrameTime;
@@ -31,7 +29,7 @@ public class EnemyMelee : EnemyBase
 
         if (agent != null)
         {
-            agent.stoppingDistance = 1.5f; // Que frene exactamente en el rango de ataque
+            agent.stoppingDistance = data.RangeAttack; // Que frene exactamente en el rango de ataque
             agent.acceleration = 60f;      // Mucha aceleración para que frene y arranque de golpe (sin patinar)
             agent.angularSpeed = 600f;     // Que gire muy rápido
         }
@@ -53,7 +51,7 @@ public class EnemyMelee : EnemyBase
             float distance = Vector3.Distance(player.position, transform.position);
 
             //  LÓGICA DE MOVIMIENTO 
-            if (!onAttack && distance > 1.5f)
+            if (!onAttack && distance > data.RangeAttack)
             {
                 agent.isStopped = false;
 
@@ -88,10 +86,10 @@ public class EnemyMelee : EnemyBase
             }
 
             // LÓGICA DE ATAQUE 
-            if (distance <= 1.5f || onAttack)
+            if (distance <= data.RangeAttack || onAttack)
             {
                 // Iniciar el ataque
-                if (Time.time >= lastAttackTime + attackCooldown && !onAttack)
+                if (Time.time >= lastAttackTime + data.AttackCooldown && !onAttack)
                 {
                     if (animator != null) animator.SetTrigger("Attack");
 
@@ -112,7 +110,7 @@ public class EnemyMelee : EnemyBase
 
                         if (health != null)
                         {
-                            health.TakeDamage(attackDamage);
+                            health.TakeDamage(data.AttackDamage);
                         }
                     }
 
