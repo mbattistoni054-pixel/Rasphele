@@ -5,6 +5,9 @@ using System.Collections.Generic;
 
 public abstract class EnemyBase : MonoBehaviour, IDamageable
 {
+    [Header("Datos Base (Read-Only)")]
+    protected EnemyData data;
+
     [Header("Estadísticas Base")]
     public float maxHealth = 100f;
     public float baseSpeed = 3f;

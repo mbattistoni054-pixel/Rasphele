@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class CopiaMeleeEnemy : EnemyBase
+public class EnemyMelee : EnemyBase
 {
     [Header("Estadísticas de Ataque")]
     public float attackDamage = 10f;
@@ -36,7 +36,6 @@ public class CopiaMeleeEnemy : EnemyBase
             agent.angularSpeed = 600f;     // Que gire muy rápido
         }
     }
-
 
     protected override void Update()
     {
