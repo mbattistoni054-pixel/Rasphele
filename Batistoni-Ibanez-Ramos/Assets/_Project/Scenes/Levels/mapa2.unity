@@ -77057,7 +77057,7 @@ Transform:
   m_GameObject: {fileID: 487326196}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 791, y: -7.2, z: -1796.9}
+  m_LocalPosition: {x: 791, y: -14.35, z: -1796.9}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -135844,7 +135844,7 @@ Transform:
   m_GameObject: {fileID: 693046233}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 791, y: -7.2, z: -1796.9}
+  m_LocalPosition: {x: 791, y: -14.35, z: -1796.9}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -173215,7 +173215,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &849879223
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -173258,9 +173258,6 @@ MonoBehaviour:
       spawnProbability: 100
       spawnCost: 1
     - enemyPrefab: {fileID: 666784196215736002, guid: aeb1705d0eed73948bd1d310a47a645c, type: 3}
-      spawnProbability: 100
-      spawnCost: 1
-    - enemyPrefab: {fileID: 7814739222363453527, guid: b86f33fe30f697444bfd6e87300a3f0a, type: 3}
       spawnProbability: 100
       spawnCost: 1
   minSpawnRadius: 15
@@ -186645,7 +186642,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2451786278663615115, guid: 95c0419059fa1b04da1727acd35962de, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -12.2
+      value: -19.35
       objectReference: {fileID: 0}
     - target: {fileID: 2451786278663615115, guid: 95c0419059fa1b04da1727acd35962de, type: 3}
       propertyPath: m_LocalPosition.z

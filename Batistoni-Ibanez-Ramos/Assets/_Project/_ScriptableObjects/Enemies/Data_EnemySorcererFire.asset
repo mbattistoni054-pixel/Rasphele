@@ -12,22 +12,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77068a9ac790c5945a5ead59ff57177d, type: 3}
   m_Name: Data_EnemySorcererFire
   m_EditorClassIdentifier: 
-  maxHealth: 0
-  baseSpeed: 0
-  attackDamage: 0
-  attackCooldown: 0
-  rangeAttack: 0
-  fleeDistance: 0
+  maxHealth: 50
+  baseSpeed: 25
+  attackDamage: 20
+  attackCooldown: 10
+  rangeAttack: 40
+  fleeDistance: 20
   goldReward: 0
   expReward: 0
   bullet: {fileID: 0}
-  explosionDamage: 0
+  bulletSpeed: 0
   explosionRadius: 0
-  triggerDistancef: 0
-  explosionDelayf: 0
+  explosionDelay: 0
   explosionVisualPrefab: {fileID: 0}
-  attackRadiusf: 0
-  hitDelayf: 0
+  attackRadius: 0
+  hitDelay: 0
   knockbackHorizontal: 0
   knockbackUpward: 0
   slamVisualPrefab: {fileID: 0}
