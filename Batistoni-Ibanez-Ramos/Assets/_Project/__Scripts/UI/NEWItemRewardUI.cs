@@ -1,10 +1,11 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using PatronesAplicados;
 
-public class ItemRewardUI : MonoBehaviour
+public class NEWItemRewardUI : MonoBehaviour
 {
-    public static ItemRewardUI Instance;
+    public static NEWItemRewardUI Instance;
 
     [Header("Elementos Visuales")]
     public GameObject panel;
@@ -40,18 +41,24 @@ public class ItemRewardUI : MonoBehaviour
 
         switch (item.tier)
         {
-            case ItemTier.Comun: tierText.text = "COMÚN"; tierText.color = Color.cyan; border.color = Color.cyan; break;
+            case ItemTier.Comun: tierText.text = "COMN"; tierText.color = Color.cyan; border.color = Color.cyan; break;
             case ItemTier.Raro: tierText.text = "RARO"; tierText.color = Color.magenta; border.color = Color.magenta; break;
             case ItemTier.Extraordinario: tierText.text = "EXTRAORDINARIO"; tierText.color = new Color(1f, 0.5f, 0f); border.color = new Color(1f, 0.5f, 0f); break; // Naranja
         }
 
         panel.SetActive(true);
-        if (PatronesAplicados.EventManager.Instance != null) PatronesAplicados.EventManager.Instance.TriggerEvent("PauseRequested"); else if (GameManager.Instance != null) GameManager.Instance.EnablePause(); // Pausamos el juego mientras decides
+        
+        // Uso de EventManager en lugar de GameManager.Instance.EnablePause()
+        if (EventManager.Instance != null)
+        {
+            EventManager.Instance.TriggerEvent("PauseRequested");
+        }
+
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
 
-    // Botón: Equipar
+    // Botn: Equipar
     public void KeepItem()
     {
         if (currentItem == null) return; 
@@ -63,16 +70,22 @@ public class ItemRewardUI : MonoBehaviour
         ClosePanel();
     }
 
-    // Botón: Vender
+    // Botn: Vender
     public void SellItem()
     {
         if (currentItem == null) return; 
 
-        if (PlayerStats.Instance != null)
+        if (PlayerStatsRefactored.Instance != null)
         {
-            PlayerStats.Instance.AddMoney(25);
+            PlayerStatsRefactored.Instance.AddMoney(25);
             Debug.Log("Objeto vendido por $25.");
         }
+        else if (PlayerStats.Instance != null)
+        {
+            PlayerStats.Instance.AddMoney(25);
+            Debug.Log("Objeto vendido por $25 usando stats antiguos.");
+        }
+
         ClosePanel();
     }
 
@@ -80,6 +93,11 @@ public class ItemRewardUI : MonoBehaviour
     {
         currentItem = null; // Vaciamos el objeto para evitar trampas
         panel.SetActive(false);
-        if (PatronesAplicados.EventManager.Instance != null) PatronesAplicados.EventManager.Instance.TriggerEvent("ResumeRequested"); else if (GameManager.Instance != null) GameManager.Instance.DisablePause();
+        
+        // Uso de EventManager en lugar de GameManager.Instance.DisablePause()
+        if (EventManager.Instance != null)
+        {
+            EventManager.Instance.TriggerEvent("ResumeRequested");
+        }
     }
 }

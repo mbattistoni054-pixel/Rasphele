@@ -48,7 +48,7 @@ namespace PatronesAplicados.RealImplementation
             FireZoneRefactored fireZone = fireObj.GetComponent<FireZoneRefactored>();
             if (fireZone != null)
             {
-                float finalDuration = CurrentDuration > 0 ? CurrentDuration : 3f;
+                float finalDuration = CurrentDuration;
 
                 // Usamos las estadsticas inyectadas por el Builder
                 fireZone.Setup(

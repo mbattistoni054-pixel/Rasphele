@@ -104,8 +104,8 @@ namespace PatronesAplicados
     {
         get
         {
-            if (PlayerStats.Instance != null)
-                return PlayerStats.Instance.GetTotalSpeed(currentSpeed);
+            if (PlayerStatsRefactored.Instance != null)
+                return PlayerStatsRefactored.Instance.GetTotalSpeed(currentSpeed);
 
             return currentSpeed; // Si por algún motivo no hay stats, usa la normal
         }
@@ -145,7 +145,7 @@ namespace PatronesAplicados
 
         _controls?.ListenKeys(Time.deltaTime);
 
-        int maxDashesAllowed = 1 + ((PlayerStats.Instance != null) ? PlayerStats.Instance.itemExtraDashes : 0);
+        int maxDashesAllowed = 1 + ((PlayerStatsRefactored.Instance != null) ? PlayerStatsRefactored.Instance.itemExtraDashes : 0);
         if (currentDashesAvailable < maxDashesAllowed)
         {
             dashCooldownTimer -= Time.deltaTime;
@@ -157,7 +157,7 @@ namespace PatronesAplicados
         }
         else dashCooldownTimer = 0f;
 
-        if (PlayerStats.Instance != null && PlayerStats.Instance.itemRegenMoving > 0f)
+        if (PlayerStatsRefactored.Instance != null && PlayerStatsRefactored.Instance.itemRegenMoving > 0f)
         {
             if (_movement.GetHorizontalSpeed() > 0.5f && moveDirection.magnitude > 0.1f && isGrounded)
             {
@@ -165,7 +165,8 @@ namespace PatronesAplicados
                 if (regenTimer >= 1f)
                 {
                     regenTimer = 0f;
-                    GetComponent<PlayerHealth>()?.Heal(PlayerStats.Instance.itemRegenMoving);
+                    GetComponent<PlayerHealth>()?.Heal(PlayerStatsRefactored.Instance.itemRegenMoving);
+                    GetComponent<PatronesAplicados.PlayerHealthRefactored>()?.Heal(PlayerStatsRefactored.Instance.itemRegenMoving);
                 }
             }
         }
@@ -256,7 +257,7 @@ namespace PatronesAplicados
         if (isGrounded && currentState == PlayerState.Airborne && _movement.GetVelocity().y <= 0 && jumpCooldown <= 0f)
         {
             currentState = PlayerState.Walking;
-            additionalJumpsLeft = (PlayerStats.Instance != null) ? PlayerStats.Instance.itemExtraJumps : 0;
+            additionalJumpsLeft = (PlayerStatsRefactored.Instance != null) ? PlayerStatsRefactored.Instance.itemExtraJumps : 0;
         }
         else if (!isGrounded && currentState == PlayerState.Walking && coyoteTimer <= 0f)
         {

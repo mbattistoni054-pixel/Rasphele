@@ -106,6 +106,7 @@ namespace PatronesAplicados.RealImplementation
                         GameObject visualObj = Instantiate(explosionVisualPrefab, transform.position, Quaternion.identity);
                         float visualScale = expRadius * 2f;
                         visualObj.transform.localScale = new Vector3(visualScale, visualScale, visualScale);
+                        Destroy(visualObj, 2f); // Evitar fuga de memoria
                     }
 
                     Collider[] hitObjects = Physics.OverlapSphere(transform.position, expRadius, enemyMask);

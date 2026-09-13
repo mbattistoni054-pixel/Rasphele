@@ -30,9 +30,9 @@ namespace PatronesAplicados
 
         void Start()
         {
-            if (PlayerStats.Instance != null && PlayerStats.Instance.baseMaxHealth > 0)
+            if (PlayerStatsRefactored.Instance != null && PlayerStatsRefactored.Instance.baseMaxHealth > 0)
             {
-                maxHealth = PlayerStats.Instance.GetTotalMaxHealth();
+                maxHealth = PlayerStatsRefactored.Instance.GetTotalMaxHealth();
             }
 
             currentHealth = maxHealth;
@@ -42,7 +42,7 @@ namespace PatronesAplicados
         void Update()
         {
             // Monitoreo de inactividad para activar el escudo (Panal)
-            if (PlayerStats.Instance != null && PlayerStats.Instance.shieldStacks > 0)
+            if (PlayerStatsRefactored.Instance != null && PlayerStatsRefactored.Instance.shieldStacks > 0)
             {
                 if (!hasShield)
                 {
@@ -124,10 +124,10 @@ namespace PatronesAplicados
 
         public void UpdateMaxHealthFromStats()
         {
-            if (PlayerStats.Instance == null) return;
+            if (PlayerStatsRefactored.Instance == null) return;
 
             float oldMaxHealth = maxHealth;
-            maxHealth = PlayerStats.Instance.GetTotalMaxHealth();
+            maxHealth = PlayerStatsRefactored.Instance.GetTotalMaxHealth();
 
             float difference = maxHealth - oldMaxHealth;
             if (difference > 0)
@@ -167,9 +167,9 @@ namespace PatronesAplicados
                 return;
             }
 
-            if (PlayerStats.Instance != null)
+            if (PlayerStatsRefactored.Instance != null)
             {
-                amount *= PlayerStats.Instance.itemDamageTakenMultiplier;
+                amount *= PlayerStatsRefactored.Instance.itemDamageTakenMultiplier;
             }
 
             ShowDamagePopup(amount);
@@ -195,9 +195,9 @@ namespace PatronesAplicados
 
         public void IncreaseMaxHealth(float amount)
         {
-            if (PlayerStats.Instance != null)
+            if (PlayerStatsRefactored.Instance != null)
             {
-                PlayerStats.Instance.baseMaxHealth += amount;
+                PlayerStatsRefactored.Instance.baseMaxHealth += amount;
                 UpdateMaxHealthFromStats();
             }
             else
@@ -221,3 +221,4 @@ namespace PatronesAplicados
         }
     }
 }
+

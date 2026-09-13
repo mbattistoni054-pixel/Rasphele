@@ -112,7 +112,6 @@ namespace PatronesAplicados.RealImplementation
 
                         if (Time.time >= playerHealTimes[playerId] + 0.95f)
                         {
-                            // Nota: Deberas cambiar PlayerHealth por PlayerHealthRefactored si ya est integrado
                             PlayerHealth pHealth = hit.GetComponent<PlayerHealth>();
 
                             if (pHealth != null)
@@ -120,6 +119,16 @@ namespace PatronesAplicados.RealImplementation
                                 playerHealTimes[playerId] = Time.time;
                                 pHealth.Heal(healAmount);
                                 Debug.Log($" [ESPORAS] CURACIN APLICADA! (+{healAmount})");
+                            }
+                            else
+                            {
+                                PatronesAplicados.PlayerHealthRefactored newHealth = hit.GetComponent<PatronesAplicados.PlayerHealthRefactored>();
+                                if (newHealth != null)
+                                {
+                                    playerHealTimes[playerId] = Time.time;
+                                    newHealth.Heal(healAmount);
+                                    Debug.Log($" [ESPORAS] CURACIN APLICADA! (+{healAmount})");
+                                }
                             }
                         }
                     }

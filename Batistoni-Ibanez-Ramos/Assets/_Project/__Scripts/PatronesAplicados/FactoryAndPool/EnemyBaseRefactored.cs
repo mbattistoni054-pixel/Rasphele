@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.AI;
 using System.Collections;
 using System.Collections.Generic;
@@ -341,7 +341,17 @@ namespace PatronesAplicados
 
         protected virtual void Die()
         {
-            if (xpOrbPrefab != null) Instantiate(xpOrbPrefab, transform.position, Quaternion.identity);
+            if (xpOrbPrefab != null)
+            {
+                if (PatronesAplicados.RealImplementation.ProjectilePoolManager.Instance != null)
+                {
+                    PatronesAplicados.RealImplementation.ProjectilePoolManager.Instance.GetProjectile(xpOrbPrefab, transform.position, Quaternion.identity);
+                }
+                else
+                {
+                    Instantiate(xpOrbPrefab, transform.position, Quaternion.identity);
+                }
+            }
 
             // DESACOPLAMIENTO DE EVENTOS
             if (EventManager.Instance != null)

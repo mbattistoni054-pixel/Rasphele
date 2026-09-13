@@ -15,11 +15,11 @@ namespace PatronesAplicados.RealImplementation
 
         protected override void Attack()
         {
-            // Tomamos los valores inyectados por el Builder
+            // Tomamos los valores inyectados por el Builder (y provenientes de WeaponData)
             int mushroomsToSpawn = CurrentMultipleShots;
             float damagePerMushroom = GetFinalDamage();
-            float sporeRadius = CurrentExplosiveRadius > 0 ? CurrentExplosiveRadius : 3f;
-            float duration = CurrentDuration > 0 ? CurrentDuration : 10f;
+            float sporeRadius = CurrentExplosiveRadius;
+            float duration = CurrentDuration;
 
             for (int i = 0; i < mushroomsToSpawn; i++)
             {

@@ -804,8 +804,9 @@ GameObject:
   - component: {fileID: -5879087324996281369}
   - component: {fileID: 8491985443903446048}
   - component: {fileID: 3476205794857325501}
+  - component: {fileID: 5167794553275440250}
   m_Layer: 7
-  m_Name: URP - Giant01_Flat - Golem_Flat
+  m_Name: NEWGolem
   m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -820,7 +821,7 @@ Transform:
   m_GameObject: {fileID: 3493230387313788560}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 434.05255, y: -19.999449, z: -1913.6545}
+  m_LocalPosition: {x: 513.55273, y: 0.0000006556511, z: -960.7568}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -920,6 +921,34 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!114 &5167794553275440250
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3493230387313788560}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0b4dc98265c4e149b169b36d81f9010, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  poolKey: NEWGolem
+  maxHealth: 200
+  baseSpeed: 25
+  xpOrbPrefab: {fileID: 4151671228204215311, guid: f0f5c3e19b95e644d8886b80bbdb3cbc, type: 3}
+  damagePopupPrefab: {fileID: 3592148569616233406, guid: 61ebab5bd050aba4583e7948ea50b804, type: 3}
+  goldReward: 5
+  flashMaterial: {fileID: 0}
+  attackDamage: 30
+  attackRange: 3
+  attackRadius: 4.5
+  hitDelay: 1.5
+  attackCooldown: 2
+  knockbackHorizontal: 65
+  knockbackUpward: 23
+  slamVisualPrefab: {fileID: 9136211849381488765, guid: 828397ef250a4bf409792e5c26adc5a3, type: 3}
+  animator: {fileID: 7375338823319746824}
 --- !u!1 &3510761379227623898
 GameObject:
   m_ObjectHideFlags: 0

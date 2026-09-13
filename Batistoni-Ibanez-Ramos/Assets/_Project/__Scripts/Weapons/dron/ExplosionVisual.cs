@@ -2,12 +2,24 @@ using UnityEngine;
 
 public class ExplosionVisual : MonoBehaviour
 {
-    [Tooltip("Cuánto tiempo dura la esfera visible en pantalla antes de desaparecer")]
+    [Tooltip("Cunto tiempo dura la esfera visible en pantalla antes de desaparecer")]
     public float lifetime = 1f;
 
-    void Start()
+    void OnEnable()
     {
-        // Se destruye automáticamente después de un instante
-        Destroy(gameObject, lifetime);
+        StartCoroutine(ReturnToPoolRoutine());
+    }
+
+    private System.Collections.IEnumerator ReturnToPoolRoutine()
+    {
+        yield return new WaitForSeconds(lifetime);
+        if (PatronesAplicados.RealImplementation.ProjectilePoolManager.Instance != null)
+        {
+            PatronesAplicados.RealImplementation.ProjectilePoolManager.Instance.ReturnProjectile(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
     }
 }

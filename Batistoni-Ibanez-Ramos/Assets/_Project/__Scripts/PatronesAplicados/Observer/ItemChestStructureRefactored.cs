@@ -50,7 +50,7 @@ namespace PatronesAplicados
 
         private void TryOpenChest()
         {
-            if (ItemManager.Instance == null || ItemRewardUI.Instance == null) return;
+            if (ItemManager.Instance == null || NEWItemRewardUI.Instance == null) return;
 
             bool spendSuccess = false;
             if (PlayerStatsRefactored.Instance != null)
@@ -78,7 +78,7 @@ namespace PatronesAplicados
 
                 if (rewardedItem != null)
                 {
-                    ItemRewardUI.Instance.ShowReward(rewardedItem);
+                    NEWItemRewardUI.Instance.ShowReward(rewardedItem);
                 }
                 else
                 {
@@ -114,3 +114,7 @@ namespace PatronesAplicados
         }
     }
 }
+
+
+
+

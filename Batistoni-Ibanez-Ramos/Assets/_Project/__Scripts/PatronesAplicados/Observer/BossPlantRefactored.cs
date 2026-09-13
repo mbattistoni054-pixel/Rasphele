@@ -1,9 +1,10 @@
 using UnityEngine;
 using System.Collections;
+using PatronesAplicados.RealImplementation;
 
 namespace PatronesAplicados
 {
-    public class BossPlantRefactored : EnemyBase
+    public class BossPlantRefactored : EnemyBaseRefactored
     {
         // EVENTOS ESTATICOS REMOVIDOS. USAMOS EVENT MANAGER.
 
@@ -208,13 +209,23 @@ namespace PatronesAplicados
                 if (player == null) break;
 
                 Vector3 aimDirection = (player.position - firePoint.position).normalized;
-                GameObject orb = Instantiate(orbPrefab, firePoint.position, Quaternion.LookRotation(aimDirection));
+                GameObject orb;
+                if (ProjectilePoolManager.Instance != null)
+                    orb = ProjectilePoolManager.Instance.GetProjectile(orbPrefab, firePoint.position, Quaternion.LookRotation(aimDirection));
+                else
+                    orb = Instantiate(orbPrefab, firePoint.position, Quaternion.LookRotation(aimDirection));
 
-                BossOrb orbScript = orb.GetComponent<BossOrb>();
+                NEWBossOrb orbScript = orb.GetComponent<NEWBossOrb>();
+                BossOrb oldOrbScript = orb.GetComponent<BossOrb>();
                 if (orbScript != null)
                 {
                     orbScript.Setup(attackDamage);
                 }
+                else if (oldOrbScript != null)
+                {
+                    oldOrbScript.Setup(attackDamage);
+                }
+
 
                 yield return new WaitForSeconds(timeBetweenOrbs);
             }
@@ -230,13 +241,24 @@ namespace PatronesAplicados
 
                 if (rootTrapPrefab != null && player != null)
                 {
-                    GameObject trap = Instantiate(rootTrapPrefab, player.position, Quaternion.identity);
-                    BossRootTrap trapScript = trap.GetComponent<BossRootTrap>();
+                    GameObject trap;
+                    if (ProjectilePoolManager.Instance != null)
+                        trap = ProjectilePoolManager.Instance.GetProjectile(rootTrapPrefab, player.position, Quaternion.identity);
+                    else
+                        trap = Instantiate(rootTrapPrefab, player.position, Quaternion.identity);
+
+                    NEWBossRootTrap trapScript = trap.GetComponent<NEWBossRootTrap>();
+                    BossRootTrap oldTrapScript = trap.GetComponent<BossRootTrap>();
 
                     if (trapScript != null)
                     {
                         trapScript.Setup(player, attackDamage);
                     }
+                    else if (oldTrapScript != null)
+                    {
+                        oldTrapScript.Setup(player, attackDamage);
+                    }
+
                 }
 
                 if (i < rootsToSpawn - 1)
@@ -269,3 +291,8 @@ namespace PatronesAplicados
         }
     }
 }
+
+
+
+
+

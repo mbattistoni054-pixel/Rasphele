@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 
 namespace PatronesAplicados.RealImplementation
@@ -81,7 +81,7 @@ namespace PatronesAplicados.RealImplementation
                 }
 
                 beam.damageTickTimer += Time.deltaTime;
-                float tickRate = CurrentBaseCooldown > 0 ? CurrentBaseCooldown : 1f;
+                float tickRate = CurrentBaseCooldown;
 
                 if (beam.damageTickTimer >= tickRate)
                 {

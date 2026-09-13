@@ -134,10 +134,18 @@ public class RingStormManager : MonoBehaviour
             {
                 damageTimer -= 1f;
 
-                PlayerHealth pHealth = player.GetComponent<PlayerHealth>();
-                if (pHealth != null)
+                var refHealth = player.GetComponent<PatronesAplicados.PlayerHealthRefactored>();
+                if (refHealth != null)
                 {
-                    pHealth.TakeDamage(damagePerSecond);
+                    refHealth.TakeDamage(damagePerSecond);
+                }
+                else
+                {
+                    PlayerHealth pHealth = player.GetComponent<PlayerHealth>();
+                    if (pHealth != null)
+                    {
+                        pHealth.TakeDamage(damagePerSecond);
+                    }
                 }
             }
             stormScreenFilter.gameObject.SetActive(true);

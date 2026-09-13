@@ -1,4 +1,4 @@
-﻿using PatronesAplicados;
+using PatronesAplicados;
 using UnityEngine;
 
 public class NEWCopiaMeleeEnemy : EnemyBaseRefactored
@@ -114,12 +114,12 @@ public class NEWCopiaMeleeEnemy : EnemyBaseRefactored
 
                         if (health != null)
                         {
-                            health.TakeDamage(attackDamage);
+                            health.TakeDamage(attackDamage * damageMultiplier);
                         }
                         else
                         {
                             PatronesAplicados.PlayerHealthRefactored newHealth = player.GetComponent<PatronesAplicados.PlayerHealthRefactored>();
-                            if (newHealth != null) newHealth.TakeDamage(attackDamage);
+                            if (newHealth != null) newHealth.TakeDamage(attackDamage * damageMultiplier);
                         }
                     }
 

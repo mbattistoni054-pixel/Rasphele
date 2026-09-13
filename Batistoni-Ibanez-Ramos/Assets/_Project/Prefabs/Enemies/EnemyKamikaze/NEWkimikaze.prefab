@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1001 &2884818237642921231
+--- !u!1001 &1105659230080175413
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -10,15 +10,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 7b80d3657686b504f8a8134bf392f6f4, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 510.46756
+      value: 509.93777
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 7b80d3657686b504f8a8134bf392f6f4, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 0.000014066696
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 7b80d3657686b504f8a8134bf392f6f4, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -935.2749
+      value: -935.15936
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 7b80d3657686b504f8a8134bf392f6f4, type: 3}
       propertyPath: m_LocalRotation.w
@@ -50,7 +50,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 7b80d3657686b504f8a8134bf392f6f4, type: 3}
       propertyPath: m_Name
-      value: NEW-EnemyMelee NICO
+      value: NEWkimikaze
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 7b80d3657686b504f8a8134bf392f6f4, type: 3}
       propertyPath: m_Layer
@@ -64,39 +64,47 @@ PrefabInstance:
       propertyPath: m_TagString
       value: Enemy
       objectReference: {fileID: 0}
+    - target: {fileID: 3853268898807207900, guid: 7b80d3657686b504f8a8134bf392f6f4, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: b9b444e7a044a134f86664c427191081, type: 2}
+    - target: {fileID: 6148737315974723067, guid: 7b80d3657686b504f8a8134bf392f6f4, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: ff0b9d4aa914fb14585fe4f1e2ea11bb, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 7b80d3657686b504f8a8134bf392f6f4, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1840660497667583799}
+      addedObject: {fileID: 7720209427959601339}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 7b80d3657686b504f8a8134bf392f6f4, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 4516175539627522515}
+      addedObject: {fileID: 4380710990710722913}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 7b80d3657686b504f8a8134bf392f6f4, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 9057236259826394290}
+      addedObject: {fileID: 6210406491115402034}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 7b80d3657686b504f8a8134bf392f6f4, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 4766993520028953135}
+      addedObject: {fileID: 5391151777309399704}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 7b80d3657686b504f8a8134bf392f6f4, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 8938322900270792341}
+      addedObject: {fileID: 8099666656039590389}
   m_SourcePrefab: {fileID: 100100000, guid: 7b80d3657686b504f8a8134bf392f6f4, type: 3}
---- !u!1 &2650798525915031646 stripped
+--- !u!1 &259377987768725604 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 7b80d3657686b504f8a8134bf392f6f4, type: 3}
-  m_PrefabInstance: {fileID: 2884818237642921231}
+  m_PrefabInstance: {fileID: 1105659230080175413}
   m_PrefabAsset: {fileID: 0}
---- !u!95 &1840660497667583799
+--- !u!95 &7720209427959601339
 Animator:
   serializedVersion: 7
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2650798525915031646}
+  m_GameObject: {fileID: 259377987768725604}
   m_Enabled: 1
   m_Avatar: {fileID: 9000000, guid: 7b80d3657686b504f8a8134bf392f6f4, type: 3}
   m_Controller: {fileID: 9100000, guid: d04360db2c46d6c4b94f066f3a3659fc, type: 2}
@@ -111,13 +119,13 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!136 &4516175539627522515
+--- !u!136 &4380710990710722913
 CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2650798525915031646}
+  m_GameObject: {fileID: 259377987768725604}
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -134,13 +142,13 @@ CapsuleCollider:
   m_Height: 2.4348793
   m_Direction: 1
   m_Center: {x: 0.000000059604645, y: 1.1401672, z: 0.24633408}
---- !u!54 &9057236259826394290
+--- !u!54 &6210406491115402034
 Rigidbody:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2650798525915031646}
+  m_GameObject: {fileID: 259377987768725604}
   serializedVersion: 4
   m_Mass: 1
   m_Drag: 0
@@ -161,13 +169,13 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 112
   m_CollisionDetection: 0
---- !u!195 &4766993520028953135
+--- !u!195 &5391151777309399704
 NavMeshAgent:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2650798525915031646}
+  m_GameObject: {fileID: 259377987768725604}
   m_Enabled: 1
   m_AgentTypeID: 0
   m_Radius: 0.5
@@ -183,25 +191,29 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
---- !u!114 &8938322900270792341
+--- !u!114 &8099666656039590389
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2650798525915031646}
+  m_GameObject: {fileID: 259377987768725604}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4ac72b4a5b8f76a48ab9ea0577b6291c, type: 3}
+  m_Script: {fileID: 11500000, guid: 500a7bff62f297742ae6afb265a42651, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  poolKey: NEW-EnemyMelee NICO
-  maxHealth: 30
-  baseSpeed: 25
+  poolKey: NEWkimikaze
+  maxHealth: 20
+  baseSpeed: 40
   xpOrbPrefab: {fileID: 4151671228204215311, guid: f0f5c3e19b95e644d8886b80bbdb3cbc, type: 3}
   damagePopupPrefab: {fileID: 3592148569616233406, guid: 61ebab5bd050aba4583e7948ea50b804, type: 3}
   goldReward: 5
   flashMaterial: {fileID: 0}
-  attackDamage: 10
-  attackCooldown: 1
+  explosionDamage: 40
+  explosionRadius: 8
+  triggerDistance: 3
+  explosionDelay: 0.75
+  rotationForce: 0.1
+  explosionVisualPrefab: {fileID: 9136211849381488765, guid: 828397ef250a4bf409792e5c26adc5a3, type: 3}
   animator: {fileID: 0}
