@@ -5,10 +5,10 @@ using System.Collections;
 
 public abstract class NEWEnemySorcererBase : EnemyBaseRefactored
 {
-    [Header("Comportamiento de Hechicero")]
-    public float attackRange = 40f;   // Distancia a la que se frena para atacar
-    public float fleeDistance = 20f;  // Si el jugador entra en esta zona, el hechicero huye
-    public float attackCooldown = 10f; // Tiempo entre ataques
+    //[Header("Comportamiento de Hechicero")]
+    //public float attackRange = 40f;   // Distancia a la que se frena para atacar
+    //public float fleeDistance = 20f;  // Si el jugador entra en esta zona, el hechicero huye
+   // public float attackCooldown = 10f; // Tiempo entre ataques
 
     [Header("Animacin")]
     public Animator animator;
@@ -62,28 +62,28 @@ public abstract class NEWEnemySorcererBase : EnemyBaseRefactored
             float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
             // 1. Huida (Fleeing)
-            if (distanceToPlayer < fleeDistance && !isChargingAttack)
+            if (distanceToPlayer < data.FleeDistance && !isChargingAttack)
             {
                 FleeFromPlayer();
                 return;
             }
 
             // 2. Acercarse al Rango de Ataque
-            if (distanceToPlayer > attackRange && !isChargingAttack)
+            if (distanceToPlayer > data.RangeAttack && !isChargingAttack)
             {
                 ApproachPlayer();
                 return;
             }
 
             // 3. Atacar si est en rango y termin el cooldown
-            if (distanceToPlayer <= attackRange && Time.time >= lastAttackTime + attackCooldown && !isChargingAttack)
+            if (distanceToPlayer <= data.RangeAttack && Time.time >= lastAttackTime + data.AttackCooldown && !isChargingAttack)
             {
                 StartAttackRoutine();
                 return;
             }
 
             // Si est en rango de ataque (pero no demasiado cerca) y en Cooldown -> Se queda quieto mirndote
-            if (!isChargingAttack && distanceToPlayer >= fleeDistance && distanceToPlayer <= attackRange)
+            if (!isChargingAttack && distanceToPlayer >= data.FleeDistance && distanceToPlayer <= data.RangeAttack)
             {
                 agent.isStopped = true;
                 if (animator != null && hasMoveParam) animator.SetBool("Move", false);
@@ -144,10 +144,10 @@ public abstract class NEWEnemySorcererBase : EnemyBaseRefactored
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, attackRange);
+        Gizmos.DrawWireSphere(transform.position, data.RangeAttack);
 
         Gizmos.color = Color.blue;
-        Gizmos.DrawWireSphere(transform.position, fleeDistance);
+        Gizmos.DrawWireSphere(transform.position, data.FleeDistance);
     }
 }
 

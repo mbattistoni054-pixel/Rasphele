@@ -4,22 +4,22 @@ using System.Collections;
 
 public class NEWEnemyFireSorcerer : NEWEnemySorcererBase
 {
-    [Header("Ataque de Fuego")]
-    public float attackDamage = 20f;
-    [Tooltip("Arrastra aqu el Prefab del rectngulo de fuego")]
-    public GameObject fireLinePrefab;
+   // [Header("Ataque de Fuego")]
+   // public float attackDamage = 20f;
+ //   [Tooltip("Arrastra aqu el Prefab del rectngulo de fuego")]
+   // public GameObject fireLinePrefab;
 
     protected override void Start()
     {
         base.Start();
 
         // Forzamos las estadsticas
-        maxHealth = 50f;
-        goldReward = 10;
+       // maxHealth = 50f;
+       // goldReward = 10;
 
-        if (attackCooldown < 10f) attackCooldown = 10f;
-        if (attackRange < 40f) attackRange = 40f;
-        if (fleeDistance < 20f) fleeDistance = 20f;
+       // if (attackCooldown < 10f) attackCooldown = 10f;
+        //if (attackRange < 40f) attackRange = 40f;
+        //if (fleeDistance < 20f) fleeDistance = 20f;
     }
 
     protected override void StartAttackRoutine()
@@ -33,7 +33,7 @@ public class NEWEnemyFireSorcerer : NEWEnemySorcererBase
 
         if (animator != null) animator.SetTrigger("Cast");
 
-        if (fireLinePrefab != null && player != null)
+        if (data.FireLinePrefab != null && player != null)
         {
             // Creamos la zona en los pies del mago, mirando fijamente hacia el jugador
             Vector3 spawnPos = new Vector3(transform.position.x, transform.position.y, transform.position.z);
@@ -43,24 +43,24 @@ public class NEWEnemyFireSorcerer : NEWEnemySorcererBase
             GameObject lineObj;
             if (ProjectilePoolManager.Instance != null)
             {
-                lineObj = ProjectilePoolManager.Instance.GetProjectile(fireLinePrefab, spawnPos, Quaternion.LookRotation(direction));
+                lineObj = ProjectilePoolManager.Instance.GetProjectile(data.FireLinePrefab, spawnPos, Quaternion.LookRotation(direction));
             }
             else
             {
-                lineObj = Instantiate(fireLinePrefab, spawnPos, Quaternion.LookRotation(direction));
+                lineObj = Instantiate(data.FireLinePrefab, spawnPos, Quaternion.LookRotation(direction));
             }
             
             // Reemplazo a NEWEnemyFireLine
             NEWEnemyFireLine newFireLine = lineObj.GetComponent<NEWEnemyFireLine>();
             if (newFireLine != null)
             {
-                newFireLine.Setup(attackDamage * damageMultiplier, 50f);
+                newFireLine.Setup(data.AttackDamage * damageMultiplier, 50f);
             }
             else
             {
                 // Respaldo por si usan el viejo script
                 EnemyFireLine fireLine = lineObj.GetComponent<EnemyFireLine>();
-                if (fireLine != null) fireLine.Setup(attackDamage * damageMultiplier, 50f);
+                if (fireLine != null) fireLine.Setup(data.AttackDamage * damageMultiplier, 50f);
             }
         }
 

@@ -20,7 +20,7 @@ MonoBehaviour:
   fleeDistance: 0
   goldReward: 0
   expReward: 0
-  bullet: {fileID: 4462088384501371668, guid: f9a4c53f48d3deb419cc8833f57c3579, type: 3}
+  bullet: {fileID: 6437847595553601300, guid: 4e682759276efb649a562f0832de3aea, type: 3}
   bulletSpeed: 80
   explosionRadius: 0
   explosionDelay: 0

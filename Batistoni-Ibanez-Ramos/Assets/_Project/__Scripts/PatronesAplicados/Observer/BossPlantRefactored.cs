@@ -49,7 +49,7 @@ namespace PatronesAplicados
             base.Start();
 
             currentHealth = maxHealth;
-            goldReward = 1000;
+            //goldReward = 1000;
 
             if (animator == null) animator = GetComponent<Animator>();
 

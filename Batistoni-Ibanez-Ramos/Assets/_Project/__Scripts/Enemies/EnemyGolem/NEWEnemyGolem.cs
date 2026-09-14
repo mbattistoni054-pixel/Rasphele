@@ -6,17 +6,17 @@ using UnityEngine.AI;
 
 public class NEWEnemyGolem : EnemyBaseRefactored
 {
-    [Header("Estadísticas del Golem")]
-    public float attackDamage = 30f;
-    public float attackRange = 3f;
-    public float attackRadius = 4.5f;
+    //[Header("Estadísticas del Golem")]
+    //public float attackDamage = 30f;
+    //public float attackRange = 3f;
+    //public float attackRadius = 4.5f;
 
-    [Tooltip("Tiempo que tarda la animación desde que empieza hasta que los puños tocan el piso")]
-    public float hitDelay = 1.0f;
+    //Tooltip("Tiempo que tarda la animación desde que empieza hasta que los puños tocan el piso")]
+    //public float hitDelay = 1.0f;
 
-    public float attackCooldown = 2f;
-    public float knockbackHorizontal = 65f;
-    public float knockbackUpward = 23f;
+    //public float attackCooldown = 2f;
+   // public float knockbackHorizontal = 65f;
+   // public float knockbackUpward = 23f;
 
     [Header("Efectos")]
     public GameObject slamVisualPrefab;
@@ -47,7 +47,7 @@ public class NEWEnemyGolem : EnemyBaseRefactored
 
         if (agent != null)
         {
-            agent.stoppingDistance = attackRange - 0.5f;
+            agent.stoppingDistance = data.RangeAttack - 0.5f;
             agent.acceleration = 40f;
             agent.angularSpeed = 300f;
         }
@@ -71,7 +71,7 @@ public class NEWEnemyGolem : EnemyBaseRefactored
             // LÓGICA DE MOVIMIENTO
             if (!isAttacking)
             {
-                if (distance > attackRange)
+                if (distance > data.RangeAttack)
                 {
                     agent.isStopped = false;
 
@@ -94,7 +94,7 @@ public class NEWEnemyGolem : EnemyBaseRefactored
             }
 
             // LÓGICA DE ROTACIÓN
-            if (isAttacking && distance <= attackRange * 2f)
+            if (isAttacking && distance <= data.RangeAttack * 2f)
             {
                 Vector3 directionToPlayer = (player.position - transform.position).normalized;
                 directionToPlayer.y = 0;
@@ -114,7 +114,7 @@ public class NEWEnemyGolem : EnemyBaseRefactored
 
         if (animator != null) animator.SetTrigger("Attack");
 
-        yield return new WaitForSeconds(hitDelay);
+        yield return new WaitForSeconds(data.HitDelay);
 
         if (isStunned)
         {
@@ -125,32 +125,32 @@ public class NEWEnemyGolem : EnemyBaseRefactored
 
         Vector3 impactCenter = transform.position + (transform.forward * 2.5f);
 
-        if (slamVisualPrefab != null)
+        if (data.SlamVisualPrefab != null)
         {
             GameObject visual;
             if (ProjectilePoolManager.Instance != null)
             {
-                visual = ProjectilePoolManager.Instance.GetProjectile(slamVisualPrefab, impactCenter, Quaternion.identity);
+                visual = ProjectilePoolManager.Instance.GetProjectile(data.SlamVisualPrefab, impactCenter, Quaternion.identity);
             }
             else
             {
-                visual = Instantiate(slamVisualPrefab, impactCenter, Quaternion.identity);
+                visual = Instantiate(data.SlamVisualPrefab, impactCenter, Quaternion.identity);
             }
-            float visualScale = attackRadius * 2f;
+            float visualScale = data.AttackRadius * 2f;
             visual.transform.localScale = new Vector3(visualScale, visualScale, visualScale);
             // Destroy(visual, 1f);
         }
 
-        Collider[] hitObjects = Physics.OverlapSphere(impactCenter, attackRadius);
+        Collider[] hitObjects = Physics.OverlapSphere(impactCenter, data.AttackRadius);
         foreach (Collider hit in hitObjects)
         {
             if (hit.CompareTag("Player"))
             {
                 var refHealth = hit.GetComponent<PatronesAplicados.PlayerHealthRefactored>();
-                if (refHealth != null) refHealth.TakeDamage(attackDamage * damageMultiplier);
+                if (refHealth != null) refHealth.TakeDamage(data.AttackDamage * damageMultiplier);
                 else {
                     PlayerHealth pHealth = hit.GetComponent<PlayerHealth>();
-                    if (pHealth != null) pHealth.TakeDamage(attackDamage * damageMultiplier);
+                    if (pHealth != null) pHealth.TakeDamage(data.AttackDamage * damageMultiplier);
                 }
 
                 Rigidbody pRb = hit.GetComponent<Rigidbody>();
@@ -159,7 +159,7 @@ public class NEWEnemyGolem : EnemyBaseRefactored
                     Vector3 pushDir = (hit.transform.position - transform.position).normalized;
                     pushDir.y = 0;
 
-                    Vector3 finalKnockback = (pushDir * knockbackHorizontal) + (Vector3.up * knockbackUpward);
+                    Vector3 finalKnockback = (pushDir * data.KnockbackHorizontal) + (Vector3.up * data.KnockbackUpward);
 
                     pRb.linearVelocity = Vector3.zero;
                     pRb.AddForce(finalKnockback, ForceMode.Impulse);
@@ -167,18 +167,18 @@ public class NEWEnemyGolem : EnemyBaseRefactored
             }
         }
 
-        yield return new WaitForSeconds(attackCooldown);
+        yield return new WaitForSeconds(data.AttackCooldown);
         isAttacking = false;
     }
 
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, attackRange);
+        Gizmos.DrawWireSphere(transform.position, data.RangeAttack);
 
         Gizmos.color = Color.red;
         Vector3 impactCenter = transform.position + (transform.forward * 2.5f);
-        Gizmos.DrawWireSphere(impactCenter, attackRadius);
+        Gizmos.DrawWireSphere(impactCenter, data.AttackRadius);
     }
 }
 

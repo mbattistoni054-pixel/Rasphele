@@ -45,7 +45,6 @@ public class NEWBossRootTrap : MonoBehaviour
         {
             if (playerTarget != null)
             {
-                // Ahora copia la altura (Y) del jugador, subindola un peln (0.1) para que no raspe
                 Vector3 targetPos = new Vector3(playerTarget.position.x, playerTarget.position.y + 0.1f, playerTarget.position.z);
                 transform.position = Vector3.Lerp(transform.position, targetPos, Time.deltaTime * 10f);
             }
@@ -55,7 +54,6 @@ public class NEWBossRootTrap : MonoBehaviour
 
         if (warningVisual != null)
         {
-            // Comprobamos que el objeto exista en la escena y no sea un archivo
             if (warningVisual.gameObject.scene.IsValid())
             {
                 Renderer warnRend = warningVisual.GetComponent<Renderer>();
@@ -75,8 +73,7 @@ public class NEWBossRootTrap : MonoBehaviour
         {
             if (hit.CompareTag("Player"))
             {
-
-                // Aplicamos Dao
+                Debug.Log("Player909");
                 var refHealth = hit.GetComponent<PatronesAplicados.PlayerHealthRefactored>();
                 if (refHealth != null) refHealth.TakeDamage(damage);
                 else {
@@ -84,12 +81,10 @@ public class NEWBossRootTrap : MonoBehaviour
                     if (hp != null) hp.TakeDamage(damage);
                 }
 
-                // Intentamos usar el Stun Inteligente de la Versin 2 del Player
+                // Intentamos usar el Stun Inteligente de la Version 2 del Player
                 CopiaPlayerController2 playerV2 = hit.GetComponent<CopiaPlayerController2>();
                 if (playerV2 != null)
                 {
-                    // Le mandamos "0" fuerza, pero "rootDuration" de tiempo de aturdimiento.
-                    // El jugador no saldr volando, pero su movimiento se anular durante 2 segundos.
                     playerV2.ApplyKnockback(Vector3.zero, rootDuration);
                 }
 
@@ -108,7 +103,7 @@ public class NEWBossRootTrap : MonoBehaviour
         }
     }
 
-    // Seguro contra bugs: Si la trampa es destruida por error o devuelta al pool, 
+    // Si la trampa es destruida por error o devuelta al pool
     // nos aseguramos de liberar al jugador si estaba atrapado.
     private void OnDestroy()
     {

@@ -6,39 +6,38 @@ using PatronesAplicados.RealImplementation;
 public class NEWBossPlant : EnemyBaseRefactored
 {
     [Header("Ajustes de Spawn")]
-    [Tooltip("Si el jefe sigue saliendo hundido, aumenta este número (ej: 2) para subirlo al nacer.")]
     public float spawnHeightOffset = 0f;
 
-    [Header("Estadísticas del Jefe")]
-    public float attackDamage = 30f;
-    public float attackCooldown = 3f;
+    //[Header("Estadísticas del Jefe")]
+    //public float attackDamage = 30f;
+    //public float attackCooldown = 3f;
 
-    [Header("Ataque A (70%): Ráfaga de Orbes")]
-    public GameObject orbPrefab;
+    //[Header("Ataque A (70%): Ráfaga de Orbes")]
+   // public GameObject orbPrefab;
     public Transform firePoint;
-    public int orbsPerBurst = 6;
-    public float timeBetweenOrbs = 0.15f;
+    //public int orbsPerBurst = 6;
+    //public float timeBetweenOrbs = 0.15f;
 
-    [Header("Ataque B (30%): Trampa de Raíces")]
-    public GameObject rootTrapPrefab;
+    //[Header("Ataque B (30%): Trampa de Raíces")]
+    //public GameObject rootTrapPrefab;
 
     [Header("Fase 2 (Menos del 50% Vida)")]
-    public int orbsPerBurstPhase2 = 12;
-    public int rootsPhase2 = 3;
-    public float delayBetweenRootsPhase2 = 1f;
+    //public int orbsPerBurstPhase2 = 12;
+    //public int rootsPhase2 = 3;
+    //public float delayBetweenRootsPhase2 = 1f;
     private bool isPhase2 = false;
 
-    [Header("Ataque C (Defensivo): Golpe Cuerpo a Cuerpo")]
-    [Tooltip("Si el jugador entra en esta distancia, el jefe priorizará empujarlo.")]
-    public float meleeRange = 5f;
-    [Tooltip("Daño específico del golpe cuerpo a cuerpo.")]
-    public float meleeDamage = 40f;
-    [Tooltip("Fuerza con la que empuja al jugador hacia atrás.")]
-    public float knockbackHorizontal = 25f;
-    [Tooltip("Fuerza con la que levanta al jugador por el aire.")]
-    public float knockbackUpward = 5f;
-    [Tooltip("Tiempo desde que inicia la animación hasta que el golpe conecta.")]
-    public float meleeHitDelay = 0.5f;
+    //[Header("Ataque C (Defensivo): Golpe Cuerpo a Cuerpo")]
+    //[Tooltip("Si el jugador entra en esta distancia, el jefe priorizará empujarlo.")]
+    //public float meleeRange = 5f;
+    //[Tooltip("Daño específico del golpe cuerpo a cuerpo.")]
+    //public float meleeDamage = 40f;
+    //[Tooltip("Fuerza con la que empuja al jugador hacia atrás.")]
+    //public float knockbackHorizontal = 25f;
+    //[Tooltip("Fuerza con la que levanta al jugador por el aire.")]
+    //public float knockbackUpward = 5f;
+    //[Tooltip("Tiempo desde que inicia la animación hasta que el golpe conecta.")]
+    //public float meleeHitDelay = 0.5f;
 
     [Header("Animaciones (Opcional)")]
     public Animator animator;
@@ -52,7 +51,6 @@ public class NEWBossPlant : EnemyBaseRefactored
         base.Start();
 
         currentHealth = maxHealth;
-        goldReward = 1000;
 
         if (animator == null) animator = GetComponent<Animator>();
 
@@ -109,14 +107,14 @@ public class NEWBossPlant : EnemyBaseRefactored
 
             // Lógica de decisión de ataque
             attackTimer += Time.deltaTime;
-            if (attackTimer >= attackCooldown)
+            if (attackTimer >= data.AttackCooldown)
             {
                 attackTimer = 0f;
 
                 float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
                 // Si está demasiado cerca, ¡empújalo! Si no, ataca a distancia.
-                if (distanceToPlayer <= meleeRange)
+                if (distanceToPlayer <= data.MeleeRange)
                 {
                     StartCoroutine(MeleeAttackRoutine());
                 }
@@ -145,13 +143,13 @@ public class NEWBossPlant : EnemyBaseRefactored
 
         if (animator != null) animator.SetTrigger("Attack");
 
-        yield return new WaitForSeconds(meleeHitDelay);
+        yield return new WaitForSeconds(data.MeleeHitDelay);
 
-        if (player != null && Vector3.Distance(transform.position, player.position) <= meleeRange + 1f)
+        if (player != null && Vector3.Distance(transform.position, player.position) <= data.MeleeRange + 1f)
         {
             PatronesAplicados.PlayerHealthRefactored newHealth = player.GetComponent<PatronesAplicados.PlayerHealthRefactored>();
-            if (newHealth != null) newHealth.TakeDamage(meleeDamage);
-            else { PlayerHealth hp = player.GetComponent<PlayerHealth>(); if (hp != null) hp.TakeDamage(meleeDamage); }
+            if (newHealth != null) newHealth.TakeDamage(data.MeleeDamage);
+            else { PlayerHealth hp = player.GetComponent<PlayerHealth>(); if (hp != null) hp.TakeDamage(data.MeleeDamage); }
 
             CopiaPlayerController2 playerController = player.GetComponent<CopiaPlayerController2>();
             if (playerController != null)
@@ -159,7 +157,7 @@ public class NEWBossPlant : EnemyBaseRefactored
                 Vector3 pushDir = (player.position - transform.position).normalized;
                 pushDir.y = 0;
 
-                Vector3 finalKnockback = (pushDir * knockbackHorizontal) + (Vector3.up * knockbackUpward);
+                Vector3 finalKnockback = (pushDir * data.KnockbackHorizontal) + (Vector3.up * data.KnockbackUpward);
 
                 playerController.ApplyKnockback(finalKnockback);
             }
@@ -192,49 +190,49 @@ public class NEWBossPlant : EnemyBaseRefactored
         if (animator != null) animator.SetTrigger("Shoot");
 
         // Si estamos en Fase 2, usa la variable potenciada (12). Si no, usa la normal (6).
-        int orbsToShoot = isPhase2 ? orbsPerBurstPhase2 : orbsPerBurst;
+        int orbsToShoot = isPhase2 ? data.OrbsPerBurstPhase2 : data.OrbsPerBurst;
 
         for (int i = 0; i < orbsToShoot; i++)
         {
             if (player == null) break;
 
             Vector3 aimDirection = (player.position - firePoint.position).normalized;
-            GameObject orb; if (ProjectilePoolManager.Instance != null) orb = ProjectilePoolManager.Instance.GetProjectile(orbPrefab, firePoint.position, Quaternion.LookRotation(aimDirection)); else orb = Instantiate(orbPrefab, firePoint.position, Quaternion.LookRotation(aimDirection));
+            GameObject orb; if (ProjectilePoolManager.Instance != null) orb = ProjectilePoolManager.Instance.GetProjectile(data.OrbPrefab, firePoint.position, Quaternion.LookRotation(aimDirection)); else orb = Instantiate(data.OrbPrefab, firePoint.position, Quaternion.LookRotation(aimDirection));
 
-            NEWBossOrb orbScript = orb.GetComponent<NEWBossOrb>(); if (orbScript == null) { BossOrb oldOrb = orb.GetComponent<BossOrb>(); if (oldOrb != null) oldOrb.Setup(attackDamage); }
+            NEWBossOrb orbScript = orb.GetComponent<NEWBossOrb>(); if (orbScript == null) { BossOrb oldOrb = orb.GetComponent<BossOrb>(); if (oldOrb != null) oldOrb.Setup(data.AttackDamage); }
             if (orbScript != null)
             {
-                orbScript.Setup(attackDamage);
+                orbScript.Setup(data.AttackDamage);
             }
 
-            yield return new WaitForSeconds(timeBetweenOrbs);
+            yield return new WaitForSeconds(data.TimeBetweenOrbs);
         }
     }
 
     private IEnumerator AttackB_Roots_Routine()
     {
         // Si estamos en Fase 2, tira 3 raíces. Si no, tira 1.
-        int rootsToSpawn = isPhase2 ? rootsPhase2 : 1;
+        int rootsToSpawn = isPhase2 ? data.RootsPhase2 : 1;
 
         for (int i = 0; i < rootsToSpawn; i++)
         {
             if (animator != null) animator.SetTrigger("Cast");
 
-            if (rootTrapPrefab != null && player != null)
+            if (data.RootTrapPrefab != null && player != null)
             {
-                GameObject trap; if (ProjectilePoolManager.Instance != null) trap = ProjectilePoolManager.Instance.GetProjectile(rootTrapPrefab, player.position, Quaternion.identity); else trap = Instantiate(rootTrapPrefab, player.position, Quaternion.identity);
-                NEWBossRootTrap trapScript = trap.GetComponent<NEWBossRootTrap>(); if (trapScript == null) { BossRootTrap oldTrap = trap.GetComponent<BossRootTrap>(); if (oldTrap != null) oldTrap.Setup(player, attackDamage); }
+                GameObject trap; if (ProjectilePoolManager.Instance != null) trap = ProjectilePoolManager.Instance.GetProjectile(data.RootTrapPrefab, player.position, Quaternion.identity); else trap = Instantiate(data.RootTrapPrefab, player.position, Quaternion.identity);
+                NEWBossRootTrap trapScript = trap.GetComponent<NEWBossRootTrap>(); if (trapScript == null) { BossRootTrap oldTrap = trap.GetComponent<BossRootTrap>(); if (oldTrap != null) oldTrap.Setup(player, data.AttackDamage); }
 
                 if (trapScript != null)
                 {
-                    trapScript.Setup(player, attackDamage);
+                    trapScript.Setup(player, data.AttackDamage);
                 }
             }
 
             // Si quedan más raíces por salir, esperamos el delay (1 segundo por defecto)
             if (i < rootsToSpawn - 1)
             {
-                yield return new WaitForSeconds(delayBetweenRootsPhase2);
+                yield return new WaitForSeconds(data.DelayBetweenRootsPhase2);
             }
         }
 
@@ -254,10 +252,10 @@ public class NEWBossPlant : EnemyBaseRefactored
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = new Color(1f, 0f, 0f, 0.3f);
-        Gizmos.DrawSphere(transform.position, meleeRange);
+        Gizmos.DrawSphere(transform.position, data.MeleeRange);
 
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, meleeRange);
+        Gizmos.DrawWireSphere(transform.position, data.MeleeRange);
     }
 }
 

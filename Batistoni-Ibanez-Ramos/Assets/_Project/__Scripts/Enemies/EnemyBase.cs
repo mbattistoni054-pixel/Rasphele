@@ -10,7 +10,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
 
     [Header("Estadísticas Base")]
     public float maxHealth;
-    public float baseSpeed;
+    //public float baseSpeed;
 
     [Header("Multiplicador de Dificultad")]
     protected float damageMultiplier = 1f;

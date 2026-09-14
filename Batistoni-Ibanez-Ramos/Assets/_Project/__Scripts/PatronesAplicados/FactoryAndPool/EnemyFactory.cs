@@ -30,7 +30,7 @@ namespace PatronesAplicados
         /// Configura un enemigo existente (sacado del Pool) con los nuevos datos antes de activarlo.
         /// </summary>
         public void SetupEnemy(GameObject enemy, Vector3 spawnPosition, Transform playerTarget, float healthMultiplier, float damageMultiplier, string poolKey)
-        {
+        {          
             enemy.transform.position = spawnPosition;
             enemy.SetActive(true);
 

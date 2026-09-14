@@ -3,9 +3,9 @@ using UnityEngine;
 
 public class NEWCopiaMeleeEnemy : EnemyBaseRefactored
 {
-    [Header("Estadísticas de Ataque")]
-    public float attackDamage = 10f;
-    public float attackCooldown = 1f;
+   // [Header("Estadísticas de Ataque")]
+   // public float attackDamage = 10f;
+    //public float attackCooldown = 1f;
 
     private float lastAttackTime;
     private float lastFrameTime;
@@ -93,7 +93,7 @@ public class NEWCopiaMeleeEnemy : EnemyBaseRefactored
             if (distance <= 1.5f || onAttack)
             {
                 // Iniciar el ataque
-                if (Time.time >= lastAttackTime + attackCooldown && !onAttack)
+                if (Time.time >= lastAttackTime + data.AttackCooldown && !onAttack)
                 {
                     if (animator != null) animator.SetTrigger("Attack");
 
@@ -114,12 +114,12 @@ public class NEWCopiaMeleeEnemy : EnemyBaseRefactored
 
                         if (health != null)
                         {
-                            health.TakeDamage(attackDamage * damageMultiplier);
+                            health.TakeDamage(data.AttackDamage * damageMultiplier);
                         }
                         else
                         {
                             PatronesAplicados.PlayerHealthRefactored newHealth = player.GetComponent<PatronesAplicados.PlayerHealthRefactored>();
-                            if (newHealth != null) newHealth.TakeDamage(attackDamage * damageMultiplier);
+                            if (newHealth != null) newHealth.TakeDamage(data.AttackDamage * damageMultiplier);
                         }
                     }
 

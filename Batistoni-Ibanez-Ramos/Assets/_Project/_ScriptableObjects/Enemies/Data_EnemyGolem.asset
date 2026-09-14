@@ -29,7 +29,7 @@ MonoBehaviour:
   hitDelay: 1.5
   knockbackHorizontal: 65
   knockbackUpward: 23
-  slamVisualPrefab: {fileID: 3700175586175300723, guid: a9586e4fe4f872548b617a8137731082, type: 3}
+  slamVisualPrefab: {fileID: 9136211849381488765, guid: 828397ef250a4bf409792e5c26adc5a3, type: 3}
   trackingTime: 0
   lockedTime: 0
   laserDuration: 0

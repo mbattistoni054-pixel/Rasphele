@@ -7,12 +7,15 @@ namespace PatronesAplicados
 {
     public abstract class EnemyBaseRefactored : MonoBehaviour, IDamageable
     {
+
+        [SerializeField] protected EnemyData data;
+
         [Header("Object Pool")]
         public string poolKey;
 
         [Header("Estadisticas Base")]
-        public float maxHealth = 100f;
-        public float baseSpeed = 3f;
+        public float maxHealth;
+        //public float baseSpeed;
 
         [Header("Multiplicador de Dificultad")]
         protected float damageMultiplier = 1f;
@@ -26,8 +29,8 @@ namespace PatronesAplicados
         [Header("UI y Recompensas")]
         public GameObject xpOrbPrefab;
         public GameObject damagePopupPrefab;
-        [Tooltip("Cantidad de dinero que suelta al morir")]
-        public int goldReward = 5;
+        
+        //public int goldReward = 5;
 
         [Header("Efectos Visuales")]
         public Material flashMaterial;
@@ -53,8 +56,9 @@ namespace PatronesAplicados
 
         protected virtual void Start()
         {
-            currentHealth = maxHealth;
-            currentSpeed = baseSpeed;
+            maxHealth = data.MaxHealth;
+            currentHealth = data.MaxHealth;
+            currentSpeed = data.BaseSpeed;
 
             agent = GetComponent<NavMeshAgent>();
             rb = GetComponent<Rigidbody>();
@@ -78,7 +82,7 @@ namespace PatronesAplicados
         public virtual void ResetStats()
         {
             currentHealth = maxHealth;
-            currentSpeed = baseSpeed;
+            currentSpeed = data.BaseSpeed;
 
             if (agent != null)
             {
@@ -270,7 +274,7 @@ namespace PatronesAplicados
         {
             if (activeSlows.Count >= 3) return;
 
-            float speedReduction = baseSpeed * (slowPercent / 100f);
+            float speedReduction = data.BaseSpeed * (slowPercent / 100f);
             if (gameObject.activeInHierarchy) StartCoroutine(FreezeRoutine(speedReduction));
         }
 
@@ -287,13 +291,13 @@ namespace PatronesAplicados
 
         private void RecalculateSpeed()
         {
-            currentSpeed = baseSpeed;
+            currentSpeed = data.BaseSpeed;
             foreach (float reduction in activeSlows)
             {
                 currentSpeed -= reduction;
             }
 
-            if (currentSpeed < baseSpeed * 0.1f) currentSpeed = baseSpeed * 0.1f;
+            if (currentSpeed < data.BaseSpeed * 0.1f) currentSpeed = data.BaseSpeed * 0.1f;
             if (agent != null) agent.speed = currentSpeed;
         }
 
@@ -356,7 +360,7 @@ namespace PatronesAplicados
             // DESACOPLAMIENTO DE EVENTOS
             if (EventManager.Instance != null)
             {
-                EventManager.Instance.TriggerEvent<int>("EnemyKilled_GoldReward", goldReward);
+                EventManager.Instance.TriggerEvent<int>("EnemyKilled_GoldReward", data.GoldReward);
                 EventManager.Instance.TriggerEvent("EnemyDied");
             }
 

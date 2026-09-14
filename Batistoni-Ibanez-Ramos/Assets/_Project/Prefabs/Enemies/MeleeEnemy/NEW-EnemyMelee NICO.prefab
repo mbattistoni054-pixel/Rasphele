@@ -195,6 +195,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ac72b4a5b8f76a48ab9ea0577b6291c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  data: {fileID: 11400000, guid: 156599bdd786fe14eaaae7ee812e1fd9, type: 2}
   poolKey: NEW-EnemyMelee NICO
   maxHealth: 30
   baseSpeed: 25

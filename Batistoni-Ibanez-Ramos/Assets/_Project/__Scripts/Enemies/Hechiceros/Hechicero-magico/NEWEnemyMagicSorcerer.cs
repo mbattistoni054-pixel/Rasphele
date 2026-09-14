@@ -5,19 +5,19 @@ using System.Collections;
 [RequireComponent(typeof(LineRenderer))]
 public class NEWEnemyMagicSorcerer : NEWEnemySorcererBase
 {
-    [Header("Ataque Lser")]
-    public float attackDamage = 60f;
+   // [Header("Ataque Lser")]
+    //public float attackDamage = 60f;
 
     [Tooltip("El punto desde donde sale el lser (ej: la punta del bculo)")]
     public Transform firePoint;
 
-    [Tooltip("Asigna aqu un Material (ej. Sprites/Default) para evitar que el rayo desaparezca en la Build")]
-    public Material beamMaterial;
+   // [Tooltip("Asigna aqu un Material (ej. Sprites/Default) para evitar que el rayo desaparezca en la Build")]
+ //   public Material beamMaterial;
 
-    [Header("Tiempos del Lser")]
-    public float trackingTime = 1.5f; // Tiempo persiguiendo al jugador (parpadeo)
-    public float lockedTime = 0.5f;   // Tiempo congelado antes de disparar (blanco)
-    public float laserDuration = 0.4f;// Cunto dura el rayo rojo visible
+ //   [Header("Tiempos del Lser")]
+   // public float trackingTime = 1.5f; // Tiempo persiguiendo al jugador (parpadeo)
+  //  public float lockedTime = 0.5f;   // Tiempo congelado antes de disparar (blanco)
+ //   public float laserDuration = 0.4f;// Cunto dura el rayo rojo visible
 
     private LineRenderer lineRenderer;
 
@@ -25,20 +25,20 @@ public class NEWEnemyMagicSorcerer : NEWEnemySorcererBase
     {
         base.Start();
 
-        maxHealth = 30f;
-        goldReward = 10;
+        //maxHealth = 30f;
+       // goldReward = 10;
 
-        if (attackCooldown < 5f) attackCooldown = 5f;
-        if (attackRange < 40f) attackRange = 40f;
-        if (fleeDistance < 20f) fleeDistance = 20f;
+       // if (attackCooldown < 5f) attackCooldown = 5f;
+       // if (attackRange < 40f) attackRange = 40f;
+       // if (fleeDistance < 20f) fleeDistance = 20f;
 
         lineRenderer = GetComponent<LineRenderer>();
         lineRenderer.enabled = false;
         lineRenderer.positionCount = 2;
 
-        if (beamMaterial != null)
+        if (data.BeamMaterial != null)
         {
-            lineRenderer.material = beamMaterial;
+            lineRenderer.material = data.BeamMaterial;
         }
         else
         {
@@ -72,7 +72,7 @@ public class NEWEnemyMagicSorcerer : NEWEnemySorcererBase
         Vector3 targetPos = player.position;
 
         // TRACKING Y PARPADEO 
-        while (timer < trackingTime)
+        while (timer < data.TrackingTime)
         {
             if (player != null)
             {
@@ -82,7 +82,7 @@ public class NEWEnemyMagicSorcerer : NEWEnemySorcererBase
             lineRenderer.SetPosition(0, firePoint.position);
             lineRenderer.SetPosition(1, targetPos);
 
-            float blinkSpeed = Mathf.Lerp(5f, 25f, timer / trackingTime);
+            float blinkSpeed = Mathf.Lerp(5f, 25f, timer / data.TrackingTime);
             Color blinkColor = Color.Lerp(Color.white, Color.red, Mathf.PingPong(Time.time * blinkSpeed, 1f));
 
             lineRenderer.startColor = blinkColor;
@@ -95,7 +95,7 @@ public class NEWEnemyMagicSorcerer : NEWEnemySorcererBase
         lineRenderer.startColor = Color.white;
         lineRenderer.endColor = Color.white;
 
-        yield return new WaitForSeconds(lockedTime);
+        yield return new WaitForSeconds(data.LockedTime);
 
         lineRenderer.startWidth = 0.8f;
         lineRenderer.endWidth = 0.8f;
@@ -112,15 +112,15 @@ public class NEWEnemyMagicSorcerer : NEWEnemySorcererBase
             if (hit.collider.CompareTag("Player"))
             {
                 var refHealth = hit.collider.GetComponent<PatronesAplicados.PlayerHealthRefactored>();
-                if (refHealth != null) refHealth.TakeDamage(attackDamage * damageMultiplier);
+                if (refHealth != null) refHealth.TakeDamage(data.AttackDamage * damageMultiplier);
                 else {
                     PlayerHealth hp = hit.collider.GetComponent<PlayerHealth>();
-                    if (hp != null) hp.TakeDamage(attackDamage * damageMultiplier);
+                    if (hp != null) hp.TakeDamage(data.AttackDamage * damageMultiplier);
                 }
             }
         }
 
-        yield return new WaitForSeconds(laserDuration);
+        yield return new WaitForSeconds(data.LaserDuration);
 
         lineRenderer.enabled = false;
         lastAttackTime = Time.time;

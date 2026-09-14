@@ -73,9 +73,6 @@ PrefabInstance:
       addedObject: {fileID: 3167829630545164176}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2dfe091237c715547ac3ce9a8e171f26, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 3578162333350130201}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2dfe091237c715547ac3ce9a8e171f26, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 3803535790026230744}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2dfe091237c715547ac3ce9a8e171f26, type: 3}
       insertIndex: -1
@@ -119,30 +116,6 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!114 &3578162333350130201
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7813552522976967599}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3f9226083383ed2449c2ced735e1259d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  maxHealth: 30
-  baseSpeed: 25
-  xpOrbPrefab: {fileID: 4151671228204215311, guid: f0f5c3e19b95e644d8886b80bbdb3cbc, type: 3}
-  damagePopupPrefab: {fileID: 3592148569616233406, guid: 61ebab5bd050aba4583e7948ea50b804, type: 3}
-  goldReward: 5
-  flashMaterial: {fileID: 0}
-  attackDamage: 10
-  attackCooldown: 4
-  rangeAttack: 20
-  animator: {fileID: 0}
-  firePoint: {fileID: 2584451570083824198}
-  bullet: {fileID: 4462088384501371668, guid: f9a4c53f48d3deb419cc8833f57c3579, type: 3}
 --- !u!136 &3803535790026230744
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -227,16 +200,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0213dc1c5eb54b43a28ddf7fb774344, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  data: {fileID: 11400000, guid: 7a109baace00fd34fadf10a9bed55813, type: 2}
   poolKey: NEWEnemyRange
   maxHealth: 30
-  baseSpeed: 25
   xpOrbPrefab: {fileID: 4151671228204215311, guid: f0f5c3e19b95e644d8886b80bbdb3cbc, type: 3}
   damagePopupPrefab: {fileID: 3592148569616233406, guid: 61ebab5bd050aba4583e7948ea50b804, type: 3}
-  goldReward: 5
   flashMaterial: {fileID: 0}
-  attackDamage: 10
-  attackCooldown: 4
-  rangeAttack: 20
   animator: {fileID: 0}
   firePoint: {fileID: 2584451570083824198}
-  bulletPrefab: {fileID: 6437847595553601300, guid: 4e682759276efb649a562f0832de3aea, type: 3}

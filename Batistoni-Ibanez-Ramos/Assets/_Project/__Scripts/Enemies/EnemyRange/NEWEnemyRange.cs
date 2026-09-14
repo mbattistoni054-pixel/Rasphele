@@ -5,16 +5,16 @@ using UnityEngine;
 public class NEWEnemyRange : EnemyBaseRefactored
 {
     [Header("Estadsticas de Ataque")]
-    public float attackDamage = 10f;
-    public float attackCooldown = 4f;
-    [SerializeField] float rangeAttack = 5;
+    //public float attackDamage = 10f;
+    //public float attackCooldown = 4f;
+    //[SerializeField] float rangeAttack = 5;
 
     private float lastAttackTime;
     bool onAttack;
 
     [SerializeField] Animator animator;
     [SerializeField] Transform firePoint;
-    [SerializeField] GameObject bulletPrefab;
+    //[SerializeField] GameObject bulletPrefab;
 
     private bool hasMoveParam = false;
     private float pathTimer = 0f;
@@ -40,7 +40,7 @@ public class NEWEnemyRange : EnemyBaseRefactored
 
         if (agent != null)
         {
-            agent.stoppingDistance = rangeAttack;
+            agent.stoppingDistance = data.RangeAttack;
             agent.acceleration = 60f;      // Frena y arranca rpido sin patinar
             agent.angularSpeed = 600f;     // Gira muy rpido
         }
@@ -62,7 +62,7 @@ public class NEWEnemyRange : EnemyBaseRefactored
             float distance = Vector3.Distance(player.position, transform.position);
 
             // LGICA DE MOVIMIENTO 
-            if (!onAttack && distance > rangeAttack)
+            if (!onAttack && distance > data.RangeAttack)
             {
                 agent.isStopped = false;
 
@@ -82,7 +82,7 @@ public class NEWEnemyRange : EnemyBaseRefactored
             }
 
             // Forzamos a que mire al jugador suavemente si est en rango o atacando
-            if (distance <= rangeAttack || onAttack)
+            if (distance <= data.RangeAttack || onAttack)
             {
                 Vector3 directionToPlayer = (player.position - transform.position).normalized;
                 directionToPlayer.y = 0; // Evita que se incline hacia arriba/abajo
@@ -95,7 +95,7 @@ public class NEWEnemyRange : EnemyBaseRefactored
             }
 
             // LGICA DE ATAQUE 
-            if (distance <= rangeAttack && Time.time >= lastAttackTime + attackCooldown)
+            if (distance <= data.RangeAttack && Time.time >= lastAttackTime + data.AttackCooldown)
             {
                 onAttack = true;
                 lastAttackTime = Time.time;
@@ -109,28 +109,29 @@ public class NEWEnemyRange : EnemyBaseRefactored
     // Usado por Evento de Animacin
     public void Shoot()
     {
-        if (bulletPrefab == null || firePoint == null) return;
+        if (data.Bullet == null || firePoint == null) return;
         
         GameObject obj;
         if (ProjectilePoolManager.Instance != null)
         {
-            obj = ProjectilePoolManager.Instance.GetProjectile(bulletPrefab, firePoint.position, firePoint.rotation);
+            obj = ProjectilePoolManager.Instance.GetProjectile(data.Bullet, firePoint.position, firePoint.rotation);
         }
         else
         {
-            obj = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
+            obj = Instantiate(data.Bullet, firePoint.position, firePoint.rotation);
         }
         
         // Se asume que el prefab tiene NEWBulletEnemy (o BulletEnemy, mantenemos compatibilidad)
         NEWBulletEnemy newBullet = obj.GetComponent<NEWBulletEnemy>();
         if (newBullet != null)
         {
-            newBullet.damage = attackDamage * damageMultiplier;
+            newBullet.damage = data.AttackDamage * damageMultiplier;
         }
         else
         {
             BulletEnemy oldBullet = obj.GetComponent<BulletEnemy>();
-            if (oldBullet != null) oldBullet.damage = attackDamage * damageMultiplier;
+            if (oldBullet != null) oldBullet.damageMultiplier = damageMultiplier;
+            if (oldBullet != null) oldBullet.data = data;
         }
     }
 
