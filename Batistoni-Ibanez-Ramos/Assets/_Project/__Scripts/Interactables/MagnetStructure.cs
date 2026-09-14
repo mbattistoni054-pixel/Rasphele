@@ -38,10 +38,10 @@ public class MagnetStructure : MonoBehaviour
         if (_playerTransform == null) return;
 
         // Busca todas las gemas de experiencia en la escena entera
-        ExperienceOrb[] allOrbs = Object.FindObjectsByType<ExperienceOrb>(FindObjectsSortMode.None);
+        NEWExperienceOrb[] allOrbs = Object.FindObjectsByType<NEWExperienceOrb>(FindObjectsSortMode.None);
 
         int count = 0;
-        foreach (ExperienceOrb orb in allOrbs)
+        foreach (NEWExperienceOrb orb in allOrbs)
         {
             orb.ForceAttract(_playerTransform);
             count++;
