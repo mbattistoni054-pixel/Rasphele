@@ -2,17 +2,11 @@ using UnityEngine;
 
 public class EnemyRange : EnemyBase
 {
-    [Header("Estadísticas de Ataque")]
-    public float attackDamage = 10f;
-    public float attackCooldown = 4f;
-    [SerializeField] float rangeAttack = 5;
-
     private float lastAttackTime;
     bool onAttack;
 
     [SerializeField] Animator animator;
     [SerializeField] Transform firePoint;
-    [SerializeField] GameObject bullet;
 
     private bool hasMoveParam = false;
     private float pathTimer = 0f;
@@ -32,7 +26,7 @@ public class EnemyRange : EnemyBase
 
         if (agent != null)
         {
-            agent.stoppingDistance = rangeAttack;
+            agent.stoppingDistance = data.RangeAttack;
             agent.acceleration = 60f;      // Frena y arranca rápido sin patinar
             agent.angularSpeed = 600f;     // Gira muy rápido
         }
@@ -54,7 +48,7 @@ public class EnemyRange : EnemyBase
             float distance = Vector3.Distance(player.position, transform.position);
 
             // LÓGICA DE MOVIMIENTO 
-            if (!onAttack && distance > rangeAttack)
+            if (!onAttack && distance > data.RangeAttack)
             {
                 agent.isStopped = false;
 
@@ -74,7 +68,7 @@ public class EnemyRange : EnemyBase
             }
 
             // Forzamos a que mire al jugador suavemente si está en rango o atacando
-            if (distance <= rangeAttack || onAttack)
+            if (distance <= data.RangeAttack || onAttack)
             {
                 Vector3 directionToPlayer = (player.position - transform.position).normalized;
                 directionToPlayer.y = 0; // Evita que se incline hacia arriba/abajo
@@ -87,7 +81,7 @@ public class EnemyRange : EnemyBase
             }
 
             // LÓGICA DE ATAQUE 
-            if (distance <= rangeAttack && Time.time >= lastAttackTime + attackCooldown)
+            if (distance <= data.RangeAttack && Time.time >= lastAttackTime + data.AttackCooldown)
             {
                 onAttack = true;
                 lastAttackTime = Time.time;
@@ -100,10 +94,11 @@ public class EnemyRange : EnemyBase
 
     public void Shoot()
     {
-        if (bullet == null || firePoint == null) return;
-        GameObject obj = Instantiate(bullet, firePoint.position, firePoint.rotation);
+        if (data.Bullet == null || firePoint == null) return;
+        GameObject obj = Instantiate(data.Bullet, firePoint.position, firePoint.rotation);
         BulletEnemy bulletEnemy = obj.GetComponent<BulletEnemy>();
-        if (bulletEnemy != null) bulletEnemy.damage = attackDamage * damageMultiplier;
+        if (bulletEnemy != null) bulletEnemy.damageMultiplier = damageMultiplier;
+        if (bulletEnemy != null) bulletEnemy.data = data;
     }
 
     public void AttackEnd()

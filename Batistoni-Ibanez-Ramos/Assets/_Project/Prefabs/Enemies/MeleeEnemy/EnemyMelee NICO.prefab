@@ -173,6 +173,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: efcdd37de1ee0d44684f6cdb797ef21d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  data: {fileID: 11400000, guid: 156599bdd786fe14eaaae7ee812e1fd9, type: 2}
   maxHealth: 30
   baseSpeed: 25
   xpOrbPrefab: {fileID: 4151671228204215311, guid: f0f5c3e19b95e644d8886b80bbdb3cbc, type: 3}

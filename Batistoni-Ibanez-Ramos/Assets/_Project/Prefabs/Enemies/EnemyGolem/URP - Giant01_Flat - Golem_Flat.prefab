@@ -850,6 +850,34 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &8928128685269366864
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3493230387313788560}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 235629222e9410741bbb912bb00e7c27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  data: {fileID: 11400000, guid: 84bec2f23fe98a14aae0b5d3e762ba64, type: 2}
+  maxHealth: 200
+  baseSpeed: 25
+  xpOrbPrefab: {fileID: 4151671228204215311, guid: f0f5c3e19b95e644d8886b80bbdb3cbc, type: 3}
+  damagePopupPrefab: {fileID: 3592148569616233406, guid: 61ebab5bd050aba4583e7948ea50b804, type: 3}
+  goldReward: 5
+  flashMaterial: {fileID: 0}
+  attackDamage: 30
+  attackRange: 3
+  attackRadius: 4.5
+  hitDelay: 1.5
+  attackCooldown: 2
+  knockbackHorizontal: 65
+  knockbackUpward: 23
+  slamVisualPrefab: {fileID: 3700175586175300723, guid: a9586e4fe4f872548b617a8137731082, type: 3}
+  animator: {fileID: 7375338823319746824}
 --- !u!54 &-5879087324996281369
 Rigidbody:
   m_ObjectHideFlags: 0
