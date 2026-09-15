@@ -44,7 +44,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 93aa652c5d4e7f44b807e024489e63c4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  data: {fileID: 11400000, guid: 0fba28aec69c25549a7fca04357b0a24, type: 2}
+  data: {fileID: 11400000, guid: 299d2eb5759d0be48ad483cb61a2c86d, type: 2}
   spawnRadius: 8
   enemyLayer:
     serializedVersion: 2

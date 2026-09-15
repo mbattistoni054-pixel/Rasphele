@@ -16,7 +16,7 @@ MonoBehaviour:
   maxImpactUpgrades: 1
   weaponName: Meteorito
   weaponIcon: {fileID: 21300000, guid: f4fd29da8f4d41c45afd257e74d0d7b7, type: 3}
-  projectilePrefab: {fileID: 2862189131059101321, guid: cad0ecca1411f4d48b44ce0e2f6b92de, type: 3}
+  projectilePrefab: {fileID: 2542763677662136594, guid: d45f17f7ef313e6438fabcffc05011cd, type: 3}
   attackSound: {fileID: 0}
   damageType: 1
   baseDamage: 50

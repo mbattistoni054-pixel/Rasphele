@@ -16,7 +16,7 @@ MonoBehaviour:
   maxImpactUpgrades: 1
   weaponName: Hongos
   weaponIcon: {fileID: 1915053626, guid: 2c5911e469db04a4aa950113922f05ff, type: 3}
-  projectilePrefab: {fileID: 9136211849381488765, guid: a4b1f2aed2c40b64d82093505c9df449, type: 3}
+  projectilePrefab: {fileID: 6485385625028298011, guid: 56d142b15adbb594da01ab18e6bd7c39, type: 3}
   attackSound: {fileID: 0}
   damageType: 4
   baseDamage: 8

@@ -16,7 +16,7 @@ MonoBehaviour:
   maxImpactUpgrades: 1
   weaponName: Botas Igneas
   weaponIcon: {fileID: 1129087042, guid: 6cb0a7c997780bc408dcb06de40fdc8d, type: 3}
-  projectilePrefab: {fileID: 7693485216914604329, guid: 459befadc0c42a345bcea142b41a5700, type: 3}
+  projectilePrefab: {fileID: 6165491705752031040, guid: eec285ba1536f9e4b9017cc86db9e462, type: 3}
   attackSound: {fileID: 0}
   damageType: 2
   baseDamage: 5

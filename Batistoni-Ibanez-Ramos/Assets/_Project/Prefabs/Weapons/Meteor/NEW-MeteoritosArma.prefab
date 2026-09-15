@@ -44,7 +44,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b1a47b2035816b948b96c2335be4e705, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  data: {fileID: 11400000, guid: b4c92ee874d422f47b0b4c0c8922673d, type: 2}
+  data: {fileID: 11400000, guid: 23b91ddf63f49d649ad1e410949a242a, type: 2}
   heightOffset: 15
   spawnRadius: 8
   enemyLayer:
