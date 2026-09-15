@@ -43,7 +43,6 @@ namespace PatronesAplicados.RealImplementation
                 Vector3 spawnOffset = new Vector3(randomCircle.x, heightOffset, randomCircle.y);
                 Vector3 spawnPos = transform.position + spawnOffset - (aimDirection * (heightOffset * 0.5f));
 
-                // ! PATRN POOL: Pedimos un meteorito vaco
                 GameObject meteorObj = ProjectilePoolManager.Instance.GetProjectile(data.projectilePrefab, spawnPos, Quaternion.identity);
                 MeteorProjectileRefactored proj = meteorObj.GetComponent<MeteorProjectileRefactored>();
 

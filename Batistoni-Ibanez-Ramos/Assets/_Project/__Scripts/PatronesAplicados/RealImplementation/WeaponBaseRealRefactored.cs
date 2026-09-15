@@ -2,11 +2,7 @@ using UnityEngine;
 
 namespace PatronesAplicados.RealImplementation
 {
-    /// <summary>
-    /// WeaponBaseRealRefactored: Adaptacin real de tu WeaponBase.
-    /// Exponemos las variables como Propiedades con setter pblico para que el Builder
-    /// pueda modificarlas, manteniendo la lectura pblica.
-    /// </summary>
+
     public abstract class WeaponBaseRealRefactored : MonoBehaviour
     {
         [Header("Datos Base (Read-Only)")]
@@ -15,7 +11,6 @@ namespace PatronesAplicados.RealImplementation
         protected float currentCooldownTimer;
         protected bool attackSuccessful = false;
 
-        // --- PROPIEDADES (Para el Builder) ---
         public float CurrentBaseDamage { get; set; }
         public float CurrentBaseCooldown { get; set; }
         public int CurrentMultipleShots { get; set; }
@@ -28,7 +23,6 @@ namespace PatronesAplicados.RealImplementation
         public float CurrentElectricStormChance { get; set; }
         public float CurrentHeatHeal { get; set; }
         
-        // Atributos Especficos (Ej. Ncleo Galvnico)
         public float CurrentMaxDamageCap { get; set; } = 200f;
         public float CurrentRampUpInterval { get; set; } = 1f;
 
@@ -38,7 +32,6 @@ namespace PatronesAplicados.RealImplementation
         public DamageType CurrentDamageType { get; set; }
         public int WeaponID => gameObject.GetInstanceID();
 
-        // --- STATS CACHE (Desacoplamiento de PlayerStats) ---
         protected float cachedGlobalDamageMult = 1f;
         protected float cachedGlobalFireRateMult = 1f;
         protected float cachedGlobalRangeMult = 1f;
@@ -47,7 +40,6 @@ namespace PatronesAplicados.RealImplementation
         {
             if (data != null) ResetWeaponStats();
 
-            // DESACOPLAMIENTO: Pedimos los stats iniciales y nos suscribimos a los cambios
             if (EventManager.Instance != null)
             {
                 EventManager.Instance.TriggerEvent<System.Action<PatronesAplicados.PlayerStatsRefactored>>("RequestCurrentStats", OnReceiveStats);
@@ -105,7 +97,6 @@ namespace PatronesAplicados.RealImplementation
 
         protected abstract void Attack();
 
-        // Mtodos de utilidad para calcular el valor final en el momento del disparo
         protected float GetFinalDamage()
         {
             if (data == null) return 0;

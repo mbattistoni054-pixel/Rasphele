@@ -99,7 +99,6 @@ namespace PatronesAplicados
 
     private Vector3 moveDirection;
 
-    // En lugar de usar la velocidad base, esto calcula tu velocidad FINAL con objetos.
     private float FinalSpeed
     {
         get
@@ -107,7 +106,7 @@ namespace PatronesAplicados
             if (PlayerStatsRefactored.Instance != null)
                 return PlayerStatsRefactored.Instance.GetTotalSpeed(currentSpeed);
 
-            return currentSpeed; // Si por algún motivo no hay stats, usa la normal
+            return currentSpeed;
         }
     }
 
@@ -221,11 +220,10 @@ namespace PatronesAplicados
         {
             knockbackTimer -= Time.fixedDeltaTime;
 
-            // Le aplicamos la gravedad extra para que caiga bien y no flote como papel
             if (rb.linearVelocity.y < 0)
                 rb.linearVelocity += Vector3.up * Physics.gravity.y * (fallMultiplier - 1) * Time.fixedDeltaTime;
 
-            return; // Cortamos la función aquí para que el script no sobreescriba el empujón
+            return; 
         }
 
         switch (currentState)
@@ -291,7 +289,6 @@ namespace PatronesAplicados
         if (Physics.Raycast(groundCheck.position, Vector3.down, out slopeHit, 1.0f, groundMask))
         {
             float angle = Vector3.Angle(Vector3.up, slopeHit.normal);
-            // Usamos la nueva variable también aquí para mayor consistencia
             return angle < maxWalkableAngle && angle != 0;
         }
         return false;
@@ -303,18 +300,14 @@ namespace PatronesAplicados
     {
         if (moveDirection.magnitude < 0.1f) return;
 
-        // Lanzamos una esfera virtual (SphereCast) desde la cintura hacia adelante
         Vector3 origin = transform.position + Vector3.up * 0.5f;
 
         if (Physics.SphereCast(origin, col.radius * 0.9f, moveDirection, out RaycastHit hit, 0.5f, groundMask))
         {
             float wallAngle = Vector3.Angle(Vector3.up, hit.normal);
 
-            // Si la pared es más empinada que tu máximo permitido (ej. 80 grados > 45)
             if (wallAngle > maxWalkableAngle)
             {
-                // Proyectamos el vector de movimiento sobre el plano de la pared.
-                // Esto anula la fuerza penetrante y hace que resbales suavemente hacia los lados.
                 Vector3 projected = Vector3.ProjectOnPlane(moveDirection, hit.normal);
                 moveDirection = new Vector3(projected.x, 0f, projected.z).normalized;
             }
@@ -332,7 +325,6 @@ namespace PatronesAplicados
 
         moveDirection = _movement.UpdateRotation(_controls.GetMoveInput(), cam.eulerAngles.y, turnSmoothTime);
 
-        // Bloqueo Anti-Spiderman
         PreventSteepWallClimbing();
 
         if (animator != null) animator.SetBool("Moving", moveDirection.magnitude >= 0.1f);
@@ -367,13 +359,11 @@ namespace PatronesAplicados
         if (OnSlope())
         {
             Vector3 slopeDirection = GetSlopeMoveDirection(moveDirection);
-            // --- CAMBIO: Usamos FinalSpeed en lugar de currentSpeed ---
             _movement.SetVelocity(slopeDirection * FinalSpeed);
             if (moveDirection == Vector3.zero) _movement.SetVelocity(Vector3.zero);
         }
         else
         {
-            // --- CAMBIO: Usamos FinalSpeed en lugar de currentSpeed ---
             _movement.SetVelocity(new Vector3(moveDirection.x * FinalSpeed, _movement.GetVelocity().y, moveDirection.z * FinalSpeed));
         }
         SnapToGround();
@@ -383,7 +373,6 @@ namespace PatronesAplicados
     {
         moveDirection = _movement.UpdateRotation(_controls.GetMoveInput(), cam.eulerAngles.y, turnSmoothTime);
 
-        // Bloqueo Anti-Spiderman en el aire (evita escalar saltando hacia la pared)
         PreventSteepWallClimbing();
 
         if (_controls.dashBuffer > 0f && currentDashesAvailable > 0)
@@ -402,7 +391,6 @@ namespace PatronesAplicados
     private void HandleAirbornePhysics()
     {
         Vector3 currentHorizontal = new Vector3(_movement.GetVelocity().x, 0, _movement.GetVelocity().z);
-        // --- CAMBIO: Usamos FinalSpeed en lugar de currentSpeed ---
         Vector3 targetHorizontal = moveDirection * FinalSpeed;
 
         Vector3 newHorizontal = Vector3.Lerp(currentHorizontal, targetHorizontal, airControl * Time.fixedDeltaTime);
@@ -486,7 +474,6 @@ namespace PatronesAplicados
     private void StopDash()
     {
         currentState = isGrounded ? PlayerState.Walking : PlayerState.Airborne;
-        // --- CAMBIO: Usamos FinalSpeed en lugar de currentSpeed ---
         _movement.SetVelocity(_movement.GetVelocity().normalized * FinalSpeed);
     }
 
@@ -534,8 +521,6 @@ namespace PatronesAplicados
         if (CanvasPause != null)
         {
             if (!CanvasPause.gameObject.activeSelf) CanvasPause.gameObject.SetActive(true);
-            // else if ((controlsMenu == null || !controlsMenu.activeSelf) && (optionsMenu == null || !optionsMenu.activeSelf))
-            //     CanvasPause.gameObject.SetActive(false);
 
             else if (CanvasPause.gameObject.activeSelf) CanvasPause.gameObject.SetActive(false);
         }
@@ -545,10 +530,10 @@ namespace PatronesAplicados
     {
         knockbackTimer = stunDuration;
         currentState = PlayerState.Airborne;
-        jumpCooldown = stunDuration; // Evita que el SnapToGround lo pegue al piso
+        jumpCooldown = stunDuration; 
 
-        rb.linearVelocity = Vector3.zero; // Frenamos inercia previa
-        rb.AddForce(force, ForceMode.Impulse); // Lo hacemos volar
+        rb.linearVelocity = Vector3.zero; 
+        rb.AddForce(force, ForceMode.Impulse); 
     }
 }
 }

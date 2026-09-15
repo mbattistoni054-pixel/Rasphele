@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
-using PatronesAplicados.RealImplementation; // Necesario para WeaponBaseRealRefactored
+using PatronesAplicados.RealImplementation;
 
 namespace PatronesAplicados
 {
@@ -61,7 +61,6 @@ namespace PatronesAplicados
         private List<UpgradeOptionRefactored> currentGlobalChoices;
         private WeaponBaseRealRefactored[] playerActiveWeapons;
 
-        // Cach local de datos del UpgradeManager
         private List<UpgradeData> cachedAllAvailableUpgrades = new List<UpgradeData>();
         private Dictionary<UpgradeData, int> cachedChosenUpgrades = new Dictionary<UpgradeData, int>();
         private PlayerStatsRefactored cachedPlayerStats;
@@ -72,7 +71,6 @@ namespace PatronesAplicados
             {
                 EventManager.Instance.TriggerEvent("PauseRequested");
                 
-                // Pedir datos necesarios para la UI
                 EventManager.Instance.TriggerEvent<System.Action<List<UpgradeData>>>("RequestAllAvailableUpgrades", (data) => cachedAllAvailableUpgrades = data);
                 EventManager.Instance.TriggerEvent<System.Action<Dictionary<UpgradeData, int>>>("RequestChosenUpgrades", (data) => cachedChosenUpgrades = data);
                 EventManager.Instance.TriggerEvent<System.Action<PlayerStatsRefactored>>("RequestCurrentStats", (stats) => cachedPlayerStats = stats);
@@ -87,8 +85,6 @@ namespace PatronesAplicados
                 playerActiveWeapons = player.GetComponentsInChildren<WeaponBaseRealRefactored>();
             }
 
-            // Aqu asumo que PlayerExperience fue refactorizado a PlayerExperienceRefactored.
-            // Si an no lo has hecho, debers adaptar esto para usar eventos tambin (ej. pedir nivel).
             PlayerExperienceRefactored xp = Object.FindFirstObjectByType<PlayerExperienceRefactored>();
 
             if (xp != null && newWeaponLevels.Contains(xp.currentLevel))
@@ -118,8 +114,7 @@ namespace PatronesAplicados
         private void ShowNewWeaponSelection()
         {
             if (mainTitleText != null) mainTitleText.text = "ELIGE UN ARMA NUEVA";
-            // if (panelSeleccionArma != null) panelSeleccionArma.SetActive(true); // Removido para no afectar el Panel Inventario
-            // if (panelMejoras != null) panelMejoras.SetActive(false); // Eliminado para que las cartas sigan visibles al elegir nueva arma
+
             if (panelDerecho != null) panelDerecho.SetActive(false);
             
             if (closeButton != null) closeButton.SetActive(false);
@@ -176,7 +171,6 @@ namespace PatronesAplicados
         private void ShowMainScreen()
         {
             if (mainTitleText != null) mainTitleText.text = "ELIGE UNA MEJORA";
-            // if (panelSeleccionArma != null) panelSeleccionArma.SetActive(false); // Removido para no apagar el Panel Inventario
             if (panelMejoras != null) panelMejoras.SetActive(true);
             if (panelDerecho != null) panelDerecho.SetActive(true);
         }
@@ -264,7 +258,6 @@ namespace PatronesAplicados
         {
             if (playerActiveWeapons == null || EventManager.Instance == null) return;
 
-            // Ocultamos todos los botones e iconos del panel 1 por defecto
             for (int i = 0; i < botonesArmas.Length; i++) 
             {
                 if (botonesArmas[i] != null) botonesArmas[i].gameObject.SetActive(false);
@@ -275,7 +268,6 @@ namespace PatronesAplicados
                 WeaponBaseRealRefactored activeWep = playerActiveWeapons[i];
                 int index = i;
 
-                // 1. Llenamos los elementos del panel 1 (inventario) - Botones principales
                 if (index < botonesArmas.Length && botonesArmas[index] != null)
                 {
                     botonesArmas[index].gameObject.SetActive(true);
@@ -286,7 +278,6 @@ namespace PatronesAplicados
                 }
             }
 
-            // Seleccionar por defecto la primera arma activa si no hay una seleccionada
             if (currentWeapon == null || !System.Array.Exists(playerActiveWeapons, w => w == currentWeapon))
             {
                 if (playerActiveWeapons.Length > 0) currentWeapon = playerActiveWeapons[0];
@@ -401,7 +392,6 @@ namespace PatronesAplicados
                         }
                         else
                         {
-                            // Pedimos el profile para saber el siguiente nivel
                             EventManager.Instance.TriggerEvent<WeaponBaseRealRefactored, System.Action<WeaponUpgradeProfile>>("RequestUpgradeProfile", weaponForCard, (profile) =>
                             {
                                 int nextLevel = 1;
@@ -492,7 +482,6 @@ namespace PatronesAplicados
             UpgradeOptionRefactored chosen = currentGlobalChoices[index];
 
             
-            // USANDO EVENTOS EN LUGAR DE SINGLETONS PARA APLICAR LA MEJORA
             if (EventManager.Instance != null)
             {
                 EventManager.Instance.TriggerEvent("ApplyUpgrade", chosen.data, chosen.weapon);

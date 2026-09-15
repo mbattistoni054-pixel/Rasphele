@@ -6,8 +6,6 @@ namespace PatronesAplicados
 {
     public class BossPlantRefactored : EnemyBaseRefactored
     {
-        // EVENTOS ESTATICOS REMOVIDOS. USAMOS EVENT MANAGER.
-
         [Header("Ajustes de Spawn")]
         public float spawnHeightOffset = 0f;
 
@@ -49,7 +47,6 @@ namespace PatronesAplicados
             base.Start();
 
             currentHealth = maxHealth;
-            //goldReward = 1000;
 
             if (animator == null) animator = GetComponent<Animator>();
 

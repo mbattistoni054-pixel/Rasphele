@@ -150,7 +150,7 @@ namespace PatronesAplicados
                         Instantiate(spawnSmokePrefab, spawnPos, Quaternion.identity);
                     }
 
-                    // USANDO POOL Y FACTORY EN LUGAR DE INSTANTIATE DIRECTO
+ 
                     GameObject enemyObj = EnemyPool.Instance.GetEnemy(selectedEnemyInfo.enemyPrefab, spawnPos);
 
                     if (enemyObj != null)

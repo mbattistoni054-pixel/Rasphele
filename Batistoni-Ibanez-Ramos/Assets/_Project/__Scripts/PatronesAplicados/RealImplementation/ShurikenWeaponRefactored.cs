@@ -74,7 +74,6 @@ namespace PatronesAplicados.RealImplementation
             {
                 if (shuriken != null && shuriken.IsIdle)
                 {
-                    // INYECTAMOS los valores del Builder
                     shuriken.Fire(nearestEnemy, GetFinalDamage(), CurrentEffects, WeaponID, CurrentDamageType, enemyLayer, CurrentProjectileSpeed);
                     fired = true;
                     break; 
@@ -90,7 +89,6 @@ namespace PatronesAplicados.RealImplementation
 
             shurikens.RemoveAll(s => s == null || !s.gameObject.activeInHierarchy);
 
-            // ! PATRN POOL: En lugar de instanciar, obtenemos del Pool
             while (shurikens.Count < CurrentMultipleShots)
             {
                 GameObject obj = ProjectilePoolManager.Instance.GetProjectile(data.projectilePrefab, transform.position, Quaternion.identity);
@@ -99,7 +97,7 @@ namespace PatronesAplicados.RealImplementation
                 if (proj != null) 
                 {
                     shurikens.Add(proj);
-                    proj.ForceIdleState(); // Asegurarnos de que nazca orbitando
+                    proj.ForceIdleState();
                 }
                 else 
                 {
@@ -107,7 +105,6 @@ namespace PatronesAplicados.RealImplementation
                 }
             }
 
-            // ! PATRN POOL: En lugar de destruir, devolvemos al Pool
             while (shurikens.Count > CurrentMultipleShots)
             {
                 int lastIndex = shurikens.Count - 1;

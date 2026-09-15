@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
-using PatronesAplicados.RealImplementation; // Necesario para WeaponBaseRealRefactored
+using PatronesAplicados.RealImplementation;
 
 namespace PatronesAplicados
 {
@@ -87,7 +87,7 @@ namespace PatronesAplicados
 
             if (EventManager.Instance != null && textoCosto != null)
             {
-                // UI Tonta: Solo solicita el costo mediante un callback
+
                 EventManager.Instance.TriggerEvent<WeaponBaseRealRefactored, System.Action<int>>("RequestPurgeCost", weapon, (costo) => 
                 {
                     textoCosto.text = $"Costo de Purgado: $ {costo}";
@@ -101,7 +101,7 @@ namespace PatronesAplicados
         {
             if (selectedWeapon == null || EventManager.Instance == null) return;
 
-            // Solicitar Profile
+
             EventManager.Instance.TriggerEvent<WeaponBaseRealRefactored, System.Action<WeaponUpgradeProfile>>("RequestUpgradeProfile", selectedWeapon, (profile) => 
             {
                 PurgadorWeaponPanelRefactored panelActivo = new PurgadorWeaponPanelRefactored();
@@ -154,7 +154,7 @@ namespace PatronesAplicados
 
             EventManager.Instance.TriggerEvent<WeaponBaseRealRefactored, System.Action<int>>("RequestPurgeCost", selectedWeapon, (costo) => 
             {
-                // callback de economia asincrono
+
                 EventManager.Instance.TriggerEvent<int, System.Action<bool>>("RequestSpendMoney", costo, (success) => 
                 {
                     if (success)

@@ -4,10 +4,6 @@ using System.Collections.Generic;
 
 namespace PatronesAplicados.RealImplementation
 {
-    /// <summary>
-    /// MushroomEntityRefactored: Adaptado para funcionar con el Object Pool.
-    /// Evita destruirse (Destroy) y en su lugar vuelve al ProjectilePoolManager al terminar su duracin.
-    /// </summary>
     public class MushroomEntityRefactored : MonoBehaviour
     {
         [Header("Efectos Visuales")]
@@ -23,7 +19,6 @@ namespace PatronesAplicados.RealImplementation
 
         private float tickTimer = 0f;
         
-        // Diccionario esttico para controlar que el jugador no se cure infinitamente en el mismo frame
         private static Dictionary<int, float> playerHealTimes = new Dictionary<int, float>();
         private static float nextCleanupTime = 0f;
         
@@ -38,7 +33,7 @@ namespace PatronesAplicados.RealImplementation
             weaponID = wID;
             damageType = dType;
             enemyMask = mask;
-            tickTimer = 0f; // Reiniciamos el timer del Pool
+            tickTimer = 0f;
 
             Debug.Log($" [HONGO REFACTORIZADO] Mi radio es {radius} y mi curacin es: {healAmount}");
 
@@ -47,7 +42,6 @@ namespace PatronesAplicados.RealImplementation
                 sporeVisualArea.localScale = new Vector3(radius * 2f, radius * 2f, radius * 2f);
             }
 
-            // ! PATRN POOL: Reemplazamos Destroy por una Corrutina que lo devuelve al Pool
             if (lifeTimerCoroutine != null) StopCoroutine(lifeTimerCoroutine);
             lifeTimerCoroutine = StartCoroutine(ReturnToPoolAfterTime(duration));
         }
@@ -56,14 +50,13 @@ namespace PatronesAplicados.RealImplementation
         {
             yield return new WaitForSeconds(time);
             
-            // Cuando termina su tiempo de vida, vuelve al Pool
             if (ProjectilePoolManager.Instance != null)
             {
                 ProjectilePoolManager.Instance.ReturnProjectile(gameObject);
             }
             else
             {
-                Destroy(gameObject); // Fallback de seguridad
+                Destroy(gameObject); 
             }
         }
 
@@ -85,7 +78,6 @@ namespace PatronesAplicados.RealImplementation
 
         private void SporeTick()
         {
-            // 1. Dao a Enemigos
             Collider[] hitEnemies = Physics.OverlapSphere(transform.position, radius, enemyMask);
             foreach (Collider hit in hitEnemies)
             {
@@ -98,7 +90,6 @@ namespace PatronesAplicados.RealImplementation
                 }
             }
 
-            // 2. Curacin al Jugador
             if (healAmount > 0f)
             {
                 Collider[] hitPlayers = Physics.OverlapSphere(transform.position, radius);
@@ -149,7 +140,6 @@ namespace PatronesAplicados.RealImplementation
             List<int> keysToRemove = new List<int>();
             foreach (var kvp in playerHealTimes)
             {
-                // Si pasaron ms de 5 segundos, limpiar el ID
                 if (Time.time >= kvp.Value + 5f)
                 {
                     keysToRemove.Add(kvp.Key);

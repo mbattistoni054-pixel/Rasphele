@@ -21,7 +21,6 @@ namespace PatronesAplicados.RealImplementation
             float angleStep = 360f / cloudsToSpawn;
             float randomOffset = Random.Range(0f, 360f);
 
-            // Usamos las propiedades del Builder
             float bonusRange = GetFinalRange() - data.baseRange;
             float finalMaxDistance = Mathf.Max(minSpawnDistance + 2f, maxSpawnDistance + bonusRange);
 
@@ -33,7 +32,6 @@ namespace PatronesAplicados.RealImplementation
                 float randomDist = Random.Range(minSpawnDistance, finalMaxDistance);
                 Vector3 spawnPos = transform.position + (direction * randomDist) + (Vector3.up * heightOffset);
 
-                // ! PATRN POOL: Pedimos una nube del pool
                 GameObject cloudObj = ProjectilePoolManager.Instance.GetProjectile(data.projectilePrefab, spawnPos, Quaternion.identity);
                 CloudEntityRefactored cloud = cloudObj.GetComponent<CloudEntityRefactored>();
 

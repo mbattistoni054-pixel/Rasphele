@@ -2,11 +2,6 @@ using UnityEngine;
 
 namespace PatronesAplicados.RealImplementation
 {
-    /// <summary>
-    /// MushroomWeaponRefactored: Integracin de los patrones Builder y Object Pool
-    /// adaptados especficamente para el arma de Hongos.
-    /// Hereda de WeaponBaseRealRefactored para exponer las variables al Builder.
-    /// </summary>
     public class MushroomWeaponRefactored : WeaponBaseRealRefactored
     {
         [Header("Ajustes del Hongo")]
@@ -15,7 +10,6 @@ namespace PatronesAplicados.RealImplementation
 
         protected override void Attack()
         {
-            // Tomamos los valores inyectados por el Builder (y provenientes de WeaponData)
             int mushroomsToSpawn = CurrentMultipleShots;
             float damagePerMushroom = GetFinalDamage();
             float sporeRadius = CurrentExplosiveRadius;
@@ -31,13 +25,11 @@ namespace PatronesAplicados.RealImplementation
                     spawnPos = hit.point;
                 }
 
-                // ! PATRN POOL: Pedimos un hongo vaco del pool en lugar de Instanciar
                 GameObject mushObj = ProjectilePoolManager.Instance.GetProjectile(data.projectilePrefab, spawnPos, Quaternion.identity);
                 MushroomEntityRefactored mush = mushObj.GetComponent<MushroomEntityRefactored>();
 
                 if (mush != null)
                 {
-                    // INYECTAMOS las estadsticas del Builder al hongo
                     mush.Setup(
                         damagePerMushroom, 
                         sporeRadius, 

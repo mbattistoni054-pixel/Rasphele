@@ -4,16 +4,10 @@ using UnityEngine;
 
 namespace PatronesAplicados
 {
-    /// <summary>
-    /// EventManager: Implementa el patrn Singleton y un Bus de Eventos (Event Bus).
-    /// Sirve para centralizar la comunicacin entre scripts, reduciendo el acoplamiento (dependencias directas).
-    /// Cumple con el Principio de Inversin de Dependencias (SOLID) al permitir que los mdulos dependan de abstracciones (eventos) y no de implementaciones concretas.
-    /// </summary>
     public class EventManager : MonoBehaviour
     {
         public static EventManager Instance { get; private set; }
 
-        // Cambiamos 'Action' por 'Delegate' para soportar eventos con y sin parmetros genricos (Action<T>)
         private Dictionary<string, Delegate> eventDictionary;
 
         void Awake()
@@ -30,7 +24,6 @@ namespace PatronesAplicados
             }
         }
 
-        // --- Suscripcin ---
 
         public void StartListening(string eventName, Action listener)
         {
@@ -64,7 +57,6 @@ namespace PatronesAplicados
             }
         }
 
-        // --- Desuscripcin ---
 
         public void StopListening(string eventName, Action listener)
         {
@@ -96,7 +88,6 @@ namespace PatronesAplicados
             }
         }
 
-        // --- Disparo de Eventos ---
 
         public void TriggerEvent(string eventName)
         {

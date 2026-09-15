@@ -21,7 +21,6 @@ namespace PatronesAplicados.RealImplementation
 
             currentCooldownTimer += Time.deltaTime;
             
-            // Usamos CurrentBaseCooldown del Builder y el multiplicador en cach
             float actualCooldown = CurrentBaseCooldown * cachedGlobalFireRateMult;
 
             if (currentCooldownTimer >= actualCooldown)
@@ -42,7 +41,6 @@ namespace PatronesAplicados.RealImplementation
         {
             Vector3 spawnPos = transform.position + Vector3.up * 0.05f;
             
-            // ! PATRN POOL: Obtenemos el fuego del Pool
             GameObject fireObj = ProjectilePoolManager.Instance.GetProjectile(data.projectilePrefab, spawnPos, Quaternion.identity);
 
             FireZoneRefactored fireZone = fireObj.GetComponent<FireZoneRefactored>();
@@ -50,7 +48,6 @@ namespace PatronesAplicados.RealImplementation
             {
                 float finalDuration = CurrentDuration;
 
-                // Usamos las estadsticas inyectadas por el Builder
                 fireZone.Setup(
                     GetFinalDamage(), 
                     CurrentEffects, 

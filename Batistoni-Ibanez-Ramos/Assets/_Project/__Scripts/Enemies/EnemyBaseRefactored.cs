@@ -17,7 +17,6 @@ namespace PatronesAplicados
 
         [Header("Estadisticas Base")]
         public float maxHealth;
-        //public float baseSpeed;
 
         [Header("Multiplicador de Dificultad")]
         protected float damageMultiplier = 1f;
@@ -34,8 +33,6 @@ namespace PatronesAplicados
         public GameObject xpOrbPrefab;
         public GameObject damagePopupPrefab;
         
-        //public int goldReward = 5;
-
         [Header("Efectos Visuales")]
         public Material flashMaterial;
         private Material[] originalMaterials;
@@ -60,6 +57,8 @@ namespace PatronesAplicados
 
         protected virtual void Start()
         {
+            player = GameManagerRefactored.Instance.Player;
+            
             maxHealth = data.MaxHealth;
             currentHealth = data.MaxHealth;
             currentSpeed = data.BaseSpeed;
@@ -68,9 +67,6 @@ namespace PatronesAplicados
             rb = GetComponent<Rigidbody>();
 
             if (agent != null) agent.speed = currentSpeed;
-
-            GameObject p = GameObject.FindGameObjectWithTag("Player");
-            if (p != null) player = p.transform;
 
             renderers = GetComponentsInChildren<Renderer>();
             if (renderers.Length > 0)
@@ -129,6 +125,11 @@ namespace PatronesAplicados
 
         protected virtual void Update()
         {
+            if (player == null)
+            {
+                player = GameManagerRefactored.Instance.Player;
+            }
+
             if (stunImmunityTimer > 0) stunImmunityTimer -= Time.deltaTime;
 
             ProcessBurnTicks();
@@ -363,14 +364,12 @@ namespace PatronesAplicados
                 }
             }
 
-            // DESACOPLAMIENTO DE EVENTOS
             if (EventManager.Instance != null)
             {
                 EventManager.Instance.TriggerEvent<int>("EnemyKilled_GoldReward", data.GoldReward);
                 EventManager.Instance.TriggerEvent("EnemyDied");
             }
 
-            // PATRON OBJECT POOL: En lugar de destruir, reciclamos
             if (EnemyPool.Instance != null && !string.IsNullOrEmpty(poolKey))
             {
                 EnemyPool.Instance.ReturnEnemy(gameObject, poolKey);

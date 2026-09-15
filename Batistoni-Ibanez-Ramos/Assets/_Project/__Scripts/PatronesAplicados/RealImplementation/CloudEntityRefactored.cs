@@ -33,7 +33,6 @@ namespace PatronesAplicados.RealImplementation
             damageType = dType;
             enemyMask = mask;
             
-            // Reset timers for pooling
             rainTimer = 0f;
             lightningTimer = 0f;
 
@@ -41,13 +40,10 @@ namespace PatronesAplicados.RealImplementation
             {
                 aoeVisual.gameObject.SetActive(true);
                 aoeVisual.localScale = new Vector3(radius * 2f, 0.05f, radius * 2f);
-                // NOTA: Para el pool, es ms seguro no usar SetParent(null) para que regrese todo junto.
-                // Simplemente actualizamos su posicin global en UpdateAoEVisual y lo dejamos como hijo.
             }
 
             UpdateAoEVisual();
 
-            // ! PATRN POOL
             if (lifeTimerCoroutine != null) StopCoroutine(lifeTimerCoroutine);
             lifeTimerCoroutine = StartCoroutine(ReturnToPoolAfterTime(duration));
         }
@@ -56,7 +52,6 @@ namespace PatronesAplicados.RealImplementation
         {
             yield return new WaitForSeconds(time);
             
-            // Apagamos el visual antes de devolverlo
             if (aoeVisual != null) aoeVisual.gameObject.SetActive(false);
             
             if (ProjectilePoolManager.Instance != null)
@@ -132,9 +127,7 @@ namespace PatronesAplicados.RealImplementation
 
             if (lightningVisualPrefab != null)
             {
-                // Aparecemos el prefab del rayo en el piso
                 GameObject rayoObj = Instantiate(lightningVisualPrefab, groundPosition, Quaternion.identity);
-                // Destruimos el efecto visual 1 segundo después (ajusta este tiempo según tu animación)
                 Destroy(rayoObj, 1f);
             }
 

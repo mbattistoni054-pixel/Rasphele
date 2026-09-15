@@ -39,7 +39,6 @@ namespace PatronesAplicados.RealImplementation
             enemyMask = eMask;
             fallDirection = direction;
 
-            // Resetear escala y color antes de aplicar modificadores
             transform.localScale = originalScale;
             Renderer rend = GetComponentInChildren<Renderer>();
             if (rend != null) rend.material.color = originalColor;
@@ -47,7 +46,6 @@ namespace PatronesAplicados.RealImplementation
             if (isScatter) transform.localScale *= 0.5f;
             if (isComet && rend != null) rend.material.color = Color.cyan;
 
-            // ! PATRN POOL: Seguridad de tiempo de vida (por si cae al vaco)
             if (lifeTimerCoroutine != null) StopCoroutine(lifeTimerCoroutine);
             lifeTimerCoroutine = StartCoroutine(ReturnToPoolAfterTime(10f));
         }
@@ -112,11 +110,10 @@ namespace PatronesAplicados.RealImplementation
 
             if (explosionVisualPrefab != null)
             {
-                // El visual tambin podra poolerarse
                 GameObject visualObj = Instantiate(explosionVisualPrefab, transform.position, Quaternion.identity);
                 float visualScale = finalExplosionRadius * 2f;
                 visualObj.transform.localScale = new Vector3(visualScale, visualScale, visualScale);
-                Destroy(visualObj, 2f); // <-- CORRECCIN: Evita la fuga de memoria
+                Destroy(visualObj, 2f);
             }
 
             Collider[] hitEnemies = Physics.OverlapSphere(transform.position, finalExplosionRadius, enemyMask);

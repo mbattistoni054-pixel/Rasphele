@@ -13,7 +13,6 @@ public class TempSpawner : MonoBehaviour
 
     void Update()
     {
-        // Si no hay enemigos asignados, no hacemos nada para evitar errores
         if (enemyPrefabs == null || enemyPrefabs.Length == 0) return;
 
         timer += Time.deltaTime;
@@ -21,21 +20,18 @@ public class TempSpawner : MonoBehaviour
         if (timer >= spawnInterval)
         {
             SpawnEnemy();
-            timer = 0f; // Reiniciamos el reloj
+            timer = 0f; 
         }
     }
 
     private void SpawnEnemy()
     {
-        // Elegimos un enemigo al azar de la lista 
         int randomIndex = Random.Range(0, enemyPrefabs.Length);
         GameObject selectedEnemy = enemyPrefabs[randomIndex];
 
-        // Instanciamos el enemigo en la posición exacta de este Spawner
         Instantiate(selectedEnemy, transform.position, Quaternion.identity);
     }
 
-    // DIBUJADO DEL GIZMO EN LA ESCENA 
     private void OnDrawGizmos()
     {
 

@@ -5,28 +5,26 @@ using System.Collections;
 public class NEWBossRootTrap : MonoBehaviour
 {
     [Header("Tiempos del Ataque")]
-    public float followTime = 2f;        // Tiempo persiguiendo al jugador
-    public float lockWarningTime = 0.5f; // Tiempo congelada antes de salir
-    public float rootDuration = 2f;      // Tiempo que el jugador queda atrapado
+    public float followTime = 2f;        
+    public float lockWarningTime = 0.5f; 
+    public float rootDuration = 2f;     
 
     [Header("rea y Efectos")]
     public float trapRadius = 4f;
-    public Transform warningVisual;      // Crculo rojo/transparente
-    public Transform rootVisual;         // Objeto con las races modelo 3D
+    public Transform warningVisual;      
+    public Transform rootVisual;         
 
     private Transform playerTarget;
     private float damage;
-    private CopiaPlayerController2 trappedPlayerCtrl; // Guardamos al jugador si lo atrapamos
+    private CopiaPlayerController2 trappedPlayerCtrl; 
 
     public void Setup(Transform target, float dmg)
     {
         playerTarget = target;
         damage = dmg;
 
-        // Ajustamos la escala del crculo al radio de la trampa
         if (warningVisual != null) warningVisual.localScale = new Vector3(trapRadius * 2f, 0.1f, trapRadius * 2f);
 
-        // Escondemos las races al principio
         if (rootVisual != null) rootVisual.gameObject.SetActive(false);
 
         StartCoroutine(TrapRoutine());
@@ -81,7 +79,6 @@ public class NEWBossRootTrap : MonoBehaviour
                     if (hp != null) hp.TakeDamage(damage);
                 }
 
-                // Intentamos usar el Stun Inteligente de la Version 2 del Player
                 CopiaPlayerController2 playerV2 = hit.GetComponent<CopiaPlayerController2>();
                 if (playerV2 != null)
                 {
@@ -103,8 +100,6 @@ public class NEWBossRootTrap : MonoBehaviour
         }
     }
 
-    // Si la trampa es destruida por error o devuelta al pool
-    // nos aseguramos de liberar al jugador si estaba atrapado.
     private void OnDestroy()
     {
         ReleasePlayer();

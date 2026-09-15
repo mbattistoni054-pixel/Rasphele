@@ -10,7 +10,6 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
 
     [Header("Estadísticas Base")]
     public float maxHealth;
-    //public float baseSpeed;
 
     [Header("Multiplicador de Dificultad")]
     protected float damageMultiplier = 1f;
@@ -43,7 +42,6 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         public float value;
     }
 
-    // Diccionarios para manejar los Daños por Tiempo por Arma
     private Dictionary<int, DoTData> activeBurns = new Dictionary<int, DoTData>();
     private Dictionary<int, DoTData> activeBleeds = new Dictionary<int, DoTData>();
     private Dictionary<int, DoTData> activePoisons = new Dictionary<int, DoTData>();
@@ -92,7 +90,6 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
     {
         if (stunImmunityTimer > 0) stunImmunityTimer -= Time.deltaTime;
 
-        // Ahora el Update procesa matemáticamente los daños por tiempo
         ProcessBurnTicks();
         ProcessBleedTicks();
         ProcessPoisonTicks();
@@ -110,7 +107,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
 
             if (dot.tickTimer <= 0)
             {
-                dot.tickTimer += 1f; // Resetea el reloj a 1 segundo
+                dot.tickTimer += 1f;
                 TakeDamage(dot.value, false, DamageType.Fuego);
             }
 
@@ -130,9 +127,9 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
 
             if (dot.tickTimer <= 0)
             {
-                dot.tickTimer += 1f; // Resetea el reloj a 1 segundo
+                dot.tickTimer += 1f; 
                 float bleedDmg = currentHealth * (dot.value / 100f);
-                TakeDamage(bleedDmg, false, DamageType.Fisico, true); // Pasamos 'isBleed = true'
+                TakeDamage(bleedDmg, false, DamageType.Fisico, true); 
             }
 
             if (dot.timeLeft <= 0) activeBleeds.Remove(key);
@@ -151,7 +148,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
 
             if (dot.tickTimer <= 0)
             {
-                dot.tickTimer += 1f; // Resetea el reloj a 1 segundo
+                dot.tickTimer += 1f; 
                 TakeDamage(dot.value, false, DamageType.Veneno);
             }
 
@@ -323,7 +320,6 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
     {
         activeEnemyCount--;
 
-        // Seguridad extra por si Unity hace cosas raras al cambiar de escena
         if (activeEnemyCount < 0) activeEnemyCount = 0;
     }
 }

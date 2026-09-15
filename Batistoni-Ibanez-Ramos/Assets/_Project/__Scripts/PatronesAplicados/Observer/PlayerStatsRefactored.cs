@@ -117,7 +117,6 @@ namespace PatronesAplicados
 
             currentMoney += Mathf.CeilToInt(totalAmount);
 
-            // DESACOPLAMIENTO: Usamos el Event Bus en lugar de un delegate esttico
             if (EventManager.Instance != null)
             {
                 EventManager.Instance.TriggerEvent("MoneyUpdated", currentMoney);
@@ -130,7 +129,6 @@ namespace PatronesAplicados
             {
                 currentMoney -= amount;
 
-                // DESACOPLAMIENTO
                 if (EventManager.Instance != null)
                 {
                     EventManager.Instance.TriggerEvent("MoneyUpdated", currentMoney);

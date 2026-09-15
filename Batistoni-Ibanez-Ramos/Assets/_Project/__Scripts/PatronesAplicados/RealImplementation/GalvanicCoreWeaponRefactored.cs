@@ -3,12 +3,7 @@ using System.Collections.Generic;
 
 namespace PatronesAplicados.RealImplementation
 {
-    /// <summary>
-    /// GalvanicCoreWeaponRefactored: Adaptacin del Ncleo Galvnico.
-    /// - Utiliza el WeaponBuilder para heredar sus estadsticas sin castings feos en el UpgradeManager.
-    /// - Implementa un Patrn de Object Pool LOCAL para los LineRenderers, evitando usar "new GameObject()" 
-    ///   y "Destroy()" cada vez que cambia de enemigo.
-    /// </summary>
+
     public class GalvanicCoreWeaponRefactored : WeaponBaseRealRefactored
     {
         [Header("Ajustes del Ncleo Galvnico")]
@@ -34,7 +29,6 @@ namespace PatronesAplicados.RealImplementation
 
         private List<ActiveBeam> activeBeams = new List<ActiveBeam>();
         
-        // ! PATRN POOL (Local): Cola para guardar los LineRenderers apagados
         private Queue<LineRenderer> lineRendererPool = new Queue<LineRenderer>();
 
         protected override void Start()
@@ -90,13 +84,11 @@ namespace PatronesAplicados.RealImplementation
                 }
 
                 beam.rampUpTimer += Time.deltaTime;
-                // Usamos la variable inyectada por el Builder
                 if (beam.rampUpTimer >= CurrentRampUpInterval)
                 {
                     beam.rampUpTimer -= CurrentRampUpInterval;
                     beam.currentDamage *= damageMultiplierPerTick;
 
-                    // Usamos la variable inyectada por el Builder
                     if (beam.currentDamage > CurrentMaxDamageCap)
                     {
                         beam.currentDamage = CurrentMaxDamageCap;
@@ -167,7 +159,6 @@ namespace PatronesAplicados.RealImplementation
             newBeam.rampUpTimer = 0f;
             newBeam.damageTickTimer = 0f;
 
-            // ! USO DEL POOL LOCAL
             LineRenderer lr = GetLineRendererFromPool();
             newBeam.line = lr;
             
@@ -178,12 +169,9 @@ namespace PatronesAplicados.RealImplementation
         {
             if (beam.line != null)
             {
-                // ! RETORNO AL POOL LOCAL EN VEZ DE DESTROY
                 ReturnLineRendererToPool(beam.line);
             }
         }
-
-        // --- LGICA DEL POOL LOCAL ---
 
         private LineRenderer GetLineRendererFromPool()
         {
@@ -195,7 +183,6 @@ namespace PatronesAplicados.RealImplementation
             }
             else
             {
-                // Si el pool est vaco, instanciamos uno nuevo
                 GameObject lineObj = new GameObject("TeslaBeam_Pooled");
                 lineObj.transform.SetParent(transform);
                 LineRenderer lr = lineObj.AddComponent<LineRenderer>();

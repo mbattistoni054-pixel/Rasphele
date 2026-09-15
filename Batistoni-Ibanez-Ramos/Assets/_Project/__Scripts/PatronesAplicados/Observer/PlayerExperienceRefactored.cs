@@ -19,8 +19,6 @@ namespace PatronesAplicados
 
         public void AddExperience(float amount)
         {
-            // Ojo: Usamos el PlayerStats original si an no cambiamos la jerarqua, 
-            // o PlayerStatsRefactored si ya lo hicimos. Para seguridad, chequeamos ambos.
             if (PlayerStatsRefactored.Instance != null)
             {
                 amount *= PlayerStatsRefactored.Instance.itemXpMultiplier;
@@ -62,7 +60,6 @@ namespace PatronesAplicados
 
         private void NotifyExperienceChanged()
         {
-            // DESACOPLAMIENTO: Disparamos el evento genrico de 3 parmetros
             if (EventManager.Instance != null)
             {
                 EventManager.Instance.TriggerEvent("ExperienceChanged", currentXP, xpToNextLevel, currentLevel);

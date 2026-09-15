@@ -5,32 +5,15 @@ using System.Collections;
 [RequireComponent(typeof(LineRenderer))]
 public class NEWEnemyMagicSorcerer : NEWEnemySorcererBase
 {
-   // [Header("Ataque Lser")]
-    //public float attackDamage = 60f;
 
     [Tooltip("El punto desde donde sale el lser (ej: la punta del bculo)")]
     public Transform firePoint;
-
-   // [Tooltip("Asigna aqu un Material (ej. Sprites/Default) para evitar que el rayo desaparezca en la Build")]
- //   public Material beamMaterial;
-
- //   [Header("Tiempos del Lser")]
-   // public float trackingTime = 1.5f; // Tiempo persiguiendo al jugador (parpadeo)
-  //  public float lockedTime = 0.5f;   // Tiempo congelado antes de disparar (blanco)
- //   public float laserDuration = 0.4f;// Cunto dura el rayo rojo visible
 
     private LineRenderer lineRenderer;
 
     protected override void Start()
     {
         base.Start();
-
-        //maxHealth = 30f;
-       // goldReward = 10;
-
-       // if (attackCooldown < 5f) attackCooldown = 5f;
-       // if (attackRange < 40f) attackRange = 40f;
-       // if (fleeDistance < 20f) fleeDistance = 20f;
 
         lineRenderer = GetComponent<LineRenderer>();
         lineRenderer.enabled = false;
@@ -71,7 +54,6 @@ public class NEWEnemyMagicSorcerer : NEWEnemySorcererBase
         float timer = 0f;
         Vector3 targetPos = player.position;
 
-        // TRACKING Y PARPADEO 
         while (timer < data.TrackingTime)
         {
             if (player != null)

@@ -13,7 +13,6 @@ namespace PatronesAplicados.RealImplementation
         private DamageType myDamageType;
         private float playerHealAmount; 
 
-        // Usamos un diccionario esttico para que el dao no se acumule si hay varias zonas de fuego.
         private static Dictionary<int, float> lastDamageTimes = new Dictionary<int, float>();
         private static float nextCleanupTime = 0f;
 
@@ -29,7 +28,6 @@ namespace PatronesAplicados.RealImplementation
 
             transform.localScale = new Vector3(weaponRange, 0.2f, weaponRange);
 
-            // ! PATRN POOL: En lugar de Destroy, iniciamos una corrutina para devolverlo
             if (lifeTimerCoroutine != null) StopCoroutine(lifeTimerCoroutine);
             lifeTimerCoroutine = StartCoroutine(ReturnToPoolAfterTime(duration));
         }
@@ -41,18 +39,16 @@ namespace PatronesAplicados.RealImplementation
             if (ProjectilePoolManager.Instance != null)
                 ProjectilePoolManager.Instance.ReturnProjectile(gameObject);
             else
-                Destroy(gameObject); // Fallback de seguridad
+                Destroy(gameObject); 
         }
 
         private void Update()
         {
-            // Limpieza peridica de memoria para evitar fugas con los IDs de enemigos muertos
             if (Time.time > nextCleanupTime)
             {
                 CleanUpDictionary();
             }
 
-            // Usar OverlapBox para garantizar que funcione incluso si los Rigidbody se duermen
             Vector3 extents = transform.localScale / 2f;
             Collider[] colliders = Physics.OverlapBox(transform.position, extents, transform.rotation);
 
@@ -104,12 +100,11 @@ namespace PatronesAplicados.RealImplementation
 
         private void CleanUpDictionary()
         {
-            nextCleanupTime = Time.time + 30f; // Limpiar cada 30 segundos
+            nextCleanupTime = Time.time + 30f; 
             
             List<int> keysToRemove = new List<int>();
             foreach (var kvp in lastDamageTimes)
             {
-                // Si pasaron ms de 5 segundos sin recibir dao, consideramos que el enemigo sali o muri
                 if (Time.time >= kvp.Value + 5f)
                 {
                     keysToRemove.Add(kvp.Key);

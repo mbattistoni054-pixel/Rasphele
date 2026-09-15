@@ -6,7 +6,7 @@ using UnityEngine.Audio;
 
 namespace PatronesAplicados
 {
-    public class PlayerHealthRefactored : MonoBehaviour//, IObservable
+    public class PlayerHealthRefactored : MonoBehaviour
     {
         [Header("Estadsticas de Salud")]
         public float maxHealth = 100f;
@@ -18,11 +18,9 @@ namespace PatronesAplicados
         [Header("Audio")]
         public AudioClip hurtSound;
 
-        // Variables internas
         private bool hasShield = false;
         private float timeSinceLastDamage = 0f;
 
-        // Lista de observadores (Patrn Observer)
         private List<IObserver> observers = new List<IObserver>();
 
         private Volume volume;
@@ -41,7 +39,6 @@ namespace PatronesAplicados
 
         void Update()
         {
-            // Monitoreo de inactividad para activar el escudo (Panal)
             if (PlayerStatsRefactored.Instance != null && PlayerStatsRefactored.Instance.shieldStacks > 0)
             {
                 if (!hasShield)
@@ -91,31 +88,9 @@ namespace PatronesAplicados
             }
         }
 
-        // --- IMPLEMENTACIN DE ISUBJECT ---
-
-        public void Subscribe(IObserver observer)
-        {
-            if (!observers.Contains(observer))
-            {
-                observers.Add(observer);
-            }
-        }
-
-        public void Unsubscribe(IObserver observer)
-        {
-            if (observers.Contains(observer))
-            {
-                observers.Remove(observer);
-            }
-        }
-
         public void NotifyObservers()
         {
-            foreach (var observer in observers)
-            {
-               // observer.OnNotify(currentHealth, maxHealth);
-            }
-
+           
             if (EventManager.Instance != null)
             {
                 EventManager.Instance.TriggerEvent("PlayerHealthChanged", currentHealth, maxHealth);

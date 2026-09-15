@@ -4,10 +4,7 @@ using System.Collections;
 
 namespace PatronesAplicados.RealImplementation
 {
-    /// <summary>
-    /// HomingProjectileRefactored (Bala del Dron): Integracin con el Pool.
-    /// Recibe las stats inyectadas y en lugar de destruirse, vuelve al ProjectilePoolManager.
-    /// </summary>
+
     public class HomingProjectileRefactored : MonoBehaviour
     {
         public float speed = 15f;
@@ -40,9 +37,8 @@ namespace PatronesAplicados.RealImplementation
             myWeaponID = wID;
             myDamageType = dType;
 
-            alreadyHitEnemies.Clear(); // IMPORTANTE para el Pool: Resetear el estado interno
+            alreadyHitEnemies.Clear();
 
-            // En lugar de Destroy(gameObject, maxLifeTime), usamos una corrutina
             if (lifeTimerCoroutine != null) StopCoroutine(lifeTimerCoroutine);
             lifeTimerCoroutine = StartCoroutine(ReturnToPoolAfterTime(maxLifeTime));
         }
@@ -102,11 +98,10 @@ namespace PatronesAplicados.RealImplementation
                 {
                     if (explosionVisualPrefab != null)
                     {
-                        // Nota: El visual de explosin tambin podra usar un pool (recomendado)
                         GameObject visualObj = Instantiate(explosionVisualPrefab, transform.position, Quaternion.identity);
                         float visualScale = expRadius * 2f;
                         visualObj.transform.localScale = new Vector3(visualScale, visualScale, visualScale);
-                        Destroy(visualObj, 2f); // Evitar fuga de memoria
+                        Destroy(visualObj, 2f); 
                     }
 
                     Collider[] hitObjects = Physics.OverlapSphere(transform.position, expRadius, enemyMask);
@@ -129,11 +124,11 @@ namespace PatronesAplicados.RealImplementation
                     if (newTarget != null)
                     {
                         target = newTarget;
-                        return; // Sigue volando hacia el nuevo objetivo
+                        return; 
                     }
                 }
 
-                ReturnToPool(); // Impact y no rebota ms
+                ReturnToPool();
             }
         }
 

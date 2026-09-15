@@ -7,9 +7,12 @@ namespace PatronesAplicados
     {
         public static GameManagerRefactored Instance;
 
+        private Transform player;
+        public Transform Player => player;
+
         [Header("Reloj del Nivel (Tiempo Jugado)")]
         private float timer = 0f;
-        private int currentTimerSeconds = -1; // Variable de Optimizacin de UI
+        private int currentTimerSeconds = -1;
         private bool isGameActive = true;
 
         [Header("UI Mens de Fin de Nivel")]
@@ -41,6 +44,8 @@ namespace PatronesAplicados
                 EventManager.Instance.StartListening("PauseRequested", OnPauseRequested);
                 EventManager.Instance.StartListening("ResumeRequested", OnResumeRequested);
             }
+            GameObject p = GameObject.FindGameObjectWithTag("Player");
+            if (p != null) player = p.transform;
         }
 
         private void OnDestroy()
@@ -60,10 +65,6 @@ namespace PatronesAplicados
 
             timer += Time.deltaTime;
 
-            // OPTIMIZACIN Y DESACOPLAMIENTO
-            // 1. Evitamos el acoplamiento directo a HUDManager.Instance (SOLID - Inversin de Dependencia).
-            // 2. Solo disparamos el evento si el SEGUNDO entero cambi. Actualizar un TextMeshPro
-            //    en cada frame causa severos picos de "Canvas Rebuild" y destruye los FPS en mviles/PC lentas.
             int newSeconds = Mathf.FloorToInt(timer);
             if (newSeconds > currentTimerSeconds)
             {
@@ -71,7 +72,6 @@ namespace PatronesAplicados
                 
                 if (EventManager.Instance != null)
                 {
-                    // Usamos la nueva sobrecarga genrica para enviar el dato numrico
                     EventManager.Instance.TriggerEvent("TimeUpdated", currentTimerSeconds);
                 }
             }

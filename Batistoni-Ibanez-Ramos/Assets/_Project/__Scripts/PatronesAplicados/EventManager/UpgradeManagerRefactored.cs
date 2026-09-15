@@ -227,7 +227,7 @@ namespace PatronesAplicados
 
                 case UpgradeType.PlayerSpeed:
                 case UpgradeType.PlayerSpeedFlat:
-                    // Enviamos evento al EventManager para que PlayerStats lo sume
+
                     if (EventManager.Instance != null)
                     {
                         EventManager.Instance.TriggerEvent(data.type == UpgradeType.PlayerSpeed ? "AddGlobalSpeed" : "AddWeaponSpeedFlat", valueToApply);
@@ -236,7 +236,7 @@ namespace PatronesAplicados
 
                 case UpgradeType.CometMode:
                 case UpgradeType.ScatterMode:
-                    // Manejo especfico si es necesario, pero WeaponBaseRealRefactored ya tiene todo.
+
                     break;
 
                 case UpgradeType.RangeMultiplier: weapon.CurrentRangeMultiplier = valueToApply; break;

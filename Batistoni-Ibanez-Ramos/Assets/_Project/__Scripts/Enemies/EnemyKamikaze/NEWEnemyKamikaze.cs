@@ -6,22 +6,13 @@ using UnityEngine;
 
 public class NEWEnemyKamikaze : EnemyBaseRefactored
 {
-   // [Header("Estadsticas Kamikaze")]
-    //public float explosionDamage = 40f;
-    //public float explosionRadius = 4f;
-   // public float triggerDistance = 2.5f;
-   // public float explosionDelay = 1.5f;
-   // public float rotationForce = 30f;
-
-   // [Header("Efectos")]
-   // public GameObject explosionVisualPrefab;
 
     private bool isTriggered = false;
     private Renderer rend;
     [SerializeField] Animator animator;
 
     private bool hasMoveParam = false;
-    private float pathTimer = 0f; // Reloj para no saturar el NavMesh 
+    private float pathTimer = 0f; 
 
     public override void ResetStats()
     {
@@ -42,15 +33,12 @@ public class NEWEnemyKamikaze : EnemyBaseRefactored
             }
         }
 
-        GameObject p = GameObject.FindGameObjectWithTag("Player");
-        if (p != null) player = p.transform;
-
         rend = GetComponentInChildren<Renderer>();
 
         if (agent != null)
         {
             agent.stoppingDistance = data.RangeAttack - 0.5f;
-            agent.acceleration = 60f;      // Frena en seco para no patinar hacia ti
+            agent.acceleration = 60f;      
             agent.angularSpeed = 600f;
         }
     }
@@ -59,15 +47,6 @@ public class NEWEnemyKamikaze : EnemyBaseRefactored
     {
         base.Update();
 
-        if (player == null)
-        {
-            GameObject p = GameObject.FindGameObjectWithTag("Player");
-            if (p != null) player = p.transform;
-            else return;
-
-        }
-        // LGICA DE MOVIMIENTO 
-        // Solo se mueve si la bomba an no se ha activado
         if (player != null && !isStunned && agent != null)
         {
             float distance = Vector3.Distance(player.position, transform.position);
@@ -77,7 +56,6 @@ public class NEWEnemyKamikaze : EnemyBaseRefactored
                 {
                     agent.isStopped = false;
 
-                    // Solo pedimos ruta nueva cada 0.2 segundos 
                     if (Time.time >= pathTimer)
                     {
                         agent.SetDestination(player.position);
@@ -89,13 +67,11 @@ public class NEWEnemyKamikaze : EnemyBaseRefactored
                 else
                 {
                     if (animator != null && hasMoveParam) animator.SetBool("Move", false);
-                    // Lleg al rango, se activa la bomba
                     StartCoroutine(KamikazeRoutine());
 
                 }
             }
 
-            // Sigue mirndote fijamente incluso si ya se detuvo a explotar
             if (distance <= data.RangeAttack || isTriggered)
             {
                 Vector3 directionToPlayer = (player.position - transform.position).normalized;
@@ -114,7 +90,6 @@ public class NEWEnemyKamikaze : EnemyBaseRefactored
     {
         isTriggered = true;
 
-        // Detenemos al agente para que explote en el lugar
         if (agent != null) agent.isStopped = true;
         if (animator != null && hasMoveParam) animator.SetBool("Move", false);
 

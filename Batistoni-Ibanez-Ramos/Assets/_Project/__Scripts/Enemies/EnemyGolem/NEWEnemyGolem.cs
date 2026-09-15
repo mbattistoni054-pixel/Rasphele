@@ -6,17 +6,6 @@ using UnityEngine.AI;
 
 public class NEWEnemyGolem : EnemyBaseRefactored
 {
-    //[Header("Estadísticas del Golem")]
-    //public float attackDamage = 30f;
-    //public float attackRange = 3f;
-    //public float attackRadius = 4.5f;
-
-    //Tooltip("Tiempo que tarda la animación desde que empieza hasta que los puños tocan el piso")]
-    //public float hitDelay = 1.0f;
-
-    //public float attackCooldown = 2f;
-   // public float knockbackHorizontal = 65f;
-   // public float knockbackUpward = 23f;
 
     [Header("Efectos")]
     public GameObject slamVisualPrefab;
@@ -55,20 +44,12 @@ public class NEWEnemyGolem : EnemyBaseRefactored
 
     protected override void Update()
     {
-        base.Update(); // Llama a la lógica de veneno y fuego del EnemyBase
-
-        if (player == null)
-        {
-            GameObject p = GameObject.FindGameObjectWithTag("Player");
-            if (p != null) player = p.transform;
-            else return;
-        }
+        base.Update(); 
 
         if (player != null && !isStunned && agent != null)
         {
             float distance = Vector3.Distance(player.position, transform.position);
 
-            // LÓGICA DE MOVIMIENTO
             if (!isAttacking)
             {
                 if (distance > data.RangeAttack)
@@ -85,7 +66,6 @@ public class NEWEnemyGolem : EnemyBaseRefactored
                 }
                 else
                 {
-                    // Llegó al rango: Frenar y empezar a atacar
                     agent.isStopped = true;
                     if (animator != null && hasMoveParam) animator.SetBool("Move", false);
 
@@ -93,7 +73,6 @@ public class NEWEnemyGolem : EnemyBaseRefactored
                 }
             }
 
-            // LÓGICA DE ROTACIÓN
             if (isAttacking && distance <= data.RangeAttack * 2f)
             {
                 Vector3 directionToPlayer = (player.position - transform.position).normalized;
@@ -138,7 +117,6 @@ public class NEWEnemyGolem : EnemyBaseRefactored
             }
             float visualScale = data.AttackRadius * 2f;
             visual.transform.localScale = new Vector3(visualScale, visualScale, visualScale);
-            // Destroy(visual, 1f);
         }
 
         Collider[] hitObjects = Physics.OverlapSphere(impactCenter, data.AttackRadius);

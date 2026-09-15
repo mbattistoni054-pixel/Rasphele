@@ -11,7 +11,7 @@ namespace PatronesAplicados
         private int currentUses;
 
         [Header("Efectos Visuales")]
-        public Transform waterVisual; // El objeto azul que simula el agua
+        public Transform waterVisual; 
         public GameObject pressE_Text;
         public TextMeshPro floatingCostText;
 
@@ -26,7 +26,6 @@ namespace PatronesAplicados
 
         void Update()
         {
-            // Actualizamos el costo en tiempo real si el jugador est cerca
             if (isPlayerNear && playerHealth != null)
             {
                 int cost = GetHealingCost();
@@ -34,7 +33,6 @@ namespace PatronesAplicados
                 if (cost > 0)
                 {
                     string txt = $"Press E\n${cost}";
-                    // DESACOPLAMIENTO: Event Bus
                     if (EventManager.Instance != null) EventManager.Instance.TriggerEvent("ShowInteractText", txt);
                 } 
 
@@ -77,14 +75,12 @@ namespace PatronesAplicados
         {
             if (playerHealth == null) return 0;
 
-            // El costo es 1 a 1 con la vida faltante
             float missingHP = playerHealth.maxHealth - playerHealth.currentHealth;
             return Mathf.CeilToInt(missingHP);
         }
 
         private void TryHeal()
         {
-            // Nota: Intentamos usar PlayerStatsRefactored si existe, sino caemos al original
             bool spendSuccess = false;
             if (PlayerStatsRefactored.Instance != null)
                 spendSuccess = PlayerStatsRefactored.Instance.SpendMoney(GetHealingCost());
@@ -105,11 +101,9 @@ namespace PatronesAplicados
 
             if (spendSuccess)
             {
-                // Curamos todo
                 playerHealth.Heal(cost);
                 currentUses--;
 
-                // Bajar el agua visualmente
                 if (waterVisual != null)
                 {
                     float fillPercent = (float)currentUses / maxUses;
@@ -122,7 +116,7 @@ namespace PatronesAplicados
                 if (currentUses <= 0)
                 {
                     if (pressE_Text != null) pressE_Text.SetActive(false);
-                    isPlayerNear = false; // Desactivar interacciones futuras
+                    isPlayerNear = false; 
                 }
             }
             else

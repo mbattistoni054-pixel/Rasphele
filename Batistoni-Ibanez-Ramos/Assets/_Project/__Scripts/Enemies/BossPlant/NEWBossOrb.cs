@@ -28,7 +28,6 @@ public class NEWBossOrb : MonoBehaviour
 
     void Update()
     {
-        // Avanza en la direccin hacia la que fue rotado
         transform.position += transform.forward * speed * Time.deltaTime;
 
         timer += Time.deltaTime;
@@ -40,7 +39,6 @@ public class NEWBossOrb : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        // Choca contra el jugador
         if (other.CompareTag("Player"))
         {
             var refHealth = other.GetComponent<PatronesAplicados.PlayerHealthRefactored>();
@@ -52,7 +50,6 @@ public class NEWBossOrb : MonoBehaviour
 
             Explode();
         }
-        // NUEVO: Choca contra obstculos o el suelo usando la Mscara de Capas
         else if (((1 << other.gameObject.layer) & obstacleMask) != 0)
         {
             Explode();

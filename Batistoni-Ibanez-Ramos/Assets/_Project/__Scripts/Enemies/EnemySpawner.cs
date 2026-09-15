@@ -78,14 +78,11 @@ public class EnemySpawner : MonoBehaviour
     {
         if (player == null || waves.Count == 0) return;
 
-        // Avanzamos el reloj general del nivel
         levelTimer += Time.deltaTime;
 
-        // Obtenemos la fase actual
         WavePhase currentWave = GetCurrentWave();
         if (currentWave == null) return;
 
-        // Avanzamos el reloj de aparición usando el ritmo de la fase actual
         spawnTimer += Time.deltaTime;
         float timeBetweenSpawns = 10f / currentWave.enemiesPer10Seconds;
 
@@ -93,7 +90,6 @@ public class EnemySpawner : MonoBehaviour
         {
             spawnTimer -= timeBetweenSpawns;
 
-            // Si ya hay demasiados enemigos, cancelamos la creación de este turno
             if (EnemyBase.activeEnemyCount >= maxActiveEnemies)
             {
                 return;
@@ -114,13 +110,11 @@ public class EnemySpawner : MonoBehaviour
     {
         if (waves.Count == 0) return null;
 
-        // Si el reloj es menor al inicio de la primera fase, forzamos a que use la primera fase.
         if (levelTimer < waves[0].startTimeInSeconds)
         {
             return waves[0];
         }
 
-        // Busca en qué fase estamos según los segundos del nivel
         foreach (WavePhase wave in waves)
         {
             if (levelTimer >= wave.startTimeInSeconds && levelTimer < wave.endTimeInSeconds)
@@ -129,7 +123,6 @@ public class EnemySpawner : MonoBehaviour
             }
         }
 
-        // Si el tiempo supera todas las fases, devolvemos la ÚLTIMA fase
         return waves[waves.Count - 1];
     }
 
@@ -137,7 +130,6 @@ public class EnemySpawner : MonoBehaviour
     {
         if (currentWave.availableEnemies.Count == 0) return;
 
-        // Ruleta de probabilidad
         float totalProbability = 0f;
         foreach (var enemyInfo in currentWave.availableEnemies)
         {
@@ -157,7 +149,6 @@ public class EnemySpawner : MonoBehaviour
             randomRoll -= enemyInfo.spawnProbability;
         }
 
-        // Instanciación y Costo
         if (selectedEnemyInfo != null && selectedEnemyInfo.enemyPrefab != null)
         {
             skippedSpawnsLeft = Mathf.Max(0, selectedEnemyInfo.spawnCost - 1);

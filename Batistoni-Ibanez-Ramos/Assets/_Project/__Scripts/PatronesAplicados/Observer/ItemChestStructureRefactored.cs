@@ -60,7 +60,6 @@ namespace PatronesAplicados
 
             if (spendSuccess)
             {
-                // Tirada de Suerte para el Cofre Especial
                 if (isSpecialChest)
                 {
                     if (Random.Range(0f, 100f) > 25f)
@@ -68,11 +67,10 @@ namespace PatronesAplicados
                         Debug.Log("El cofre especial fall al abrirse. Dinero perdido.");
                         string txt = "El cofre fallo al abrirse.\nPress E\n$50\n(25%)";
                         if (EventManager.Instance != null) EventManager.Instance.TriggerEvent("ShowInteractText", txt);
-                        return; // Terminamos aqu, el jugador perdi sus 50.
+                        return;
                     }
                 }
 
-                // Generamos el objeto
                 ItemTier rolledTier = RollTier();
                 ItemData rewardedItem = ItemManager.Instance.GetRandomItem(rolledTier);
 
