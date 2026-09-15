@@ -6,7 +6,7 @@ using UnityEngine.Audio;
 
 namespace PatronesAplicados
 {
-    public class PlayerHealthRefactored : MonoBehaviour, ISubject
+    public class PlayerHealthRefactored : MonoBehaviour//, IObservable
     {
         [Header("Estadsticas de Salud")]
         public float maxHealth = 100f;
@@ -93,7 +93,7 @@ namespace PatronesAplicados
 
         // --- IMPLEMENTACIN DE ISUBJECT ---
 
-        public void RegisterObserver(IObserver observer)
+        public void Subscribe(IObserver observer)
         {
             if (!observers.Contains(observer))
             {
@@ -101,7 +101,7 @@ namespace PatronesAplicados
             }
         }
 
-        public void RemoveObserver(IObserver observer)
+        public void Unsubscribe(IObserver observer)
         {
             if (observers.Contains(observer))
             {
@@ -113,7 +113,7 @@ namespace PatronesAplicados
         {
             foreach (var observer in observers)
             {
-                observer.OnNotify(currentHealth, maxHealth);
+               // observer.OnNotify(currentHealth, maxHealth);
             }
 
             if (EventManager.Instance != null)

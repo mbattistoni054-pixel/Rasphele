@@ -3,7 +3,7 @@ using TMPro;
 
 namespace PatronesAplicados
 {
-    /// <summary>
+    /*/// <summary>
     /// HealthUIObserver: Ejemplo de clase concreta que observa la vida del jugador.
     /// Se registra con el PlayerHealthRefactored para actualizar su UI automticamente.
     /// </summary>
@@ -19,19 +19,17 @@ namespace PatronesAplicados
 
         private void OnEnable()
         {
-            // Al activarse la UI, nos registramos como observadores del jugador
             if (playerSubject != null)
             {
-                playerSubject.RegisterObserver(this);
+                playerSubject.Subscribe(this);
             }
         }
 
         private void OnDisable()
         {
-            // Es vital desuscribirse para evitar Memory Leaks o NullReferenceExceptions
             if (playerSubject != null)
             {
-                playerSubject.RemoveObserver(this);
+                playerSubject.Unsubscribe(this);
             }
         }
 
@@ -56,5 +54,5 @@ namespace PatronesAplicados
 
             Debug.Log("HealthUIObserver: UI Actualizada tras recibir notificacin del Sujeto.");
         }
-    }
+    }*/
 }

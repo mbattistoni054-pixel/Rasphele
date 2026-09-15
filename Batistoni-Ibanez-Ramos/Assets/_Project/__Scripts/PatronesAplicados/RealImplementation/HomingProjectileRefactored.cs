@@ -57,14 +57,14 @@ namespace PatronesAplicados.RealImplementation
         {
             if (lifeTimerCoroutine != null) StopCoroutine(lifeTimerCoroutine);
             
-            // ! PATRN POOL: Devolvemos el cascarn
+
             if (ProjectilePoolManager.Instance != null)
             {
                 ProjectilePoolManager.Instance.ReturnProjectile(gameObject);
             }
             else
             {
-                Destroy(gameObject); // Fallback por si no hay manager
+                Destroy(gameObject); 
             }
         }
 

@@ -18,16 +18,16 @@ MonoBehaviour:
   category: 0
   type: 5
   levelValues:
-  - 2
-  - 2
-  - 2
-  - 3
-  - 3
-  - 4
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
   levelDescriptions:
-  - "aumenta el da\xF1o en 2"
-  - "aumenta el da\xF1o en 2"
-  - "aumenta el da\xF1o en 2"
-  - "aumenta el da\xF1o en 3"
-  - "aumenta el da\xF1o en 3"
-  - "aumenta el da\xF1o en 4"
+  - "aumenta el da\xF1o en 1"
+  - "aumenta el da\xF1o en 1"
+  - "aumenta el da\xF1o en 1"
+  - "aumenta el da\xF1o en 1"
+  - "aumenta el da\xF1o en 1"
+  - "aumenta el da\xF1o en 1"

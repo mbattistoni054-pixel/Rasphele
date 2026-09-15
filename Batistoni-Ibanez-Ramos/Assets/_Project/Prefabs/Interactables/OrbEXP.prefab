@@ -122,5 +122,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   xpAmount: 20
-  magnetRadius: 5
+  magnetRadius: 10
   baseMoveSpeed: 30

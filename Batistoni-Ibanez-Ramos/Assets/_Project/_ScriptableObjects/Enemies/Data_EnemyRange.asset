@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77068a9ac790c5945a5ead59ff57177d, type: 3}
   m_Name: Data_EnemyRange
   m_EditorClassIdentifier: 
-  maxHealth: 30
+  maxHealth: 20
   baseSpeed: 25
   attackDamage: 10
   attackCooldown: 4
   rangeAttack: 20
   fleeDistance: 0
-  goldReward: 0
+  goldReward: 5
   expReward: 0
   bullet: {fileID: 6437847595553601300, guid: 4e682759276efb649a562f0832de3aea, type: 3}
   bulletSpeed: 80

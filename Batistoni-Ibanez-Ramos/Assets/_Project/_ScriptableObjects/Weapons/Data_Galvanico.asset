@@ -19,9 +19,9 @@ MonoBehaviour:
   projectilePrefab: {fileID: 0}
   attackSound: {fileID: 0}
   damageType: 5
-  baseDamage: 4
-  baseCooldown: 1
-  baseRange: 30
+  baseDamage: 1
+  baseCooldown: 0.3
+  baseRange: 50
   baseDuration: 0
   multipleShots: 1
   chainBounces: 0

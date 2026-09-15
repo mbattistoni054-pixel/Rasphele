@@ -69,7 +69,6 @@ public class BossRootTrap : MonoBehaviour
         {
             if (hit.CompareTag("Player"))
             {
-
                 // Aplicamos Da�o
                 PlayerHealth hp = hit.GetComponent<PlayerHealth>();
                 if (hp != null) hp.TakeDamage(damage);

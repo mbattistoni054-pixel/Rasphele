@@ -151,4 +151,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   speed: 25
   maxLifeTime: 5
-  explosionVisualPrefab: {fileID: 9136211849381488765, guid: 828397ef250a4bf409792e5c26adc5a3, type: 3}
+  explosionVisualPrefab: {fileID: 9136211849381488765, guid: 428da284da793054aa02c1bad9190ddc, type: 3}

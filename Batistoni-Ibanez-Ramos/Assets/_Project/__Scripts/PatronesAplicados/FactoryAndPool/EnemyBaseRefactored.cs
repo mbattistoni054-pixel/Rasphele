@@ -5,9 +5,11 @@ using System.Collections.Generic;
 
 namespace PatronesAplicados
 {
-    public abstract class EnemyBaseRefactored : MonoBehaviour, IDamageable
+    public abstract class EnemyBaseRefactored : MonoBehaviour, IDamageable, IObservable
     {
 
+        private List<IObserver> _allObservers = new();
+        
         [SerializeField] protected EnemyData data;
 
         [Header("Object Pool")]
@@ -21,6 +23,8 @@ namespace PatronesAplicados
         protected float damageMultiplier = 1f;
 
         protected float currentHealth;
+        public float CurrentHealth => currentHealth;
+
         protected float currentSpeed;
         protected Transform player;
         protected NavMeshAgent agent;
@@ -206,6 +210,8 @@ namespace PatronesAplicados
 
             currentHealth -= finalDamage;
 
+            NotifyObservers("Damage");
+
             if (damagePopupPrefab != null)
             {
                 Vector3 spawnPosition = transform.position + Vector3.up * 2.5f;
@@ -372,6 +378,26 @@ namespace PatronesAplicados
             else
             {
                 Destroy(gameObject);
+            }
+        }
+
+        public void Subscribe(IObserver observer)
+        {
+            if (!_allObservers.Contains(observer))
+                _allObservers.Add(observer);
+        }
+
+        public void Unsubscribe(IObserver observer)
+        {
+            if (_allObservers.Contains(observer))
+                _allObservers.Remove(observer);
+        }
+
+        public void NotifyObservers(string action)
+        {
+          foreach(var observer in _allObservers)
+            {
+                observer.OnNotify(action);
             }
         }
     }

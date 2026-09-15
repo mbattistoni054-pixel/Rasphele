@@ -78,7 +78,7 @@ namespace PatronesAplicados
         private void UpdateHealth(float currentHealth, float maxHealth)
         {
             if (hpFill != null) hpFill.fillAmount = currentHealth / maxHealth;
-            if (hpText != null) hpText.text = $"{Mathf.CeilToInt(currentHealth)}/{maxHealth}";
+            if (hpText != null) hpText.text = $"{Mathf.CeilToInt(currentHealth)}/{(int)maxHealth}";
         }
 
         private void UpdateMoney(int amount)

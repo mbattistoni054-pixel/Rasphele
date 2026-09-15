@@ -28,7 +28,7 @@ namespace PatronesAplicados
 
                 if (isSpecialChest)
                 {
-                    string txt = "Press E\n$50\n(25%)";
+                    string txt = "Press E\n$50\nCofre Especial (25% Exito)";
                     if (EventManager.Instance != null) EventManager.Instance.TriggerEvent("ShowInteractText", txt);
                 }
                 else
