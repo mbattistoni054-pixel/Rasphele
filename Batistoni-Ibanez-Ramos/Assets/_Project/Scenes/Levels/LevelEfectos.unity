@@ -345634,6 +345634,30 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2792471758504607388, guid: 55a7e23127988a8459d812ecfd5553e5, type: 3}
+      propertyPath: allWeaponPrefabs.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2792471758504607388, guid: 55a7e23127988a8459d812ecfd5553e5, type: 3}
+      propertyPath: 'newWeaponLevels.Array.data[1]'
+      value: 90
+      objectReference: {fileID: 0}
+    - target: {fileID: 2792471758504607388, guid: 55a7e23127988a8459d812ecfd5553e5, type: 3}
+      propertyPath: 'allWeaponPrefabs.Array.data[0]'
+      value: 
+      objectReference: {fileID: 4618466286115946899, guid: 9315ac6bda76e2a4497108f44be1f685, type: 3}
+    - target: {fileID: 2792471758504607388, guid: 55a7e23127988a8459d812ecfd5553e5, type: 3}
+      propertyPath: 'allWeaponPrefabs.Array.data[1]'
+      value: 
+      objectReference: {fileID: 2754319424996408371, guid: 9d5b146faabbb284b94b11a8f188d7e3, type: 3}
+    - target: {fileID: 2792471758504607388, guid: 55a7e23127988a8459d812ecfd5553e5, type: 3}
+      propertyPath: 'allWeaponPrefabs.Array.data[2]'
+      value: 
+      objectReference: {fileID: 4342876092254004700, guid: 8194b089f5dc8fa4d875a07f2fca03e8, type: 3}
+    - target: {fileID: 2792471758504607388, guid: 55a7e23127988a8459d812ecfd5553e5, type: 3}
+      propertyPath: 'allWeaponPrefabs.Array.data[3]'
+      value: 
+      objectReference: {fileID: 7525279561092039324, guid: e448ead15194a34409eabcfb60958160, type: 3}
+    - target: {fileID: 2792471758504607388, guid: 55a7e23127988a8459d812ecfd5553e5, type: 3}
       propertyPath: 'panelesIzquierdos.Array.data[0].fireSlots.Array.data[0]'
       value: 
       objectReference: {fileID: 1495893968}
