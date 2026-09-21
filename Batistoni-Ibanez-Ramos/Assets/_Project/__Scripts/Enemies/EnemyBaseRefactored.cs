@@ -55,6 +55,9 @@ namespace PatronesAplicados
 
         private List<float> activeSlows = new List<float>();
 
+
+        [SerializeField] EnemyVisual enemyVisual;
+ 
         protected virtual void Start()
         {
             player = GameManagerRefactored.Instance.Player;
@@ -211,7 +214,7 @@ namespace PatronesAplicados
 
             currentHealth -= finalDamage;
 
-            NotifyObservers("Damage");
+            NotifyObservers("TakeDamage");
 
             if (damagePopupPrefab != null)
             {
@@ -352,6 +355,8 @@ namespace PatronesAplicados
 
         protected virtual void Die()
         {
+            NotifyObservers("Die");
+
             if (xpOrbPrefab != null)
             {
                 if (PatronesAplicados.RealImplementation.ProjectilePoolManager.Instance != null)
@@ -369,7 +374,10 @@ namespace PatronesAplicados
                 EventManager.Instance.TriggerEvent<int>("EnemyKilled_GoldReward", data.GoldReward);
                 EventManager.Instance.TriggerEvent("EnemyDied");
             }
+        }
 
+        public virtual void ReturnEnemy()
+        {
             if (EnemyPool.Instance != null && !string.IsNullOrEmpty(poolKey))
             {
                 EnemyPool.Instance.ReturnEnemy(gameObject, poolKey);

@@ -28,7 +28,7 @@ public class LifebarEnemy : MonoBehaviour, IObserver
 
     public void OnNotify(string action)
     {
-        if (action == "Damage")
+        if (action == "TakeDamage")
         {
             image.fillAmount = enemy.CurrentHealth / enemy.maxHealth;
         }
