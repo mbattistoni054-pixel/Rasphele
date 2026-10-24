@@ -37,7 +37,6 @@ public class PlayerInventory : MonoBehaviour
                     PatronesAplicados.PlayerStatsRefactored.Instance.itemHealthFlat += item.value * count;
                     break;
                 case ItemEffect.VidaPorcentaje:
-                    // MATEMÁTICA MULTIPLICATIVA: Toma el 100% (1f), le suma el buff, y lo eleva a la cantidad de objetos
                     PatronesAplicados.PlayerStatsRefactored.Instance.itemHealthMultiplier *= Mathf.Pow(1f + (item.value / 100f), count);
                     break;
 
@@ -67,9 +66,6 @@ public class PlayerInventory : MonoBehaviour
                     break;
 
                 case ItemEffect.Apostador:
-                    // Toma el valor (2) y lo eleva a la cantidad.
-                    // Si tienes 1 anzuelo: 2^1 = x2 daño y dinero.
-                    // Si tienes 2 anzuelos: 2^2 = x4 daño y dinero.
                     PatronesAplicados.PlayerStatsRefactored.Instance.itemDamageTakenMultiplier *= Mathf.Pow(item.value, count);
                     PatronesAplicados.PlayerStatsRefactored.Instance.itemMoneyMultiplier *= Mathf.Pow(item.value, count);
                     break;
@@ -79,9 +75,6 @@ public class PlayerInventory : MonoBehaviour
                     break;
             }
         }
-
-        PlayerHealth health = GetComponent<PlayerHealth>();
-        if (health != null) health.UpdateMaxHealthFromStats();
 
         PatronesAplicados.PlayerHealthRefactored newHealth = GetComponent<PatronesAplicados.PlayerHealthRefactored>();
         if (newHealth != null) newHealth.UpdateMaxHealthFromStats();

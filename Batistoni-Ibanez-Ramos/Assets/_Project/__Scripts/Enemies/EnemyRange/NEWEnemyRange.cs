@@ -111,12 +111,7 @@ public class NEWEnemyRange : EnemyBaseRefactored
         {
             newBullet.damage = data.AttackDamage * damageMultiplier;
         }
-        else
-        {
-            BulletEnemy oldBullet = obj.GetComponent<BulletEnemy>();
-            if (oldBullet != null) oldBullet.damageMultiplier = damageMultiplier;
-            if (oldBullet != null) oldBullet.data = data;
-        }
+
     }
 
     public void AttackEnd()

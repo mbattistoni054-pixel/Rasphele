@@ -47,15 +47,7 @@ public class NEWBulletEnemy : MonoBehaviour
             {
                 pHealthRef.TakeDamage(damage);
             }
-            else
-            {
-                PlayerHealth pHealth = other.gameObject.GetComponent<PlayerHealth>();
-                if (pHealth != null)
-                {
-                    pHealth.TakeDamage(damage);
-                }
-            }
-            
+ 
             if (ProjectilePoolManager.Instance != null)
                 ProjectilePoolManager.Instance.ReturnProjectile(gameObject);
             else

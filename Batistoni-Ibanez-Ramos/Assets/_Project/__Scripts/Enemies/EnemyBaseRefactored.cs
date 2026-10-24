@@ -1,21 +1,21 @@
-using UnityEngine;
-using UnityEngine.AI;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.AI;
+using PatronesAplicados.RealImplementation;
 
 namespace PatronesAplicados
 {
     public abstract class EnemyBaseRefactored : MonoBehaviour, IDamageable, IObservable
     {
+        private readonly List<IObserver> _allObservers = new List<IObserver>();
 
-        private List<IObserver> _allObservers = new();
-        
         [SerializeField] protected EnemyData data;
 
         [Header("Object Pool")]
         public string poolKey;
 
-        [Header("Estadisticas Base")]
+        [Header("Estadísticas Base")]
         public float maxHealth;
 
         [Header("Multiplicador de Dificultad")]
@@ -28,11 +28,12 @@ namespace PatronesAplicados
         protected Transform player;
         protected NavMeshAgent agent;
         protected Rigidbody rb;
+        protected Collider enemyCollider;
 
         [Header("UI y Recompensas")]
         public GameObject xpOrbPrefab;
         public GameObject damagePopupPrefab;
-        
+
         [Header("Efectos Visuales")]
         public Material flashMaterial;
         private Material[] originalMaterials;
@@ -40,83 +41,92 @@ namespace PatronesAplicados
 
         [Header("Estado de Efectos")]
         protected bool isStunned = false;
-        private float stunImmunityTimer = 0f;
+        protected bool isDead = false;
 
-        protected class DoTData
+        [SerializeField] private EnemyVisual enemyVisual;
+
+        private readonly EnemyStatusEffectHandler statusHandler = new EnemyStatusEffectHandler();
+        private System.Action<float, bool, DamageType, bool> cachedDamageCallback;
+        private bool isInitialized = false;
+
+        protected virtual void Awake()
         {
-            public float timeLeft;
-            public float tickTimer;
-            public float value;
+            InitializeComponents();
         }
 
-        private Dictionary<int, DoTData> activeBurns = new Dictionary<int, DoTData>();
-        private Dictionary<int, DoTData> activeBleeds = new Dictionary<int, DoTData>();
-        private Dictionary<int, DoTData> activePoisons = new Dictionary<int, DoTData>();
-
-        private List<float> activeSlows = new List<float>();
-
-
-        [SerializeField] EnemyVisual enemyVisual;
- 
-        protected virtual void Start()
+        private void InitializeComponents()
         {
-            player = GameManagerRefactored.Instance.Player;
-            
-            maxHealth = data.MaxHealth;
-            currentHealth = data.MaxHealth;
-            currentSpeed = data.BaseSpeed;
+            if (isInitialized) return;
+            isInitialized = true;
 
+            cachedDamageCallback = TakeDamage;
             agent = GetComponent<NavMeshAgent>();
             rb = GetComponent<Rigidbody>();
-
-            if (agent != null) agent.speed = currentSpeed;
+            enemyCollider = GetComponent<Collider>();
 
             renderers = GetComponentsInChildren<Renderer>();
-            if (renderers.Length > 0)
+            if (renderers != null && renderers.Length > 0)
             {
                 originalMaterials = new Material[renderers.Length];
                 for (int i = 0; i < renderers.Length; i++)
                 {
-                    originalMaterials[i] = renderers[i].material;
+                    if (renderers[i] != null)
+                    {
+                        originalMaterials[i] = renderers[i].sharedMaterial;
+                    }
                 }
             }
+
+            if (data != null)
+            {
+                maxHealth = data.MaxHealth;
+                currentHealth = maxHealth;
+                currentSpeed = data.BaseSpeed;
+            }
+        }
+
+        protected virtual void Start()
+        {
+            InitializeComponents();
+
+            if (player == null && GameManagerRefactored.Instance != null)
+            {
+                player = GameManagerRefactored.Instance.Player;
+            }
+
+            if (agent != null) agent.speed = currentSpeed;
         }
 
         public virtual void ResetStats()
         {
+            InitializeComponents();
+            StopAllCoroutines();
+
+            isDead = false;
+            isStunned = false;
+            statusHandler.ResetAll();
+
             currentHealth = maxHealth;
-            currentSpeed = data.BaseSpeed;
+            currentSpeed = data != null ? data.BaseSpeed : currentSpeed;
+
+            if (enemyCollider != null) enemyCollider.enabled = true;
 
             if (agent != null)
             {
                 agent.enabled = true;
                 agent.speed = currentSpeed;
-                agent.isStopped = false;
+                if (agent.isOnNavMesh) agent.isStopped = false;
             }
 
-            isStunned = false;
-            stunImmunityTimer = 0f;
-
-            activeBurns.Clear();
-            activeBleeds.Clear();
-            activePoisons.Clear();
-            activeSlows.Clear();
-
-            if (renderers != null && originalMaterials != null)
-            {
-                for (int i = 0; i < renderers.Length; i++)
-                {
-                    if (renderers[i] != null && originalMaterials[i] != null)
-                    {
-                        renderers[i].material = originalMaterials[i];
-                    }
-                }
-            }
+            RestoreOriginalMaterials();
         }
 
         public void ApplyDifficulty(float hpMult, float dmgMult)
         {
-            maxHealth *= hpMult;
+            InitializeComponents();
+
+            float baseHp = data != null ? data.MaxHealth : maxHealth;
+            maxHealth = baseHp * hpMult;
             currentHealth = maxHealth;
             damageMultiplier = dmgMult;
         }
@@ -128,86 +138,23 @@ namespace PatronesAplicados
 
         protected virtual void Update()
         {
-            if (player == null)
+            if (isDead) return;
+
+            if (player == null && GameManagerRefactored.Instance != null)
             {
                 player = GameManagerRefactored.Instance.Player;
             }
 
-            if (stunImmunityTimer > 0) stunImmunityTimer -= Time.deltaTime;
-
-            ProcessBurnTicks();
-            ProcessBleedTicks();
-            ProcessPoisonTicks();
-        }
-
-        private void ProcessBurnTicks()
-        {
-            if (activeBurns.Count == 0) return;
-            List<int> keys = new List<int>(activeBurns.Keys);
-            foreach (int key in keys)
-            {
-                DoTData dot = activeBurns[key];
-                dot.timeLeft -= Time.deltaTime;
-                dot.tickTimer -= Time.deltaTime;
-
-                if (dot.tickTimer <= 0)
-                {
-                    dot.tickTimer += 1f;
-                    TakeDamage(dot.value, false, DamageType.Fuego);
-                }
-
-                if (dot.timeLeft <= 0) activeBurns.Remove(key);
-            }
-        }
-
-        private void ProcessBleedTicks()
-        {
-            if (activeBleeds.Count == 0) return;
-            List<int> keys = new List<int>(activeBleeds.Keys);
-            foreach (int key in keys)
-            {
-                DoTData dot = activeBleeds[key];
-                dot.timeLeft -= Time.deltaTime;
-                dot.tickTimer -= Time.deltaTime;
-
-                if (dot.tickTimer <= 0)
-                {
-                    dot.tickTimer += 1f;
-                    float bleedDmg = currentHealth * (dot.value / 100f);
-                    TakeDamage(bleedDmg, false, DamageType.Fisico, true);
-                }
-
-                if (dot.timeLeft <= 0) activeBleeds.Remove(key);
-            }
-        }
-
-        private void ProcessPoisonTicks()
-        {
-            if (activePoisons.Count == 0) return;
-            List<int> keys = new List<int>(activePoisons.Keys);
-            foreach (int key in keys)
-            {
-                DoTData dot = activePoisons[key];
-                dot.timeLeft -= Time.deltaTime;
-                dot.tickTimer -= Time.deltaTime;
-
-                if (dot.tickTimer <= 0)
-                {
-                    dot.tickTimer += 1f;
-                    TakeDamage(dot.value, false, DamageType.Veneno);
-                }
-
-                if (dot.timeLeft <= 0) activePoisons.Remove(key);
-            }
+            statusHandler.Tick(Time.deltaTime, currentHealth, cachedDamageCallback);
         }
 
         public virtual void TakeDamage(float amount, bool isCrit, DamageType type, bool isBleed = false)
         {
-            float multiplier = 1f;
-            if (LevelResistanceManager.Instance != null)
-            {
-                multiplier = LevelResistanceManager.Instance.GetDamageMultiplier(type);
-            }
+            if (isDead) return;
+
+            float multiplier = LevelResistanceManager.Instance != null
+                ? LevelResistanceManager.Instance.GetDamageMultiplier(type)
+                : 1f;
 
             float finalDamage = amount * multiplier;
             if (isCrit) finalDamage *= 2f;
@@ -215,153 +162,122 @@ namespace PatronesAplicados
             currentHealth -= finalDamage;
 
             NotifyObservers("TakeDamage");
+            SpawnDamagePopup(finalDamage, type, isCrit, isBleed);
 
-            if (damagePopupPrefab != null)
+            if (currentHealth <= 0f)
             {
-                Vector3 spawnPosition = transform.position + Vector3.up * 2.5f;
-                GameObject popup = Instantiate(damagePopupPrefab, spawnPosition, Quaternion.identity);
-                DamagePopup popupScript = popup.GetComponent<DamagePopup>();
-
-                if (popupScript != null)
-                {
-                    popupScript.Setup(finalDamage, type, isCrit, false, isBleed);
-                }
+                Die();
+                return;
             }
 
-            if (gameObject.activeInHierarchy) StartCoroutine(FlashWhite());
-
-            if (currentHealth <= 0) Die();
+            if (gameObject.activeInHierarchy)
+            {
+                StartCoroutine(FlashWhite());
+            }
         }
 
-        public Transform GetTransform()
+        private void SpawnDamagePopup(float finalDamage, DamageType type, bool isCrit, bool isBleed)
         {
-            return transform;
+            if (damagePopupPrefab == null) return;
+
+            Vector3 spawnPosition = transform.position + Vector3.up * 2.5f;
+            GameObject popup = Instantiate(damagePopupPrefab, spawnPosition, Quaternion.identity);
+            DamagePopup popupScript = popup.GetComponent<DamagePopup>();
+
+            if (popupScript != null)
+            {
+                popupScript.Setup(finalDamage, type, isCrit, false, isBleed);
+            }
         }
+
+        public Transform GetTransform() => transform;
 
         public void ApplyEffects(WeaponData.ImpactEffects effects, int sourceWeaponID)
         {
-            if (effects.burnDamage > 0) ApplyBurn(effects.burnDamage, sourceWeaponID);
-            if (effects.bleedPercent > 0) ApplyBleed(effects.bleedPercent, sourceWeaponID);
-            if (effects.poisonDamage > 0) ApplyPoison(effects.poisonDamage, sourceWeaponID);
-            if (effects.freezePercent > 0) ApplyFreeze(effects.freezePercent);
-            if (effects.stunChance > 0) ApplyStun(effects.stunChance);
-        }
+            if (isDead) return;
 
-        private void ApplyBurn(float burnDamage, int weaponID)
-        {
-            if (!activeBurns.ContainsKey(weaponID))
-                activeBurns[weaponID] = new DoTData { timeLeft = 3f, tickTimer = 1f, value = burnDamage };
-            else
-            {
-                activeBurns[weaponID].timeLeft = 3f;
-                activeBurns[weaponID].value = burnDamage;
-            }
-        }
-
-        private void ApplyBleed(float bleedPercent, int weaponID)
-        {
-            if (!activeBleeds.ContainsKey(weaponID))
-                activeBleeds[weaponID] = new DoTData { timeLeft = 3f, tickTimer = 1f, value = bleedPercent };
-            else
-            {
-                activeBleeds[weaponID].timeLeft = 3f;
-                activeBleeds[weaponID].value = bleedPercent;
-            }
-        }
-
-        private void ApplyPoison(float poisonDamage, int weaponID)
-        {
-            if (!activePoisons.ContainsKey(weaponID))
-                activePoisons[weaponID] = new DoTData { timeLeft = 3f, tickTimer = 1f, value = poisonDamage };
-            else
-            {
-                activePoisons[weaponID].timeLeft = 3f;
-                activePoisons[weaponID].value = poisonDamage;
-            }
+            if (effects.burnDamage > 0f) statusHandler.ApplyBurn(effects.burnDamage, sourceWeaponID);
+            if (effects.bleedPercent > 0f) statusHandler.ApplyBleed(effects.bleedPercent, sourceWeaponID);
+            if (effects.poisonDamage > 0f) statusHandler.ApplyPoison(effects.poisonDamage, sourceWeaponID);
+            if (effects.freezePercent > 0f) ApplyFreeze(effects.freezePercent);
+            if (effects.stunChance > 0f) ApplyStun(effects.stunChance);
         }
 
         private void ApplyFreeze(float slowPercent)
         {
-            if (activeSlows.Count >= 3) return;
+            if (!statusHandler.CanApplyFreeze() || !gameObject.activeInHierarchy) return;
 
-            float speedReduction = data.BaseSpeed * (slowPercent / 100f);
-            if (gameObject.activeInHierarchy) StartCoroutine(FreezeRoutine(speedReduction));
-        }
-
-        private IEnumerator FreezeRoutine(float speedReduction)
-        {
-            activeSlows.Add(speedReduction);
-            RecalculateSpeed();
-
-            yield return new WaitForSeconds(5f);
-
-            activeSlows.Remove(speedReduction);
-            RecalculateSpeed();
+            float baseSpd = data != null ? data.BaseSpeed : currentSpeed;
+            float speedReduction = baseSpd * (slowPercent / 100f);
+            StartCoroutine(statusHandler.FreezeRoutine(speedReduction, RecalculateSpeed));
         }
 
         private void RecalculateSpeed()
         {
-            currentSpeed = data.BaseSpeed;
-            foreach (float reduction in activeSlows)
-            {
-                currentSpeed -= reduction;
-            }
-
-            if (currentSpeed < data.BaseSpeed * 0.1f) currentSpeed = data.BaseSpeed * 0.1f;
-            if (agent != null) agent.speed = currentSpeed;
+            float baseSpd = data != null ? data.BaseSpeed : currentSpeed;
+            currentSpeed = statusHandler.CalculateCurrentSpeed(baseSpd);
+            if (agent != null && agent.enabled) agent.speed = currentSpeed;
         }
 
         private void ApplyStun(float stunChance)
         {
-            if (isStunned || stunImmunityTimer > 0) return;
+            if (!gameObject.activeInHierarchy || !statusHandler.TryRollStun(stunChance)) return;
 
-            if (Random.Range(0f, 100f) <= stunChance)
+            StartCoroutine(statusHandler.StunRoutine(stunState =>
             {
-                if (gameObject.activeInHierarchy) StartCoroutine(StunRoutine());
-            }
-        }
-
-        private IEnumerator StunRoutine()
-        {
-            isStunned = true;
-            if (agent != null) agent.isStopped = true;
-
-            yield return new WaitForSeconds(2f);
-
-            isStunned = false;
-            if (agent != null) agent.isStopped = false;
-            stunImmunityTimer = 5f;
+                isStunned = stunState;
+                if (agent != null && agent.enabled && agent.isOnNavMesh)
+                {
+                    agent.isStopped = stunState;
+                }
+            }));
         }
 
         private IEnumerator FlashWhite()
         {
             if (flashMaterial == null || renderers == null) yield break;
 
-            foreach (Renderer r in renderers)
+            for (int i = 0; i < renderers.Length; i++)
             {
-                if (r != null) r.material = flashMaterial;
+                if (renderers[i] != null) renderers[i].sharedMaterial = flashMaterial;
             }
 
             yield return new WaitForSeconds(0.1f);
+
+            RestoreOriginalMaterials();
+        }
+
+        private void RestoreOriginalMaterials()
+        {
+            if (renderers == null || originalMaterials == null) return;
 
             for (int i = 0; i < renderers.Length; i++)
             {
                 if (renderers[i] != null && originalMaterials[i] != null)
                 {
-                    renderers[i].material = originalMaterials[i];
+                    renderers[i].sharedMaterial = originalMaterials[i];
                 }
             }
         }
 
         protected virtual void Die()
         {
+            if (isDead) return;
+            isDead = true;
+
+            StopAllCoroutines();
+            RestoreOriginalMaterials();
+
+            if (enemyCollider != null) enemyCollider.enabled = false;
+            if (agent != null && agent.enabled && agent.isOnNavMesh) agent.isStopped = true;
+
             NotifyObservers("Die");
 
             if (xpOrbPrefab != null)
             {
-                if (PatronesAplicados.RealImplementation.ProjectilePoolManager.Instance != null)
+                if (ProjectilePoolManager.Instance != null)
                 {
-                    PatronesAplicados.RealImplementation.ProjectilePoolManager.Instance.GetProjectile(xpOrbPrefab, transform.position, Quaternion.identity);
+                    ProjectilePoolManager.Instance.GetProjectile(xpOrbPrefab, transform.position, Quaternion.identity);
                 }
                 else
                 {
@@ -371,8 +287,16 @@ namespace PatronesAplicados
 
             if (EventManager.Instance != null)
             {
-                EventManager.Instance.TriggerEvent<int>("EnemyKilled_GoldReward", data.GoldReward);
+                if (data != null)
+                {
+                    EventManager.Instance.TriggerEvent<int>("EnemyKilled_GoldReward", data.GoldReward);
+                }
                 EventManager.Instance.TriggerEvent("EnemyDied");
+            }
+
+            if (enemyVisual == null && _allObservers.Count == 0)
+            {
+                ReturnEnemy();
             }
         }
 
@@ -380,7 +304,7 @@ namespace PatronesAplicados
         {
             if (EnemyPool.Instance != null && !string.IsNullOrEmpty(poolKey))
             {
-                EnemyPool.Instance.ReturnEnemy(gameObject, poolKey);
+                EnemyPool.Instance.ReturnEnemy(this, poolKey);
             }
             else
             {
@@ -390,21 +314,21 @@ namespace PatronesAplicados
 
         public void Subscribe(IObserver observer)
         {
-            if (!_allObservers.Contains(observer))
+            if (observer != null && !_allObservers.Contains(observer))
                 _allObservers.Add(observer);
         }
 
         public void Unsubscribe(IObserver observer)
         {
-            if (_allObservers.Contains(observer))
+            if (observer != null)
                 _allObservers.Remove(observer);
         }
 
         public void NotifyObservers(string action)
         {
-          foreach(var observer in _allObservers)
+            for (int i = _allObservers.Count - 1; i >= 0; i--)
             {
-                observer.OnNotify(action);
+                _allObservers[i]?.OnNotify(action);
             }
         }
     }

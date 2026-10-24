@@ -48,7 +48,6 @@ public class NEWItemRewardUI : MonoBehaviour
 
         panel.SetActive(true);
         
-        // Uso de EventManager en lugar de GameManager.Instance.EnablePause()
         if (EventManager.Instance != null)
         {
             EventManager.Instance.TriggerEvent("PauseRequested");
@@ -58,7 +57,7 @@ public class NEWItemRewardUI : MonoBehaviour
         Cursor.visible = true;
     }
 
-    // Botn: Equipar
+
     public void KeepItem()
     {
         if (currentItem == null) return; 
@@ -70,7 +69,6 @@ public class NEWItemRewardUI : MonoBehaviour
         ClosePanel();
     }
 
-    // Botn: Vender
     public void SellItem()
     {
         if (currentItem == null) return; 
@@ -80,21 +78,15 @@ public class NEWItemRewardUI : MonoBehaviour
             PlayerStatsRefactored.Instance.AddMoney(25);
             Debug.Log("Objeto vendido por $25.");
         }
-        else if (PlayerStats.Instance != null)
-        {
-            PlayerStats.Instance.AddMoney(25);
-            Debug.Log("Objeto vendido por $25 usando stats antiguos.");
-        }
 
         ClosePanel();
     }
 
     private void ClosePanel()
     {
-        currentItem = null; // Vaciamos el objeto para evitar trampas
+        currentItem = null; 
         panel.SetActive(false);
         
-        // Uso de EventManager en lugar de GameManager.Instance.DisablePause()
         if (EventManager.Instance != null)
         {
             EventManager.Instance.TriggerEvent("ResumeRequested");

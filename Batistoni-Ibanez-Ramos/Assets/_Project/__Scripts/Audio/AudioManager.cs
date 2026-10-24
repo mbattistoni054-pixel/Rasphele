@@ -32,7 +32,7 @@ public class AudioManager : MonoBehaviour
 
     private void Awake()
     {
-        // Singleton para poder llamarlo desde cualquier script
+
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
 
@@ -41,7 +41,6 @@ public class AudioManager : MonoBehaviour
             if (!mixerGroups.ContainsKey(group.name))
             {
                 mixerGroups.Add(group.name, group); 
-                //print(group.name);
             }
         }
 
@@ -56,11 +55,9 @@ public class AudioManager : MonoBehaviour
 
     private void Start()
     {
-        // Cargamos el volumen guardado (o usamos 1 por defecto, que es el máximo)
         float savedMusicVol = PlayerPrefs.GetFloat("MusicVolume", 1f);
         float savedSFXVol = PlayerPrefs.GetFloat("SFXVolume", 1f);
 
-        // Si los sliders existen, los ajustamos al volumen guardado
         if (musicSlider != null)
         {
             musicSlider.value = savedMusicVol;
@@ -73,10 +70,8 @@ public class AudioManager : MonoBehaviour
             sfxSlider.onValueChanged.AddListener(SetSFXVolume);
         }
 
-        // Aplicamos el volumen real al AudioMixer (con retraso para evitar bugs de Unity)
         Invoke(nameof(ApplySavedVolumes), 0.1f);
 
-        // Reproducimos la música de fondo de esta escena
         if (sceneMusic != null) PlayMusic(sceneMusic);
     }
 
@@ -99,7 +94,7 @@ public class AudioManager : MonoBehaviour
             AudioSource freeSource = FindFreeSource();
 
             freeSource.outputAudioMixerGroup = group;
-            freeSource.PlayOneShot(clip); // PlayOneShot permite que los sonidos se solapen (ej: muchos disparos)
+            freeSource.PlayOneShot(clip); 
         }
         else
         {
@@ -117,7 +112,6 @@ public class AudioManager : MonoBehaviour
 
     public void SetMusicVolume(float sliderValue)
     {
-        // Evitamos el error de Log10(0) forzando un mínimo de 0.0001
         float val = Mathf.Clamp(sliderValue, 0.0001f, 1f);
         float decibels = Mathf.Log10(val) * 20f;
 

@@ -42,11 +42,7 @@ public class NEWEnemyFireSorcerer : NEWEnemySorcererBase
             {
                 newFireLine.Setup(data.AttackDamage * damageMultiplier, 50f);
             }
-            else
-            {
-                EnemyFireLine fireLine = lineObj.GetComponent<EnemyFireLine>();
-                if (fireLine != null) fireLine.Setup(data.AttackDamage * damageMultiplier, 50f);
-            }
+            
         }
 
         yield return new WaitForSeconds(1.5f);

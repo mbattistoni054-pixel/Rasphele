@@ -5,8 +5,8 @@ public class NEWExperienceOrb : MonoBehaviour
 {
     [Header("Ajustes de la Gema")]
     public float xpAmount = 20f;
-    public float magnetRadius = 5f;   // Distancia a la que empieza a ser atrada
-    public float baseMoveSpeed = 10f; // Velocidad base
+    public float magnetRadius = 5f;   
+    public float baseMoveSpeed = 10f; 
     private float currentMoveSpeed;
 
     private Transform player;
@@ -25,13 +25,11 @@ public class NEWExperienceOrb : MonoBehaviour
     {
         if (player == null) return;
 
-        // Si el jugador est cerca, la gema empieza a ser atrada
         if (!isAttracted && Vector3.Distance(transform.position, player.position) <= magnetRadius)
         {
             isAttracted = true;
         }
 
-        // Si est siendo atrada, vuela hacia el jugador
         if (isAttracted)
         {
             transform.position = Vector3.MoveTowards(transform.position, player.position, currentMoveSpeed * Time.deltaTime);
@@ -42,10 +40,9 @@ public class NEWExperienceOrb : MonoBehaviour
     {
         player = targetPlayer;
         isAttracted = true;
-        currentMoveSpeed = baseMoveSpeed * 2f; // Que vuelen ms rpido cuando se usa el imn
+        currentMoveSpeed = baseMoveSpeed * 2f; 
     }
 
-    // Cuando la gema choca fsicamente con el jugador
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
@@ -56,15 +53,6 @@ public class NEWExperienceOrb : MonoBehaviour
                 newXp.AddExperience(xpAmount);
                 ReturnToPool();
             }
-            else
-            {
-                PlayerExperience xpScript = other.GetComponent<PlayerExperience>();
-                if (xpScript != null)
-                {
-                    xpScript.AddExperience(xpAmount);
-                    ReturnToPool();
-                }
-            }
         }
     }
 
@@ -74,9 +62,6 @@ public class NEWExperienceOrb : MonoBehaviour
         {
             ProjectilePoolManager.Instance.ReturnProjectile(gameObject);
         }
-        else
-        {
-            Destroy(gameObject); // Respaldo por si se rompe el pool
-        }
+
     }
 }

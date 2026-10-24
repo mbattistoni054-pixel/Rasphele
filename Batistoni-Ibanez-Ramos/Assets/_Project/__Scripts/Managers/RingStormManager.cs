@@ -40,9 +40,8 @@ public class RingStormManager : MonoBehaviour
     public Image stormScreenFilter;
     public float filterFadeSpeed = 2f;
 
-    // Relojes internos
     private float levelTimer = 0f;
-    private float currentStormAngle = 0f; // Empieza en 0 (sin tormenta)
+    private float currentStormAngle = 0f; 
 
     public bool isInStorm = false;
     private float damageTimer = 0f;
@@ -64,11 +63,9 @@ public class RingStormManager : MonoBehaviour
     {
         if (mapCenter == null || player == null) return;
 
-        // 1. AVANZAR EL RELOJ INTERNO Y BUSCAR LA FASE ACTUAL
         levelTimer += Time.deltaTime;
         StormPhase currentPhase = GetCurrentPhase();
 
-        // 2. HACER CRECER LA TORMENTA SEGÚN LA VELOCIDAD DE LA FASE
         if (currentPhase != null)
         {
             float maxStormAngle = 360f - minimumSafeAngle;
@@ -83,20 +80,15 @@ public class RingStormManager : MonoBehaviour
         {
            
             float direction = sweepClockwise ? currentStormAngle : -currentStormAngle;
-            //movingWall.rotation = mapCenter.rotation * Quaternion.Euler(0, direction, 0);
-            //movingWall.rotation *= Quaternion.Euler(0, direction * Time.deltaTime, 0);
-
 
             if (movingWall2.eulerAngles.y < 204)
             {
                 movingWall.Rotate(0f, rotationPerSec * Time.deltaTime, 0f);
                 movingWall2.Rotate(0f, rotationPerSec * Time.deltaTime, 0f);
-               // print(movingWall2.eulerAngles.y);
             }
 
         }
 
-        // 5. APLICAR FILTRO VISUAL Y DAÑO
         HandleStormEffects();
     }
 
@@ -112,20 +104,12 @@ public class RingStormManager : MonoBehaviour
             }
         }
 
-        // Si el tiempo supera todas las fases, devolvemos la última
         return phases[phases.Count - 1];
     }
 
     private void HandleStormEffects()
     {
-       /* if (stormScreenFilter != null)
-        {
-            Color c = stormScreenFilter.color;
-            float targetAlpha = isInStorm ? 0.45f : 0f;
-
-            c.a = Mathf.Lerp(c.a, targetAlpha, Time.deltaTime * filterFadeSpeed);
-            stormScreenFilter.color = c;
-        }*/
+      
 
         if (isInStorm)
         {
@@ -138,14 +122,6 @@ public class RingStormManager : MonoBehaviour
                 if (refHealth != null)
                 {
                     refHealth.TakeDamage(damagePerSecond);
-                }
-                else
-                {
-                    PlayerHealth pHealth = player.GetComponent<PlayerHealth>();
-                    if (pHealth != null)
-                    {
-                        pHealth.TakeDamage(damagePerSecond);
-                    }
                 }
             }
             stormScreenFilter.gameObject.SetActive(true);

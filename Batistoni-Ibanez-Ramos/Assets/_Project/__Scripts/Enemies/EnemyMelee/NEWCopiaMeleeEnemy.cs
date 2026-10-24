@@ -91,17 +91,8 @@ public class NEWCopiaMeleeEnemy : EnemyBaseRefactored
                 {
                     if (distance <= 2f)
                     {
-                        PlayerHealth health = player.GetComponent<PlayerHealth>();
-
-                        if (health != null)
-                        {
-                            health.TakeDamage(data.AttackDamage * damageMultiplier);
-                        }
-                        else
-                        {
-                            PatronesAplicados.PlayerHealthRefactored newHealth = player.GetComponent<PatronesAplicados.PlayerHealthRefactored>();
-                            if (newHealth != null) newHealth.TakeDamage(data.AttackDamage * damageMultiplier);
-                        }
+                        PatronesAplicados.PlayerHealthRefactored newHealth = player.GetComponent<PatronesAplicados.PlayerHealthRefactored>();
+                        if (newHealth != null) newHealth.TakeDamage(data.AttackDamage * damageMultiplier);
                     }
 
                     lastFrameTime = Time.time;

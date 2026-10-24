@@ -97,7 +97,6 @@ GameObject:
   - component: {fileID: 1716051684388222124}
   - component: {fileID: 5023030916845763139}
   - component: {fileID: 8009906193751486458}
-  - component: {fileID: 4760332000919109031}
   m_Layer: 0
   m_Name: BossOrb
   m_TagString: Untagged
@@ -150,21 +149,3 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 0.5
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &4760332000919109031
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7476912289024568721}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4c22027b1cc0c184a984240c51b9c5db, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  speed: 30
-  lifeTime: 4
-  obstacleMask:
-    serializedVersion: 2
-    m_Bits: 8
-  impactVisualPrefab: {fileID: 9136211849381488765, guid: 828397ef250a4bf409792e5c26adc5a3, type: 3}

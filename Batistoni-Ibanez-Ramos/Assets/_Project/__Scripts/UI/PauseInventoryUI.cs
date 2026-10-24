@@ -33,37 +33,30 @@ public class PauseInventoryUI : MonoBehaviour
 
     private void RefreshItems()
     {
-        // Limpiamos los iconos viejos para que no se dupliquen al pausar varias veces
         foreach (Transform child in itemsContainer)
         {
             Destroy(child.gameObject);
         }
 
-        // Buscamos el inventario del jugador
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player == null) return;
 
         PlayerInventory inv = player.GetComponent<PlayerInventory>();
         if (inv == null) return;
 
-        // 3. Por cada objeto en su diccionario 'collectedItems', creamos un icono
         foreach (var kvp in inv.collectedItems)
         {
             ItemData itemData = kvp.Key;
             int cantidad = kvp.Value;
 
-            // Clonamos el Prefab adentro del GridLayout
             GameObject iconObj = Instantiate(itemPrefab, itemsContainer);
 
-            // Asignamos la foto
             Image img = iconObj.GetComponent<Image>();
             if (img != null) img.sprite = itemData.icon;
 
-            // Asignamos el texto de cantidad ("x3")
             TextMeshProUGUI cantText = iconObj.GetComponentInChildren<TextMeshProUGUI>();
             if (cantText != null) cantText.text = "x" + cantidad;
 
-            // ¡MAGIA! Le agregamos el Tooltip por código y le pasamos la descripción
             AddTooltip(iconObj, itemData.itemName, itemData.description);
         }
     }
@@ -77,12 +70,12 @@ public class PauseInventoryUI : MonoBehaviour
 
         for (int i = 0; i < weaponPanels.Length; i++)
         {
-            // Si el jugador tiene un arma para este hueco (0, 1 o 2)
+
             if (i < playerWeapons.Length)
             {
                 weaponPanels[i].panelObject.SetActive(true);
                 WeaponBaseRealRefactored weapon = playerWeapons[i];
-                int captureIndex = i; // Necesario para el callback del evento
+                int captureIndex = i; 
 
 
                 for (int j = 0; j < weapon.data.maxFiringUpgrades; j++)
@@ -97,10 +90,8 @@ public class PauseInventoryUI : MonoBehaviour
                 print(weapon.data.maxFiringUpgrades);
                 print(weapon.data.maxImpactUpgrades);   
 
-                // Configurar Icono del Arma y su Tooltip (Estadísticas dinámicas)
                 weaponPanels[captureIndex].weaponIcon.sprite = weapon.data.weaponIcon;
 
-                // Calculamos el daño final (Base + Buffs Globales)
                 float finalDamage = weapon.CurrentBaseDamage;
                 if (EventManager.Instance != null)
                 {
@@ -113,14 +104,12 @@ public class PauseInventoryUI : MonoBehaviour
                 string statsText = $"Daño: {finalDamage}\nTipo: {weapon.CurrentDamageType}\nProb. Crítico: {weapon.CurrentEffects.critChance}%";
                 AddTooltip(weaponPanels[captureIndex].weaponIcon.gameObject, weapon.data.weaponName, statsText);
 
-                // Configurar los iconos de las mejoras
                 if (EventManager.Instance != null)
                 {
                     EventManager.Instance.TriggerEvent<WeaponBaseRealRefactored, System.Action<WeaponUpgradeProfile>>("RequestUpgradeProfile", weapon, (profile) => 
                     {
                         if (profile != null)
                         {
-                            // Extraemos los datos de las mejoras para saber sus nombres y descripciones
                             List<UpgradeData> fireUpgrades = new List<UpgradeData>();
                             List<UpgradeData> impactUpgrades = new List<UpgradeData>();
 
@@ -130,10 +119,8 @@ public class PauseInventoryUI : MonoBehaviour
                                 else if (kvp.Key.category == UpgradeCategory.Impact) impactUpgrades.Add(kvp.Key);
                             }
 
-                            // Llenamos Huecos de Disparo (Azules)
                             FillUpgradeSlots(weaponPanels[captureIndex].fireSlots, profile.firingIcons, fireUpgrades, profile);
 
-                            // Llenamos Huecos de Impacto (Rojos)
                             FillUpgradeSlots(weaponPanels[captureIndex].impactSlots, profile.impactIcons, impactUpgrades, profile);
                         }
                     });
@@ -141,7 +128,6 @@ public class PauseInventoryUI : MonoBehaviour
             }
             else
             {
-                // Si no tiene 2da o 3ra arma, apagamos ese panel
                 weaponPanels[i].panelObject.SetActive(false);
             }
         }
@@ -157,7 +143,6 @@ public class PauseInventoryUI : MonoBehaviour
                 slots[f].sprite = icons[f];
                 slots[f].color = Color.white;
 
-                // Le pasamos el nombre de la mejora y su descripción actual según el nivel
                 UpgradeData data = upgradesData[f];
                 int currentLevel = profile.levels[data];
 

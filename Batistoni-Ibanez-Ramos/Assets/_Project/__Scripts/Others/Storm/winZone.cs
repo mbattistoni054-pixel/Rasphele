@@ -8,10 +8,7 @@ public class winZone : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            //GameManagerRefactored.Instance.EnablePause();
-          //  EventManager.Instance.TriggerEvent("PauseRequested");
             EventManager.Instance.TriggerEvent("LevelComplete");
-           // GameManagerRefactored.Instance.levelCompleteCanvas.SetActive(true);
         }
     }
 

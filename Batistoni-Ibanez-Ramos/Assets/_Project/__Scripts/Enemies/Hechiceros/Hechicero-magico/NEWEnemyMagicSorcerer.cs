@@ -95,10 +95,6 @@ public class NEWEnemyMagicSorcerer : NEWEnemySorcererBase
             {
                 var refHealth = hit.collider.GetComponent<PatronesAplicados.PlayerHealthRefactored>();
                 if (refHealth != null) refHealth.TakeDamage(data.AttackDamage * damageMultiplier);
-                else {
-                    PlayerHealth hp = hit.collider.GetComponent<PlayerHealth>();
-                    if (hp != null) hp.TakeDamage(data.AttackDamage * damageMultiplier);
-                }
             }
         }
 

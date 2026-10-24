@@ -80,10 +80,6 @@ public class NEWEnemyFireLine : MonoBehaviour
             {
                 var refHealth = hit.GetComponent<PatronesAplicados.PlayerHealthRefactored>();
                 if (refHealth != null) refHealth.TakeDamage(damage);
-                else {
-                    PlayerHealth hp = hit.GetComponent<PlayerHealth>();
-                    if (hp != null) hp.TakeDamage(damage);
-                }
             }
         }
     }

@@ -1,17 +1,15 @@
-using UnityEngine;
+using PatronesAplicados;
 using TMPro;
+using UnityEngine;
 
-public class CanvasLookCamera : MonoBehaviour
+public class CanvasLookCamera : MonoBehaviour  //revisar este script
 {
 
     public TextMeshProUGUI useText; 
 
     private void Start()
     {
-        if (HUDManager.Instance != null)
-        {
-            HUDManager.Instance.interactText = useText;
-        }
+       
         if (useText != null)
         {
             useText.text = null;
@@ -26,7 +24,6 @@ public class CanvasLookCamera : MonoBehaviour
 
             transform.rotation = Camera.main.transform.rotation;
 
-            //Debug.Log("CAMARA MAIN");
         }
 
     }

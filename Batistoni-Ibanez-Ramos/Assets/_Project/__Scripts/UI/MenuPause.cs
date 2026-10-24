@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using PatronesAplicados;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class MenuPause : MonoBehaviour
@@ -9,14 +10,12 @@ public class MenuPause : MonoBehaviour
 
     private void OnEnable()
     {
-        if (GameManager.Instance != null) GameManager.Instance.EnablePause();
-        else if (PatronesAplicados.EventManager.Instance != null) PatronesAplicados.EventManager.Instance.TriggerEvent("PauseRequested");
+       if (PatronesAplicados.EventManager.Instance != null) PatronesAplicados.EventManager.Instance.TriggerEvent("PauseRequested");
     }
 
     private void OnDisable()
     {
-        if (GameManager.Instance != null) GameManager.Instance.DisablePause();
-        else if (PatronesAplicados.EventManager.Instance != null) PatronesAplicados.EventManager.Instance.TriggerEvent("ResumeRequested");
+        if (PatronesAplicados.EventManager.Instance != null) PatronesAplicados.EventManager.Instance.TriggerEvent("ResumeRequested");
     }
 
     public void ResumeGame()

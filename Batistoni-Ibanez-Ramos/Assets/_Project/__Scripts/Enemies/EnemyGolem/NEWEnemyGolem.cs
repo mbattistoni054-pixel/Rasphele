@@ -111,7 +111,7 @@ public class NEWEnemyGolem : EnemyBaseRefactored
             {
                 visual = ProjectilePoolManager.Instance.GetProjectile(data.SlamVisualPrefab, impactCenter, Quaternion.identity);
             }
-            else
+            else //revisar esta parte no tendria que tener este else
             {
                 visual = Instantiate(data.SlamVisualPrefab, impactCenter, Quaternion.identity);
             }
@@ -126,10 +126,6 @@ public class NEWEnemyGolem : EnemyBaseRefactored
             {
                 var refHealth = hit.GetComponent<PatronesAplicados.PlayerHealthRefactored>();
                 if (refHealth != null) refHealth.TakeDamage(data.AttackDamage * damageMultiplier);
-                else {
-                    PlayerHealth pHealth = hit.GetComponent<PlayerHealth>();
-                    if (pHealth != null) pHealth.TakeDamage(data.AttackDamage * damageMultiplier);
-                }
 
                 Rigidbody pRb = hit.GetComponent<Rigidbody>();
                 if (pRb != null)
