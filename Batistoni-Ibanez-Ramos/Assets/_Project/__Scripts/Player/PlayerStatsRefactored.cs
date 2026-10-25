@@ -4,7 +4,7 @@ namespace PatronesAplicados
 {
     public class PlayerStatsRefactored : MonoBehaviour
     {
-        public static PlayerStatsRefactored Instance;
+        public static PlayerStatsRefactored Instance { get; private set; }
 
         [Header("Multiplicadores Globales (Armas)")]
         public float globalDamageMultiplier = 1f;
@@ -12,7 +12,7 @@ namespace PatronesAplicados
         public float globalRangeMultiplier = 1f;
         public float globalSpeedMultiplier = 1f;
 
-        [Header("Estadsticas Base del Jugador")]
+        [Header("Estadísticas Base del Jugador")]
         public float baseMaxHealth = 100f;
         public float baseSpeed = 8f;
         public int currentMoney = 0;
@@ -32,33 +32,33 @@ namespace PatronesAplicados
         public int shieldStacks = 0;
         public float weaponSpeedFlat = 0f;
 
-        void Awake()
+        private void Awake()
         {
             if (Instance == null) Instance = this;
             else Destroy(gameObject);
         }
 
-        void Start()
+        private void Start()
         {
             if (EventManager.Instance != null)
             {
-                EventManager.Instance.StartListening<int>("EnemyKilled_GoldReward", AddMoney);
-                EventManager.Instance.StartListening<int, System.Action<bool>>("RequestSpendMoney", HandleSpendMoneyRequest);
-                EventManager.Instance.StartListening<System.Action<PlayerStatsRefactored>>("RequestCurrentStats", HandleStatsRequest);
-                EventManager.Instance.StartListening<float>("AddGlobalSpeed", AddGlobalSpeed);
-                EventManager.Instance.StartListening<float>("AddWeaponSpeedFlat", AddWeaponSpeedFlat);
+                EventManager.Instance.StartListening<int>(GameEventKeys.EnemyKilledGoldReward, AddMoney);
+                EventManager.Instance.StartListening<int, System.Action<bool>>(GameEventKeys.RequestSpendMoney, HandleSpendMoneyRequest);
+                EventManager.Instance.StartListening<System.Action<PlayerStatsRefactored>>(GameEventKeys.RequestCurrentStats, HandleStatsRequest);
+                EventManager.Instance.StartListening<float>(GameEventKeys.AddGlobalSpeed, AddGlobalSpeed);
+                EventManager.Instance.StartListening<float>(GameEventKeys.AddWeaponSpeedFlat, AddWeaponSpeedFlat);
             }
         }
 
-        void OnDestroy()
+        private void OnDestroy()
         {
             if (EventManager.Instance != null)
             {
-                EventManager.Instance.StopListening<int>("EnemyKilled_GoldReward", AddMoney);
-                EventManager.Instance.StopListening<int, System.Action<bool>>("RequestSpendMoney", HandleSpendMoneyRequest);
-                EventManager.Instance.StopListening<System.Action<PlayerStatsRefactored>>("RequestCurrentStats", HandleStatsRequest);
-                EventManager.Instance.StopListening<float>("AddGlobalSpeed", AddGlobalSpeed);
-                EventManager.Instance.StopListening<float>("AddWeaponSpeedFlat", AddWeaponSpeedFlat);
+                EventManager.Instance.StopListening<int>(GameEventKeys.EnemyKilledGoldReward, AddMoney);
+                EventManager.Instance.StopListening<int, System.Action<bool>>(GameEventKeys.RequestSpendMoney, HandleSpendMoneyRequest);
+                EventManager.Instance.StopListening<System.Action<PlayerStatsRefactored>>(GameEventKeys.RequestCurrentStats, HandleStatsRequest);
+                EventManager.Instance.StopListening<float>(GameEventKeys.AddGlobalSpeed, AddGlobalSpeed);
+                EventManager.Instance.StopListening<float>(GameEventKeys.AddWeaponSpeedFlat, AddWeaponSpeedFlat);
             }
         }
 
@@ -77,7 +77,7 @@ namespace PatronesAplicados
         {
             if (EventManager.Instance != null)
             {
-                EventManager.Instance.TriggerEvent("PlayerStatsUpdated");
+                EventManager.Instance.TriggerEvent(GameEventKeys.PlayerStatsUpdated);
             }
         }
 
@@ -98,10 +98,19 @@ namespace PatronesAplicados
 
         public void ResetItemBonuses()
         {
-            itemHealthFlat = 0f; itemHealthMultiplier = 1f; itemSpeedFlat = 0f;
-            itemSpeedMultiplier = 1f; itemRegenMoving = 0f; itemXpMultiplier = 1f;
-            itemExtraJumps = 0; itemExtraDashes = 0; itemDamageTakenMultiplier = 1f;
-            itemMoneyMultiplier = 1f; goldBagStacks = 0; shieldStacks = 0;
+            itemHealthFlat = 0f;
+            itemHealthMultiplier = 1f;
+            itemSpeedFlat = 0f;
+            itemSpeedMultiplier = 1f;
+            itemRegenMoving = 0f;
+            itemXpMultiplier = 1f;
+            itemExtraJumps = 0;
+            itemExtraDashes = 0;
+            itemDamageTakenMultiplier = 1f;
+            itemMoneyMultiplier = 1f;
+            goldBagStacks = 0;
+            shieldStacks = 0;
+            NotifyStatsUpdated();
         }
 
         public void AddMoney(int amount)
@@ -119,7 +128,7 @@ namespace PatronesAplicados
 
             if (EventManager.Instance != null)
             {
-                EventManager.Instance.TriggerEvent("MoneyUpdated", currentMoney);
+                EventManager.Instance.TriggerEvent(GameEventKeys.MoneyUpdated, currentMoney);
             }
         }
 
@@ -131,7 +140,7 @@ namespace PatronesAplicados
 
                 if (EventManager.Instance != null)
                 {
-                    EventManager.Instance.TriggerEvent("MoneyUpdated", currentMoney);
+                    EventManager.Instance.TriggerEvent(GameEventKeys.MoneyUpdated, currentMoney);
                 }
 
                 return true;

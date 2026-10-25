@@ -3,9 +3,11 @@ using PatronesAplicados.RealImplementation;
 
 namespace PatronesAplicados
 {
-
     public static class WeaponUpgradeApplier
     {
+        private static Transform _cachedPlayerTransform;
+        private static PlayerHealthRefactored _cachedPlayerHealth;
+
         public static void ApplyStatModification(UpgradeData data, WeaponBaseRealRefactored weapon, float valueToApply, bool isRecalculation = false)
         {
             if (data == null) return;
@@ -21,85 +23,76 @@ namespace PatronesAplicados
 
             if (weapon == null) return;
 
+            weapon.EnsureInitialized();
+            ref WeaponRuntimeStats stats = ref weapon.Stats;
+
             switch (data.type)
             {
                 case UpgradeType.Explosive:
-                    weapon.CurrentExplosiveRadius += valueToApply;
+                    stats.explosiveRadius += valueToApply;
                     break;
                 case UpgradeType.Chain:
-                    weapon.CurrentChainBounces += Mathf.RoundToInt(valueToApply);
+                    stats.chainBounces += Mathf.RoundToInt(valueToApply);
                     break;
                 case UpgradeType.Multiple:
-                    weapon.CurrentMultipleShots += Mathf.RoundToInt(valueToApply);
+                    stats.multipleShots += Mathf.RoundToInt(valueToApply);
                     break;
                 case UpgradeType.FireRate:
-                    weapon.CurrentBaseCooldown = valueToApply;
+                    stats.baseCooldown = valueToApply;
                     break;
                 case UpgradeType.Range:
-                    weapon.CurrentRange += valueToApply;
+                    stats.range += valueToApply;
                     break;
                 case UpgradeType.Damage:
-                    weapon.CurrentBaseDamage += valueToApply;
+                    stats.baseDamage += valueToApply;
                     break;
-
                 case UpgradeType.Bleed:
-                    {
-                        var e = weapon.CurrentEffects;
-                        e.bleedPercent += valueToApply;
-                        weapon.CurrentEffects = e;
-                        break;
-                    }
+                    stats.effects.bleedPercent += valueToApply;
+                    break;
                 case UpgradeType.Burn:
-                    {
-                        var e = weapon.CurrentEffects;
-                        e.burnDamage += valueToApply;
-                        weapon.CurrentEffects = e;
-                        break;
-                    }
+                    stats.effects.burnDamage += valueToApply;
+                    break;
                 case UpgradeType.Poison:
-                    {
-                        var e = weapon.CurrentEffects;
-                        e.poisonDamage += valueToApply;
-                        weapon.CurrentEffects = e;
-                        break;
-                    }
+                    stats.effects.poisonDamage += valueToApply;
+                    break;
                 case UpgradeType.Freeze:
-                    {
-                        var e = weapon.CurrentEffects;
-                        e.freezePercent += valueToApply;
-                        weapon.CurrentEffects = e;
-                        break;
-                    }
+                    stats.effects.freezePercent += valueToApply;
+                    break;
                 case UpgradeType.Stun:
-                    {
-                        var e = weapon.CurrentEffects;
-                        e.stunChance += valueToApply;
-                        weapon.CurrentEffects = e;
-                        break;
-                    }
+                    stats.effects.stunChance += valueToApply;
+                    break;
                 case UpgradeType.Crit:
-                    {
-                        var e = weapon.CurrentEffects;
-                        e.critChance += valueToApply;
-                        weapon.CurrentEffects = e;
-                        break;
-                    }
-
+                    stats.effects.critChance += valueToApply;
+                    break;
                 case UpgradeType.Duration:
-                    weapon.CurrentDuration += valueToApply;
+                    stats.duration += valueToApply;
                     break;
                 case UpgradeType.ElectricStorm:
-                    weapon.CurrentElectricStormChance += valueToApply;
+                    stats.electricStormChance += valueToApply;
                     break;
                 case UpgradeType.HeatHeal:
-                    weapon.CurrentHeatHeal += valueToApply;
+                    stats.heatHeal += valueToApply;
+                    break;
+                case UpgradeType.RangeMultiplier:
+                    stats.rangeMultiplier = valueToApply;
+                    break;
+                case UpgradeType.MaxDamageCap:
+                    stats.maxDamageCap = valueToApply;
+                    break;
+                case UpgradeType.RampUpInterval:
+                    stats.rampUpInterval = valueToApply;
+                    break;
+                case UpgradeType.ProjectileSpeed:
+                    stats.projectileSpeed += valueToApply;
                     break;
 
                 case UpgradeType.PlayerSpeed:
                 case UpgradeType.PlayerSpeedFlat:
                     if (!isRecalculation && EventManager.Instance != null)
                     {
-                        string evt = data.type == UpgradeType.PlayerSpeed ? "AddGlobalSpeed" : "AddWeaponSpeedFlat";
+                        string evt = data.type == UpgradeType.PlayerSpeed
+                            ? GameEventKeys.AddGlobalSpeed
+                            : GameEventKeys.AddWeaponSpeedFlat;
                         EventManager.Instance.TriggerEvent(evt, valueToApply);
                     }
                     break;
@@ -118,47 +111,40 @@ namespace PatronesAplicados
                     }
                     break;
 
-                case UpgradeType.RangeMultiplier:
-                    weapon.CurrentRangeMultiplier = valueToApply;
-                    break;
-                case UpgradeType.MaxDamageCap:
-                    weapon.CurrentMaxDamageCap = valueToApply;
-                    break;
-                case UpgradeType.RampUpInterval:
-                    weapon.CurrentRampUpInterval = valueToApply;
-                    break;
-
                 case UpgradeType.MagicMode:
                     if (weapon is ShurikenWeaponRefactored shuriMagico)
                     {
                         shuriMagico.isMagicMode = true;
                     }
                     break;
-
-                case UpgradeType.ProjectileSpeed:
-                    weapon.CurrentProjectileSpeed += valueToApply;
-                    break;
             }
+
+            stats.Validate();
         }
 
         private static void HealPlayer(float amount)
         {
-            Transform playerTransform = GameManagerRefactored.Instance != null ? GameManagerRefactored.Instance.Player : null;
-            if (playerTransform == null)
+            Transform currentTransform = GameManagerRefactored.Instance != null
+                ? GameManagerRefactored.Instance.Player
+                : null;
+
+            if (currentTransform == null)
             {
                 GameObject p = GameObject.FindGameObjectWithTag("Player");
-                if (p != null) playerTransform = p.transform;
+                if (p != null) currentTransform = p.transform;
             }
 
-            if (playerTransform != null)
-            {
-                PlayerHealthRefactored hpRef = playerTransform.GetComponent<PlayerHealthRefactored>();
-                if (hpRef != null)
-                {
-                    hpRef.Heal(amount);
-                    return;
-                }
+            if (currentTransform == null) return;
 
+            if (_cachedPlayerTransform != currentTransform || _cachedPlayerHealth == null)
+            {
+                _cachedPlayerTransform = currentTransform;
+                currentTransform.TryGetComponent(out _cachedPlayerHealth);
+            }
+
+            if (_cachedPlayerHealth != null)
+            {
+                _cachedPlayerHealth.Heal(amount);
             }
         }
     }

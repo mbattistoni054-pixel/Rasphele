@@ -7,12 +7,12 @@ namespace PatronesAplicados
     {
         public static EnemyPool Instance { get; private set; }
 
-        [Header("Dependencias (SOLID - Inversión de Dependencias)")]
-        [Tooltip("Arrastra la EnemyFactory aquí. Si lo dejas vacío, la buscará automáticamente.")]
+        [Header("Dependencias")]
+        [Tooltip("Arrastra la EnemyFactory aquí. Si lo dejas vacío, la buscará automáticamente en la escena.")]
         [SerializeField] private EnemyFactory enemyFactory;
 
         private readonly Dictionary<string, Queue<EnemyBaseRefactored>> poolDictionary = new Dictionary<string, Queue<EnemyBaseRefactored>>();
-
+        private readonly HashSet<EnemyBaseRefactored> pooledSet = new HashSet<EnemyBaseRefactored>();
         private readonly Dictionary<GameObject, EnemyBaseRefactored> componentCache = new Dictionary<GameObject, EnemyBaseRefactored>();
 
         private void Awake()
@@ -20,7 +20,11 @@ namespace PatronesAplicados
             if (Instance == null)
             {
                 Instance = this;
-                if (enemyFactory == null) enemyFactory = EnemyFactory.Instance;
+                if (enemyFactory == null)
+                {
+                    enemyFactory = GetComponent<EnemyFactory>();
+                    if (enemyFactory == null) enemyFactory = FindFirstObjectByType<EnemyFactory>();
+                }
             }
             else
             {
@@ -28,13 +32,10 @@ namespace PatronesAplicados
             }
         }
 
-        private void Start()
-        {
-            if (enemyFactory == null) enemyFactory = EnemyFactory.Instance;
-        }
-
         public EnemyBaseRefactored GetEnemy(GameObject prefab, Vector3 spawnPosition = default)
         {
+            if (prefab == null) return null;
+
             string enemyType = prefab.name;
 
             if (!poolDictionary.TryGetValue(enemyType, out Queue<EnemyBaseRefactored> queue))
@@ -43,10 +44,14 @@ namespace PatronesAplicados
                 poolDictionary.Add(enemyType, queue);
             }
 
-            if (queue.Count > 0)
+            while (queue.Count > 0)
             {
-                EnemyBaseRefactored enemyToReuse = queue.Dequeue();
-                return enemyToReuse;
+                EnemyBaseRefactored candidate = queue.Dequeue();
+                if (candidate != null)
+                {
+                    pooledSet.Remove(candidate);
+                    return candidate;
+                }
             }
 
             if (enemyFactory != null)
@@ -59,13 +64,16 @@ namespace PatronesAplicados
                 return newEnemy;
             }
 
-            Debug.LogError("EnemyPool: No hay EnemyFactory asignada ni en la escena.");
+            Debug.LogError("[EnemyPool] No hay EnemyFactory en la escena.");
             return null;
         }
 
         public void ReturnEnemy(EnemyBaseRefactored enemyToReturn, string enemyType)
         {
-            if (enemyToReturn == null) return;
+            if (enemyToReturn == null || string.IsNullOrEmpty(enemyType)) return;
+
+            // Evita que un enemigo sea encolado dos veces por error
+            if (!pooledSet.Add(enemyToReturn)) return;
 
             enemyToReturn.gameObject.SetActive(false);
 
@@ -84,8 +92,7 @@ namespace PatronesAplicados
 
             if (!componentCache.TryGetValue(enemyObjToReturn, out EnemyBaseRefactored enemyScript))
             {
-                enemyScript = enemyObjToReturn.GetComponent<EnemyBaseRefactored>();
-                if (enemyScript != null)
+                if (enemyObjToReturn.TryGetComponent(out enemyScript))
                 {
                     componentCache[enemyObjToReturn] = enemyScript;
                 }

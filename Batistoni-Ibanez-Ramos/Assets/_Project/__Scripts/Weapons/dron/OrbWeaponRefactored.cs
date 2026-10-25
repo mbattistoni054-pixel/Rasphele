@@ -1,20 +1,32 @@
-using UnityEngine;
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace PatronesAplicados.RealImplementation
 {
-
     public class OrbWeaponRefactored : WeaponBaseRealRefactored
     {
         public Transform firePoint;
         public LayerMask enemyLayer;
 
+        private static readonly WaitForSeconds _burstWait = new WaitForSeconds(0.1f);
+
+        private readonly Collider[] _overlapBuffer = new Collider[64];
+        private readonly List<Transform> _validEnemiesBuffer = new List<Transform>(64);
+        private Comparison<Transform> _distanceComparison;
+
+        protected override void Awake()
+        {
+            base.Awake();
+            _distanceComparison = CompareDistanceToWeapon;
+        }
+
         protected override void Attack()
         {
-            List<Transform> enemies = GetAllEnemiesInRange();
+            RefreshEnemiesInRange();
 
-            if (enemies.Count > 0)
+            if (_validEnemiesBuffer.Count > 0)
             {
                 StartCoroutine(ShootRoutine());
             }
@@ -24,57 +36,112 @@ namespace PatronesAplicados.RealImplementation
             }
         }
 
-        private List<Transform> GetAllEnemiesInRange()
+        private void RefreshEnemiesInRange()
         {
-            Collider[] enemiesInRange = Physics.OverlapSphere(transform.position, GetFinalRange(), enemyLayer);
-            List<Transform> validEnemies = new List<Transform>();
+            _validEnemiesBuffer.Clear();
 
-            foreach (Collider enemy in enemiesInRange)
+            int count = Physics.OverlapSphereNonAlloc(transform.position, GetFinalRange(), _overlapBuffer, enemyLayer);
+            for (int i = 0; i < count; i++)
             {
-                if (enemy != null) validEnemies.Add(enemy.transform);
+                Collider col = _overlapBuffer[i];
+                if (col != null && col.gameObject.activeInHierarchy)
+                {
+                    if (DamageableRegistry.TryGet(col, out _, out Transform rootTransform))
+                    {
+                        if (!_validEnemiesBuffer.Contains(rootTransform))
+                        {
+                            _validEnemiesBuffer.Add(rootTransform);
+                        }
+                    }
+                    else
+                    {
+                        _validEnemiesBuffer.Add(col.transform);
+                    }
+                }
             }
 
-            validEnemies.Sort((a, b) =>
+            if (_validEnemiesBuffer.Count > 1)
             {
-                float distA = Vector3.Distance(transform.position, a.position);
-                float distB = Vector3.Distance(transform.position, b.position);
-                return distA.CompareTo(distB);
-            });
+                if (_distanceComparison == null) _distanceComparison = CompareDistanceToWeapon;
+                _validEnemiesBuffer.Sort(_distanceComparison);
+            }
+        }
 
-            return validEnemies;
+        private void PruneInactiveTargets()
+        {
+            for (int i = _validEnemiesBuffer.Count - 1; i >= 0; i--)
+            {
+                Transform t = _validEnemiesBuffer[i];
+                if (t == null || !t.gameObject.activeInHierarchy)
+                {
+                    _validEnemiesBuffer.RemoveAt(i);
+                }
+            }
+        }
+
+        private int CompareDistanceToWeapon(Transform a, Transform b)
+        {
+            if (a == null && b == null) return 0;
+            if (a == null) return 1;
+            if (b == null) return -1;
+
+            Vector3 myPos = transform.position;
+            float sqrDistA = (a.position - myPos).sqrMagnitude;
+            float sqrDistB = (b.position - myPos).sqrMagnitude;
+            return sqrDistA.CompareTo(sqrDistB);
         }
 
         private IEnumerator ShootRoutine()
         {
+            int shotsToFire = runtimeStats.multipleShots;
             int enemyIndex = 0;
 
-            for (int i = 0; i < CurrentMultipleShots; i++)
+            for (int i = 0; i < shotsToFire; i++)
             {
-                List<Transform> enemies = GetAllEnemiesInRange();
-                if (enemies.Count == 0) break;
-
-                Transform targetForThisBullet = enemies[enemyIndex % enemies.Count];
-                enemyIndex++;
-
-                GameObject bulletObj = ProjectilePoolManager.Instance.GetProjectile(data.projectilePrefab, firePoint.position, Quaternion.identity);
-                
-                HomingProjectileRefactored projectile = bulletObj.GetComponent<HomingProjectileRefactored>();
-
-                if (projectile != null)
+                if (i > 0)
                 {
-                    projectile.Setup(
-                        targetForThisBullet, 
-                        GetFinalDamage(), 
-                        CurrentChainBounces, 
-                        CurrentExplosiveRadius, 
-                        enemyLayer, 
-                        CurrentEffects,
-                        WeaponID, 
-                        CurrentDamageType
-                    );
+                    PruneInactiveTargets();
+                    if (_validEnemiesBuffer.Count == 0)
+                    {
+                        RefreshEnemiesInRange();
+                    }
                 }
 
-                if (CurrentMultipleShots > 1) yield return new WaitForSeconds(0.1f);
+                if (_validEnemiesBuffer.Count == 0) yield break;
+
+                Transform targetForThisBullet = _validEnemiesBuffer[enemyIndex % _validEnemiesBuffer.Count];
+                enemyIndex++;
+
+                SpawnProjectile(targetForThisBullet);
+
+                if (shotsToFire > 1 && i < shotsToFire - 1)
+                {
+                    yield return _burstWait;
+                }
+            }
+        }
+
+        private void SpawnProjectile(Transform target)
+        {
+            if (data.projectilePrefab == null) return;
+
+            Vector3 spawnPos = firePoint != null ? firePoint.position : transform.position;
+            IProjectile projectile = null;
+
+            if (ProjectilePoolManager.Instance != null)
+            {
+                projectile = ProjectilePoolManager.Instance.GetProjectileInterface(data.projectilePrefab, spawnPos, Quaternion.identity);
+            }
+            else
+            {
+                GameObject bulletObj = Instantiate(data.projectilePrefab, spawnPos, Quaternion.identity);
+                bulletObj.TryGetComponent(out projectile);
+            }
+
+            if (projectile != null)
+            {
+                ProjectilePayload payload = CreateProjectilePayload(target, enemyLayer);
+                projectile.Initialize(in payload);
             }
         }
     }

@@ -1,24 +1,31 @@
+using UnityEngine;
 using PatronesAplicados;
 using PatronesAplicados.RealImplementation;
-using UnityEngine;
 
 public class NEWEnemyRange : EnemyBaseRefactored
 {
-    [Header("Estadsticas de Ataque")]
+    private float _cooldownTimer;
+    private float _pathTimer;
+    private bool _onAttack;
 
-    private float lastAttackTime;
-    bool onAttack;
+    [SerializeField] private Animator animator;
+    [SerializeField] private Transform firePoint;
 
-    [SerializeField] Animator animator;
-    [SerializeField] Transform firePoint;
-
-    private bool hasMoveParam = false;
-    private float pathTimer = 0f;
+    private bool _hasMoveParam;
 
     public override void ResetStats()
     {
         base.ResetStats();
-        onAttack = false;
+        CancelInvoke(nameof(AttackEnd));
+        _onAttack = false;
+        _pathTimer = 0f;
+        _cooldownTimer = data != null ? data.AttackCooldown : 0f;
+    }
+
+    protected override void OnDisable()
+    {
+        base.OnDisable();
+        CancelInvoke(nameof(AttackEnd));
     }
 
     protected override void Start()
@@ -30,63 +37,74 @@ public class NEWEnemyRange : EnemyBaseRefactored
         {
             foreach (var param in animator.parameters)
             {
-                if (param.name == "Move") hasMoveParam = true;
+                if (param.name == "Move")
+                {
+                    _hasMoveParam = true;
+                    break;
+                }
             }
         }
 
-        if (agent != null)
+        if (agent != null && data != null)
         {
             agent.stoppingDistance = data.RangeAttack;
-            agent.acceleration = 60f;     
-            agent.angularSpeed = 600f;     
+            agent.acceleration = 60f;
+            agent.angularSpeed = 600f;
+            _cooldownTimer = data.AttackCooldown;
         }
     }
 
     protected override void Update()
     {
         base.Update();
+        if (isDead || isPaused || data == null) return;
 
-        if (player != null && !isStunned && agent != null)
+        float dt = Time.deltaTime;
+        _cooldownTimer += dt;
+        _pathTimer -= dt;
+
+        if (player != null && !isStunned && agent != null && agent.enabled && agent.isOnNavMesh)
         {
             float distance = Vector3.Distance(player.position, transform.position);
 
-            if (!onAttack && distance > data.RangeAttack)
+            if (!_onAttack && distance > data.RangeAttack)
             {
                 agent.isStopped = false;
 
-                if (Time.time >= pathTimer)
+                if (_pathTimer <= 0f)
                 {
                     agent.SetDestination(player.position);
-                    pathTimer = Time.time + 0.2f;
+                    _pathTimer = 0.2f;
                 }
 
-                if (animator != null && hasMoveParam) animator.SetBool("Move", true);
+                if (animator != null && _hasMoveParam) animator.SetBool("Move", true);
             }
             else
             {
                 agent.isStopped = true;
 
-                if (animator != null && hasMoveParam) animator.SetBool("Move", false);
+                if (animator != null && _hasMoveParam) animator.SetBool("Move", false);
             }
 
-            if (distance <= data.RangeAttack || onAttack)
+            if (distance <= data.RangeAttack || _onAttack)
             {
                 Vector3 directionToPlayer = (player.position - transform.position).normalized;
-                directionToPlayer.y = 0; 
+                directionToPlayer.y = 0f;
 
                 if (directionToPlayer != Vector3.zero)
                 {
                     Quaternion targetRotation = Quaternion.LookRotation(directionToPlayer);
-                    transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 15f);
+                    transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, dt * 15f);
                 }
             }
 
-            if (distance <= data.RangeAttack && Time.time >= lastAttackTime + data.AttackCooldown)
+            if (distance <= data.RangeAttack && _cooldownTimer >= data.AttackCooldown)
             {
-                onAttack = true;
-                lastAttackTime = Time.time;
+                _onAttack = true;
+                _cooldownTimer = 0f;
                 if (animator != null) animator.SetTrigger("Shoot");
 
+                CancelInvoke(nameof(AttackEnd));
                 Invoke(nameof(AttackEnd), 1f);
             }
         }
@@ -94,29 +112,34 @@ public class NEWEnemyRange : EnemyBaseRefactored
 
     public void Shoot()
     {
-        if (data.Bullet == null || firePoint == null) return;
-        
-        GameObject obj;
+        if (isDead || isPaused || data == null || data.Bullet == null || firePoint == null) return;
+
+        float finalDamage = data.AttackDamage * damageMultiplier;
+
         if (ProjectilePoolManager.Instance != null)
         {
-            obj = ProjectilePoolManager.Instance.GetProjectile(data.Bullet, firePoint.position, firePoint.rotation);
+            NEWBulletEnemy pooledBullet = ProjectilePoolManager.Instance.GetProjectile<NEWBulletEnemy>(
+                data.Bullet,
+                firePoint.position,
+                firePoint.rotation);
+
+            if (pooledBullet != null)
+            {
+                pooledBullet.Setup(finalDamage, player);
+            }
         }
         else
         {
-            obj = Instantiate(data.Bullet, firePoint.position, firePoint.rotation);
+            GameObject obj = Instantiate(data.Bullet, firePoint.position, firePoint.rotation);
+            if (obj.TryGetComponent(out NEWBulletEnemy newBullet))
+            {
+                newBullet.Setup(finalDamage, player);
+            }
         }
-        
-        NEWBulletEnemy newBullet = obj.GetComponent<NEWBulletEnemy>();
-        if (newBullet != null)
-        {
-            newBullet.damage = data.AttackDamage * damageMultiplier;
-        }
-
     }
 
     public void AttackEnd()
     {
-        onAttack = false;
+        _onAttack = false;
     }
 }
-

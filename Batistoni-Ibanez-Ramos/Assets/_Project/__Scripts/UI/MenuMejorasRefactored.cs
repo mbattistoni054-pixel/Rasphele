@@ -1,13 +1,10 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
 using PatronesAplicados.RealImplementation;
 
 namespace PatronesAplicados
 {
-
     public class MenuMejorasRefactored : MonoBehaviour
     {
         [Header("Sub-Paneles de UI (Vistas Modulares)")]
@@ -27,8 +24,9 @@ namespace PatronesAplicados
         private readonly UpgradeMenuSessionLogic _sessionLogic = new UpgradeMenuSessionLogic();
         private readonly List<UpgradeCardViewData> _cardsViewBuffer = new List<UpgradeCardViewData>(3);
 
-        private WeaponBaseRealRefactored[] _playerActiveWeapons;
+        private WeaponBaseRealRefactored[] _playerActiveWeapons = Array.Empty<WeaponBaseRealRefactored>();
         private Transform _playerTransform;
+        private PlayerExperienceRefactored _cachedPlayerExperience;
         private bool _isWeaponMode;
 
         private void OnEnable()
@@ -37,7 +35,7 @@ namespace PatronesAplicados
 
             if (EventManager.Instance != null)
             {
-                EventManager.Instance.TriggerEvent("PauseRequested");
+                EventManager.Instance.TriggerEvent(GameEventKeys.PauseRequested);
             }
 
             Cursor.lockState = CursorLockMode.None;
@@ -46,9 +44,7 @@ namespace PatronesAplicados
             _sessionLogic.FetchSessionDataFromEvents();
             CachePlayerAndWeapons();
 
-            PlayerExperienceRefactored xp = UnityEngine.Object.FindFirstObjectByType<PlayerExperienceRefactored>();
-
-            if (xp != null && _weaponRewardService.IsWeaponRewardLevel(xp.currentLevel, newWeaponLevels))
+            if (_cachedPlayerExperience != null && _weaponRewardService.IsWeaponRewardLevel(_cachedPlayerExperience.currentLevel, newWeaponLevels))
             {
                 _isWeaponMode = true;
                 OpenNewWeaponMode();
@@ -66,18 +62,34 @@ namespace PatronesAplicados
         {
             if (EventManager.Instance != null)
             {
-                EventManager.Instance.TriggerEvent("ResumeRequested");
+                EventManager.Instance.TriggerEvent(GameEventKeys.ResumeRequested);
             }
             buttonWeapons.Clear();
         }
 
         private void CachePlayerAndWeapons()
         {
-            _playerTransform = GameManagerRefactored.Instance != null ? GameManagerRefactored.Instance.Player : null;
             if (_playerTransform == null)
             {
-                GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-                if (playerObj != null) _playerTransform = playerObj.transform;
+                _playerTransform = GameManagerRefactored.Instance != null ? GameManagerRefactored.Instance.Player : null;
+                if (_playerTransform == null)
+                {
+                    GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+                    if (playerObj != null) _playerTransform = playerObj.transform;
+                }
+            }
+
+            if (_cachedPlayerExperience == null)
+            {
+                if (_playerTransform != null)
+                {
+                    _playerTransform.TryGetComponent(out _cachedPlayerExperience);
+                }
+
+                if (_cachedPlayerExperience == null)
+                {
+                    _cachedPlayerExperience = UnityEngine.Object.FindFirstObjectByType<PlayerExperienceRefactored>();
+                }
             }
 
             _playerActiveWeapons = _playerTransform != null
@@ -87,31 +99,51 @@ namespace PatronesAplicados
 
         private void OpenNewWeaponMode()
         {
-            leftPanelUI.SetPanelActive(false);
-            rightStatsUI.SetPanelActive(false);
+            if (leftPanelUI != null) leftPanelUI.SetPanelActive(false);
+            if (rightStatsUI != null) rightStatsUI.SetPanelActive(false);
 
             _weaponRewardService.RollAvailableWeapons(allWeaponPrefabs, _playerActiveWeapons, 3, buttonWeapons, _cardsViewBuffer);
 
-            centerCardsUI.RenderCards("ELIGE UN ARMA NUEVA", _cardsViewBuffer);
+            if (centerCardsUI != null)
+            {
+                centerCardsUI.RenderCards("ELIGE UN ARMA NUEVA", _cardsViewBuffer);
+            }
         }
 
         private void OpenUpgradeMode()
         {
-            leftPanelUI.SetPanelActive(true);
-            rightStatsUI.SetPanelActive(true);
+            if (leftPanelUI != null) leftPanelUI.SetPanelActive(true);
+            if (rightStatsUI != null) rightStatsUI.SetPanelActive(true);
 
             _sessionLogic.GenerateGlobalUpgradeCards(3, _playerActiveWeapons, buttonWeapons, _cardsViewBuffer);
 
-            centerCardsUI.RenderCards("ELIGE UNA MEJORA", _cardsViewBuffer);
+            if (centerCardsUI != null)
+            {
+                centerCardsUI.RenderCards("ELIGE UNA MEJORA", _cardsViewBuffer);
+            }
 
-            leftPanelUI.RenderEquippedWeaponButtons(_playerActiveWeapons);
+            if (leftPanelUI != null)
+            {
+                leftPanelUI.RenderEquippedWeaponButtons(_playerActiveWeapons);
+            }
 
-            if (currentWeapon == null || !Array.Exists(_playerActiveWeapons, w => w == currentWeapon))
+            if (currentWeapon == null || !IsWeaponEquipped(currentWeapon))
             {
                 currentWeapon = _playerActiveWeapons.Length > 0 ? _playerActiveWeapons[0] : null;
             }
 
             RefreshLeftPanel();
+        }
+
+        private bool IsWeaponEquipped(WeaponBaseRealRefactored targetWeapon)
+        {
+            if (_playerActiveWeapons == null || targetWeapon == null) return false;
+
+            for (int i = 0; i < _playerActiveWeapons.Length; i++)
+            {
+                if (_playerActiveWeapons[i] == targetWeapon) return true;
+            }
+            return false;
         }
 
         public void SelectWeaponOption(int index)
@@ -139,7 +171,6 @@ namespace PatronesAplicados
             WeaponUpgradeProfile profile = _sessionLogic.RequestWeaponProfile(currentWeapon);
             leftPanelUI.RenderWeaponSlots(currentWeapon, profile);
         }
-
 
         public void SelectOption1() => HandleCardSelection(0);
         public void SelectOption2() => HandleCardSelection(1);

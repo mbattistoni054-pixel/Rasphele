@@ -1,38 +1,33 @@
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "NewEnemyData", menuName = "ScriptableObjects/Enemy Data")]
-
 public class EnemyData : ScriptableObject
 {
-
     [Header("Base Stats")]
-    [SerializeField] private float maxHealth;
+    [SerializeField] private float maxHealth = 100f;
     public float MaxHealth => maxHealth;
-    [SerializeField] private float baseSpeed;
+    [SerializeField] private float baseSpeed = 3.5f;
     public float BaseSpeed => baseSpeed;
-    [SerializeField] private float attackDamage;
+    [SerializeField] private float attackDamage = 10f;
     public float AttackDamage => attackDamage;
-    [SerializeField] private float attackCooldown;
+    [SerializeField] private float attackCooldown = 1.5f;
     public float AttackCooldown => attackCooldown;
-    [SerializeField] private float rangeAttack;
+    [SerializeField] private float rangeAttack = 2f;
     public float RangeAttack => rangeAttack;
-    [SerializeField] private float fleeDistance;
+    [SerializeField] private float fleeDistance = 0f;
     public float FleeDistance => fleeDistance;
 
-
     [Header("Drops")]
-    [SerializeField] private int goldReward;
+    [SerializeField] private int goldReward = 5;
     public int GoldReward => goldReward;
-    [SerializeField] private int expReward;
+    [SerializeField] private int expReward = 20;
     public int ExpReward => expReward;
-
 
     [Header("Range")]
     [SerializeField] private GameObject bullet;
     public GameObject Bullet => bullet;
-    [SerializeField] private int bulletSpeed;
+    [SerializeField] private int bulletSpeed = 80;
     public int BulletSpeed => bulletSpeed;
-
 
     [Header("Kamikaze")]
     [SerializeField] private float explosionRadius;
@@ -41,7 +36,6 @@ public class EnemyData : ScriptableObject
     public float ExplosionDelay => explosionDelay;
     [SerializeField] private GameObject explosionVisualPrefab;
     public GameObject ExplosionVisualPrefab => explosionVisualPrefab;
-    
 
     [Header("Golem")]
     [SerializeField] private float attackRadius;
@@ -55,7 +49,6 @@ public class EnemyData : ScriptableObject
     [SerializeField] private GameObject slamVisualPrefab;
     public GameObject SlamVisualPrefab => slamVisualPrefab;
 
-
     [Header("Magic Sorcerer")]
     [SerializeField] private float trackingTime;
     public float TrackingTime => trackingTime;
@@ -66,11 +59,9 @@ public class EnemyData : ScriptableObject
     [SerializeField] private Material beamMaterial;
     public Material BeamMaterial => beamMaterial;
 
-
     [Header("Fire Sorcerer")]
     [SerializeField] private GameObject fireLinePrefab;
     public GameObject FireLinePrefab => fireLinePrefab;
-
 
     [Header("Boss Plant")]
     [SerializeField] private GameObject orbPrefab;

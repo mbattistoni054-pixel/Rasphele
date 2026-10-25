@@ -3,7 +3,7 @@ using UnityEngine;
 using PatronesAplicados;
 using PatronesAplicados.RealImplementation;
 
-public class NEWBossRootTrap : MonoBehaviour
+public class NEWBossRootTrap : MonoBehaviour, IPausable
 {
     [Header("Tiempos del Ataque")]
     public float followTime = 2f;
@@ -15,35 +15,41 @@ public class NEWBossRootTrap : MonoBehaviour
     public Transform warningVisual;
     public Transform rootVisual;
 
-    private Transform playerTarget;
-    private float damage;
-    private PlayerControllerRefactored trappedPlayerCtrl;
+    private Transform _playerTarget;
+    private float _damage;
+    private bool _isPaused;
 
-    private Renderer warningRenderer;
-    private Color originalWarningColor = new Color(1f, 0.5f, 0f, 0.5f);
-    private MaterialPropertyBlock propBlock;
-    private bool isVisualInitialized = false;
+    private Renderer _warningRenderer;
+    private Color _originalWarningColor = new Color(1f, 0.5f, 0f, 0.5f);
+    private MaterialPropertyBlock _propBlock;
+    private bool _isVisualInitialized;
 
     private readonly Collider[] _hitBuffer = new Collider[16];
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static readonly int ColorId = Shader.PropertyToID("_Color");
 
+    private void OnEnable()
+    {
+        _isPaused = PauseManager.IsPaused;
+        PauseManager.Register(this);
+    }
+
     private void InitializeVisualCache()
     {
-        if (isVisualInitialized) return;
-        isVisualInitialized = true;
+        if (_isVisualInitialized) return;
+        _isVisualInitialized = true;
 
-        propBlock = new MaterialPropertyBlock();
+        _propBlock = new MaterialPropertyBlock();
 
         if (warningVisual != null)
         {
-            warningRenderer = warningVisual.GetComponent<Renderer>();
-            if (warningRenderer != null && warningRenderer.sharedMaterial != null)
+            _warningRenderer = warningVisual.GetComponent<Renderer>();
+            if (_warningRenderer != null && _warningRenderer.sharedMaterial != null)
             {
-                if (warningRenderer.sharedMaterial.HasProperty(BaseColorId))
-                    originalWarningColor = warningRenderer.sharedMaterial.GetColor(BaseColorId);
-                else if (warningRenderer.sharedMaterial.HasProperty(ColorId))
-                    originalWarningColor = warningRenderer.sharedMaterial.GetColor(ColorId);
+                if (_warningRenderer.sharedMaterial.HasProperty(BaseColorId))
+                    _originalWarningColor = _warningRenderer.sharedMaterial.GetColor(BaseColorId);
+                else if (_warningRenderer.sharedMaterial.HasProperty(ColorId))
+                    _originalWarningColor = _warningRenderer.sharedMaterial.GetColor(ColorId);
             }
         }
     }
@@ -52,14 +58,14 @@ public class NEWBossRootTrap : MonoBehaviour
     {
         InitializeVisualCache();
 
-        playerTarget = target;
-        damage = dmg;
+        _playerTarget = target;
+        _damage = dmg;
 
         if (warningVisual != null)
         {
             warningVisual.localScale = new Vector3(trapRadius * 2f, 0.1f, trapRadius * 2f);
             warningVisual.gameObject.SetActive(true);
-            SetWarningColor(originalWarningColor);
+            SetWarningColor(_originalWarningColor);
         }
 
         if (rootVisual != null)
@@ -73,18 +79,31 @@ public class NEWBossRootTrap : MonoBehaviour
 
     private void SetWarningColor(Color c)
     {
-        if (warningRenderer == null || propBlock == null) return;
+        if (_warningRenderer == null || _propBlock == null) return;
 
-        warningRenderer.GetPropertyBlock(propBlock);
-        propBlock.SetColor(BaseColorId, c);
-        propBlock.SetColor(ColorId, c);
-        warningRenderer.SetPropertyBlock(propBlock);
+        _warningRenderer.GetPropertyBlock(_propBlock);
+        _propBlock.SetColor(BaseColorId, c);
+        _propBlock.SetColor(ColorId, c);
+        _warningRenderer.SetPropertyBlock(_propBlock);
     }
 
     private void OnDisable()
     {
+        PauseManager.Unregister(this);
         StopAllCoroutines();
-        ReleasePlayer();
+    }
+
+    private IEnumerator WaitPausableSeconds(float seconds)
+    {
+        float elapsed = 0f;
+        while (elapsed < seconds)
+        {
+            if (!_isPaused)
+            {
+                elapsed += Time.deltaTime;
+            }
+            yield return null;
+        }
     }
 
     private IEnumerator TrapRoutine()
@@ -92,18 +111,21 @@ public class NEWBossRootTrap : MonoBehaviour
         float timer = 0f;
         while (timer < followTime)
         {
-            if (playerTarget != null)
+            if (!_isPaused)
             {
-                Vector3 targetPos = new Vector3(playerTarget.position.x, playerTarget.position.y + 0.1f, playerTarget.position.z);
-                transform.position = Vector3.Lerp(transform.position, targetPos, Time.deltaTime * 10f);
+                if (_playerTarget != null)
+                {
+                    Vector3 targetPos = new Vector3(_playerTarget.position.x, _playerTarget.position.y + 0.1f, _playerTarget.position.z);
+                    transform.position = Vector3.Lerp(transform.position, targetPos, Time.deltaTime * 10f);
+                }
+                timer += Time.deltaTime;
             }
-            timer += Time.deltaTime;
             yield return null;
         }
 
         SetWarningColor(Color.red);
 
-        yield return new WaitForSeconds(lockWarningTime);
+        yield return StartCoroutine(WaitPausableSeconds(lockWarningTime));
 
         if (warningVisual != null) warningVisual.gameObject.SetActive(false);
         if (rootVisual != null) rootVisual.gameObject.SetActive(true);
@@ -114,17 +136,23 @@ public class NEWBossRootTrap : MonoBehaviour
             Collider hit = _hitBuffer[i];
             if (hit != null && hit.CompareTag("Player"))
             {
-                if (hit.TryGetComponent(out PlayerHealthRefactored refHealth))
-                    refHealth.TakeDamage(damage);
-
-                if (hit.TryGetComponent(out PlayerControllerRefactored playerV2))
+                if (hit.TryGetComponent(out IDamageable damageable))
                 {
-                    playerV2.ApplyKnockback(Vector3.zero, rootDuration);
+                    damageable.TakeDamage(_damage);
+                }
+
+                if (hit.TryGetComponent(out IRootable rootable))
+                {
+                    rootable.ApplyRoot(rootDuration);
+                }
+                else if (hit.TryGetComponent(out IKnockbackable knockbackable))
+                {
+                    knockbackable.ApplyKnockback(Vector3.zero, rootDuration);
                 }
             }
         }
 
-        yield return new WaitForSeconds(rootDuration);
+        yield return StartCoroutine(WaitPausableSeconds(rootDuration));
 
         if (rootVisual != null) rootVisual.gameObject.SetActive(false);
 
@@ -138,19 +166,8 @@ public class NEWBossRootTrap : MonoBehaviour
         }
     }
 
-    private void OnDestroy()
-    {
-        ReleasePlayer();
-    }
-
-    private void ReleasePlayer()
-    {
-        if (trappedPlayerCtrl != null)
-        {
-            trappedPlayerCtrl.enabled = true;
-            trappedPlayerCtrl = null;
-        }
-    }
+    public void OnPause() => _isPaused = true;
+    public void OnResume() => _isPaused = false;
 
     private void OnDrawGizmos()
     {

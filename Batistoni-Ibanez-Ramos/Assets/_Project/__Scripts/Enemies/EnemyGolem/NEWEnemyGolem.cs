@@ -1,13 +1,12 @@
-using PatronesAplicados;
-using PatronesAplicados.RealImplementation;
 using System.Collections;
 using UnityEngine;
-using UnityEngine.AI;
+using PatronesAplicados;
+using PatronesAplicados.RealImplementation;
 
 public class NEWEnemyGolem : EnemyBaseRefactored
 {
-
     [Header("Efectos")]
+    [Tooltip("Si se deja vacío, usará automáticamente data.SlamVisualPrefab")]
     public GameObject slamVisualPrefab;
     public Animator animator;
 
@@ -15,10 +14,13 @@ public class NEWEnemyGolem : EnemyBaseRefactored
     private bool hasMoveParam = false;
     private float pathTimer = 0f;
 
+    private readonly Collider[] _slamHitsBuffer = new Collider[16];
+
     public override void ResetStats()
     {
         base.ResetStats();
         isAttacking = false;
+        pathTimer = 0f;
     }
 
     protected override void Start()
@@ -30,13 +32,17 @@ public class NEWEnemyGolem : EnemyBaseRefactored
         {
             foreach (var param in animator.parameters)
             {
-                if (param.name == "Move") hasMoveParam = true;
+                if (param.name == "Move")
+                {
+                    hasMoveParam = true;
+                    break;
+                }
             }
         }
 
-        if (agent != null)
+        if (agent != null && data != null)
         {
-            agent.stoppingDistance = data.RangeAttack - 0.5f;
+            agent.stoppingDistance = Mathf.Max(0.5f, data.RangeAttack - 0.5f);
             agent.acceleration = 40f;
             agent.angularSpeed = 300f;
         }
@@ -44,9 +50,10 @@ public class NEWEnemyGolem : EnemyBaseRefactored
 
     protected override void Update()
     {
-        base.Update(); 
+        base.Update();
+        if (isDead || data == null) return;
 
-        if (player != null && !isStunned && agent != null)
+        if (player != null && !isStunned && agent != null && agent.enabled && agent.isOnNavMesh)
         {
             float distance = Vector3.Distance(player.position, transform.position);
 
@@ -76,7 +83,7 @@ public class NEWEnemyGolem : EnemyBaseRefactored
             if (isAttacking && distance <= data.RangeAttack * 2f)
             {
                 Vector3 directionToPlayer = (player.position - transform.position).normalized;
-                directionToPlayer.y = 0;
+                directionToPlayer.y = 0f;
 
                 if (directionToPlayer != Vector3.zero)
                 {
@@ -95,48 +102,50 @@ public class NEWEnemyGolem : EnemyBaseRefactored
 
         yield return new WaitForSeconds(data.HitDelay);
 
-        if (isStunned)
+        if (isDead || isStunned)
         {
             isAttacking = false;
             yield break;
         }
 
-
         Vector3 impactCenter = transform.position + (transform.forward * 2.5f);
+        GameObject visualPrefabToUse = slamVisualPrefab != null ? slamVisualPrefab : data.SlamVisualPrefab;
 
-        if (data.SlamVisualPrefab != null)
+        if (visualPrefabToUse != null)
         {
-            GameObject visual;
-            if (ProjectilePoolManager.Instance != null)
+            GameObject visual = null;
+
+
+            if (VfxPoolManager.Instance != null)
             {
-                visual = ProjectilePoolManager.Instance.GetProjectile(data.SlamVisualPrefab, impactCenter, Quaternion.identity);
+                visual = VfxPoolManager.Instance.GetVfx(visualPrefabToUse, impactCenter, Quaternion.identity, 1.5f);
             }
-            else //revisar esta parte no tendria que tener este else
+
+            if (visual != null)
             {
-                visual = Instantiate(data.SlamVisualPrefab, impactCenter, Quaternion.identity);
+                float visualScale = data.AttackRadius * 2f;
+                visual.transform.localScale = new Vector3(visualScale, visualScale, visualScale);
             }
-            float visualScale = data.AttackRadius * 2f;
-            visual.transform.localScale = new Vector3(visualScale, visualScale, visualScale);
         }
 
-        Collider[] hitObjects = Physics.OverlapSphere(impactCenter, data.AttackRadius);
-        foreach (Collider hit in hitObjects)
+        int hitCount = Physics.OverlapSphereNonAlloc(impactCenter, data.AttackRadius, _slamHitsBuffer);
+        for (int i = 0; i < hitCount; i++)
         {
-            if (hit.CompareTag("Player"))
+            Collider hit = _slamHitsBuffer[i];
+            if (hit != null && hit.CompareTag("Player"))
             {
-                var refHealth = hit.GetComponent<PatronesAplicados.PlayerHealthRefactored>();
-                if (refHealth != null) refHealth.TakeDamage(data.AttackDamage * damageMultiplier);
+                float finalDamage = data.AttackDamage * damageMultiplier;
 
-                Rigidbody pRb = hit.GetComponent<Rigidbody>();
-                if (pRb != null)
+                if (hit.TryGetComponent(out PlayerHealthRefactored refHealth))
+                    refHealth.TakeDamage(finalDamage);
+
+                Vector3 pushDir = (hit.transform.position - transform.position).normalized;
+                pushDir.y = 0f;
+                Vector3 finalKnockback = (pushDir * data.KnockbackHorizontal) + (Vector3.up * data.KnockbackUpward);
+
+                if (hit.TryGetComponent(out PlayerControllerRefactored playerCtrl))
                 {
-                    Vector3 pushDir = (hit.transform.position - transform.position).normalized;
-                    pushDir.y = 0;
-
-                    Vector3 finalKnockback = (pushDir * data.KnockbackHorizontal) + (Vector3.up * data.KnockbackUpward);
-
-                    pRb.linearVelocity = Vector3.zero;
-                    pRb.AddForce(finalKnockback, ForceMode.Impulse);
+                    playerCtrl.ApplyKnockback(finalKnockback);
                 }
             }
         }
@@ -147,6 +156,8 @@ public class NEWEnemyGolem : EnemyBaseRefactored
 
     private void OnDrawGizmosSelected()
     {
+        if (data == null) return;
+
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, data.RangeAttack);
 
@@ -155,6 +166,3 @@ public class NEWEnemyGolem : EnemyBaseRefactored
         Gizmos.DrawWireSphere(impactCenter, data.AttackRadius);
     }
 }
-
-
-

@@ -5,7 +5,6 @@ using PatronesAplicados.RealImplementation;
 
 namespace PatronesAplicados
 {
-
     public class UpgradeMenuSessionLogic
     {
         public List<UpgradeData> AllAvailableUpgrades { get; private set; } = new List<UpgradeData>();
@@ -13,18 +12,44 @@ namespace PatronesAplicados
         public PlayerStatsRefactored PlayerStats { get; private set; }
         public List<UpgradeOptionRefactored> CurrentGlobalChoices { get; private set; } = new List<UpgradeOptionRefactored>();
 
+        private readonly Action<List<UpgradeData>> _cachedAllUpgradesCallback;
+        private readonly Action<Dictionary<UpgradeData, int>> _cachedChosenUpgradesCallback;
+        private readonly Action<PlayerStatsRefactored> _cachedPlayerStatsCallback;
+        private readonly Action<WeaponUpgradeProfile> _cachedProfileCallback;
+        private readonly Action<List<UpgradeOptionRefactored>> _cachedGlobalChoicesCallback;
+
+        private WeaponUpgradeProfile _tempReceivedProfile;
+
+        public UpgradeMenuSessionLogic()
+        {
+            _cachedAllUpgradesCallback = OnReceiveAllUpgrades;
+            _cachedChosenUpgradesCallback = OnReceiveChosenUpgrades;
+            _cachedPlayerStatsCallback = OnReceivePlayerStats;
+            _cachedProfileCallback = OnReceiveProfile;
+            _cachedGlobalChoicesCallback = OnReceiveGlobalChoices;
+        }
+
+        private void OnReceiveAllUpgrades(List<UpgradeData> data) => AllAvailableUpgrades = data;
+        private void OnReceiveChosenUpgrades(Dictionary<UpgradeData, int> data) => ChosenUpgrades = data;
+        private void OnReceivePlayerStats(PlayerStatsRefactored stats) => PlayerStats = stats;
+        private void OnReceiveProfile(WeaponUpgradeProfile profile) => _tempReceivedProfile = profile;
+
+        private void OnReceiveGlobalChoices(List<UpgradeOptionRefactored> choices)
+        {
+            CurrentGlobalChoices.Clear();
+            if (choices != null)
+            {
+                CurrentGlobalChoices.AddRange(choices);
+            }
+        }
+
         public void FetchSessionDataFromEvents()
         {
             if (EventManager.Instance == null) return;
 
-            EventManager.Instance.TriggerEvent<Action<List<UpgradeData>>>(
-                "RequestAllAvailableUpgrades", data => AllAvailableUpgrades = data);
-
-            EventManager.Instance.TriggerEvent<Action<Dictionary<UpgradeData, int>>>(
-                "RequestChosenUpgrades", data => ChosenUpgrades = data);
-
-            EventManager.Instance.TriggerEvent<Action<PlayerStatsRefactored>>(
-                "RequestCurrentStats", stats => PlayerStats = stats);
+            EventManager.Instance.TriggerEvent(GameEventKeys.RequestAllAvailableUpgrades, _cachedAllUpgradesCallback);
+            EventManager.Instance.TriggerEvent(GameEventKeys.RequestChosenUpgrades, _cachedChosenUpgradesCallback);
+            EventManager.Instance.TriggerEvent(GameEventKeys.RequestCurrentStats, _cachedPlayerStatsCallback);
         }
 
         public void GenerateGlobalUpgradeCards(
@@ -39,37 +64,31 @@ namespace PatronesAplicados
 
             if (EventManager.Instance == null) return;
 
-            EventManager.Instance.TriggerEvent<int, WeaponBaseRealRefactored[], Action<List<UpgradeOptionRefactored>>>(
-                "RequestGlobalRandomUpgrades",
+            EventManager.Instance.TriggerEvent(
+                GameEventKeys.RequestGlobalRandomUpgrades,
                 count,
                 activeWeapons,
-                choices =>
-                {
-                    if (choices != null)
-                    {
-                        CurrentGlobalChoices = choices;
-                    }
+                _cachedGlobalChoicesCallback);
 
-                    for (int i = 0; i < CurrentGlobalChoices.Count; i++)
-                    {
-                        UpgradeOptionRefactored option = CurrentGlobalChoices[i];
-                        outCardWeapons.Add(option.weapon);
-                        outCardsViewData.Add(BuildCardViewData(option.data, option.weapon));
-                    }
-                });
+            for (int i = 0; i < CurrentGlobalChoices.Count; i++)
+            {
+                UpgradeOptionRefactored option = CurrentGlobalChoices[i];
+                outCardWeapons.Add(option.weapon);
+                outCardsViewData.Add(BuildCardViewData(option.data, option.weapon));
+            }
         }
 
         public WeaponUpgradeProfile RequestWeaponProfile(WeaponBaseRealRefactored weapon)
         {
             if (weapon == null || EventManager.Instance == null) return null;
 
-            WeaponUpgradeProfile result = null;
-            EventManager.Instance.TriggerEvent<WeaponBaseRealRefactored, Action<WeaponUpgradeProfile>>(
-                "RequestUpgradeProfile",
+            _tempReceivedProfile = null;
+            EventManager.Instance.TriggerEvent(
+                GameEventKeys.RequestUpgradeProfile,
                 weapon,
-                profile => result = profile);
+                _cachedProfileCallback);
 
-            return result;
+            return _tempReceivedProfile;
         }
 
         public void ApplySelectedUpgrade(int index)
@@ -79,7 +98,7 @@ namespace PatronesAplicados
             UpgradeOptionRefactored chosen = CurrentGlobalChoices[index];
             if (EventManager.Instance != null)
             {
-                EventManager.Instance.TriggerEvent("ApplyUpgrade", chosen.data, chosen.weapon);
+                EventManager.Instance.TriggerEvent(GameEventKeys.ApplyUpgrade, chosen.data, chosen.weapon);
             }
         }
 

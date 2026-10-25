@@ -16,22 +16,25 @@ namespace PatronesAplicados
         [Header("Base de Datos")]
         public List<UpgradeData> allAvailableUpgrades;
 
-        private readonly Dictionary<WeaponBaseRealRefactored, WeaponUpgradeProfile> weaponProfiles = new Dictionary<WeaponBaseRealRefactored, WeaponUpgradeProfile>();
+        private readonly Dictionary<WeaponBaseRealRefactored, WeaponUpgradeProfile> _weaponProfiles = new Dictionary<WeaponBaseRealRefactored, WeaponUpgradeProfile>();
         public Dictionary<WeaponBaseRealRefactored, int> weaponPurgeCounts = new Dictionary<WeaponBaseRealRefactored, int>();
         public Dictionary<WeaponBaseRealRefactored, UpgradeData> blacklistedUpgrades = new Dictionary<WeaponBaseRealRefactored, UpgradeData>();
         public Dictionary<UpgradeData, int> choosenUpgrades = new Dictionary<UpgradeData, int>();
+
+        private readonly List<UpgradeOptionRefactored> _validOptionsBuffer = new List<UpgradeOptionRefactored>(32);
+        private readonly List<UpgradeOptionRefactored> _chosenOptionsBuffer = new List<UpgradeOptionRefactored>(8);
 
         private void Start()
         {
             if (EventManager.Instance != null)
             {
-                EventManager.Instance.StartListening<WeaponBaseRealRefactored, Action<WeaponUpgradeProfile>>("RequestUpgradeProfile", OnRequestUpgradeProfile);
-                EventManager.Instance.StartListening<int, WeaponBaseRealRefactored[], Action<List<UpgradeOptionRefactored>>>("RequestGlobalRandomUpgrades", OnRequestGlobalRandomUpgrades);
-                EventManager.Instance.StartListening<UpgradeData, WeaponBaseRealRefactored>("ApplyUpgrade", ApplyUpgrade);
-                EventManager.Instance.StartListening<WeaponBaseRealRefactored, Action<int>>("RequestPurgeCost", OnRequestPurgeCost);
-                EventManager.Instance.StartListening<WeaponBaseRealRefactored, UpgradeData>("PurgeUpgrade", PurgeUpgrade);
-                EventManager.Instance.StartListening<Action<List<UpgradeData>>>("RequestAllAvailableUpgrades", OnRequestAllAvailableUpgrades);
-                EventManager.Instance.StartListening<Action<Dictionary<UpgradeData, int>>>("RequestChosenUpgrades", OnRequestChosenUpgrades);
+                EventManager.Instance.StartListening<WeaponBaseRealRefactored, Action<WeaponUpgradeProfile>>(GameEventKeys.RequestUpgradeProfile, OnRequestUpgradeProfile);
+                EventManager.Instance.StartListening<int, WeaponBaseRealRefactored[], Action<List<UpgradeOptionRefactored>>>(GameEventKeys.RequestGlobalRandomUpgrades, OnRequestGlobalRandomUpgrades);
+                EventManager.Instance.StartListening<UpgradeData, WeaponBaseRealRefactored>(GameEventKeys.ApplyUpgrade, ApplyUpgrade);
+                EventManager.Instance.StartListening<WeaponBaseRealRefactored, Action<int>>(GameEventKeys.RequestPurgeCost, OnRequestPurgeCost);
+                EventManager.Instance.StartListening<WeaponBaseRealRefactored, UpgradeData>(GameEventKeys.PurgeUpgrade, PurgeUpgrade);
+                EventManager.Instance.StartListening<Action<List<UpgradeData>>>(GameEventKeys.RequestAllAvailableUpgrades, OnRequestAllAvailableUpgrades);
+                EventManager.Instance.StartListening<Action<Dictionary<UpgradeData, int>>>(GameEventKeys.RequestChosenUpgrades, OnRequestChosenUpgrades);
             }
         }
 
@@ -39,13 +42,13 @@ namespace PatronesAplicados
         {
             if (EventManager.Instance != null)
             {
-                EventManager.Instance.StopListening<WeaponBaseRealRefactored, Action<WeaponUpgradeProfile>>("RequestUpgradeProfile", OnRequestUpgradeProfile);
-                EventManager.Instance.StopListening<int, WeaponBaseRealRefactored[], Action<List<UpgradeOptionRefactored>>>("RequestGlobalRandomUpgrades", OnRequestGlobalRandomUpgrades);
-                EventManager.Instance.StopListening<UpgradeData, WeaponBaseRealRefactored>("ApplyUpgrade", ApplyUpgrade);
-                EventManager.Instance.StopListening<WeaponBaseRealRefactored, Action<int>>("RequestPurgeCost", OnRequestPurgeCost);
-                EventManager.Instance.StopListening<WeaponBaseRealRefactored, UpgradeData>("PurgeUpgrade", PurgeUpgrade);
-                EventManager.Instance.StopListening<Action<List<UpgradeData>>>("RequestAllAvailableUpgrades", OnRequestAllAvailableUpgrades);
-                EventManager.Instance.StopListening<Action<Dictionary<UpgradeData, int>>>("RequestChosenUpgrades", OnRequestChosenUpgrades);
+                EventManager.Instance.StopListening<WeaponBaseRealRefactored, Action<WeaponUpgradeProfile>>(GameEventKeys.RequestUpgradeProfile, OnRequestUpgradeProfile);
+                EventManager.Instance.StopListening<int, WeaponBaseRealRefactored[], Action<List<UpgradeOptionRefactored>>>(GameEventKeys.RequestGlobalRandomUpgrades, OnRequestGlobalRandomUpgrades);
+                EventManager.Instance.StopListening<UpgradeData, WeaponBaseRealRefactored>(GameEventKeys.ApplyUpgrade, ApplyUpgrade);
+                EventManager.Instance.StopListening<WeaponBaseRealRefactored, Action<int>>(GameEventKeys.RequestPurgeCost, OnRequestPurgeCost);
+                EventManager.Instance.StopListening<WeaponBaseRealRefactored, UpgradeData>(GameEventKeys.PurgeUpgrade, PurgeUpgrade);
+                EventManager.Instance.StopListening<Action<List<UpgradeData>>>(GameEventKeys.RequestAllAvailableUpgrades, OnRequestAllAvailableUpgrades);
+                EventManager.Instance.StopListening<Action<Dictionary<UpgradeData, int>>>(GameEventKeys.RequestChosenUpgrades, OnRequestChosenUpgrades);
             }
         }
 
@@ -57,28 +60,35 @@ namespace PatronesAplicados
 
         public WeaponUpgradeProfile GetProfile(WeaponBaseRealRefactored weapon)
         {
-            if (!weaponProfiles.TryGetValue(weapon, out WeaponUpgradeProfile profile))
+            if (weapon == null) return null;
+
+            if (!_weaponProfiles.TryGetValue(weapon, out WeaponUpgradeProfile profile))
             {
                 profile = new WeaponUpgradeProfile();
-                weaponProfiles[weapon] = profile;
+                _weaponProfiles[weapon] = profile;
             }
             return profile;
         }
 
         public List<UpgradeOptionRefactored> GetGlobalRandomUpgrades(int amount, WeaponBaseRealRefactored[] activeWeapons)
         {
-            List<UpgradeOptionRefactored> validOptions = new List<UpgradeOptionRefactored>();
-            if (activeWeapons == null || allAvailableUpgrades == null) return validOptions;
+            _validOptionsBuffer.Clear();
+            _chosenOptionsBuffer.Clear();
+
+            if (activeWeapons == null || allAvailableUpgrades == null) return _chosenOptionsBuffer;
 
             bool healRolled = false;
 
-            foreach (WeaponBaseRealRefactored weapon in activeWeapons)
+            for (int w = 0; w < activeWeapons.Length; w++)
             {
+                WeaponBaseRealRefactored weapon = activeWeapons[w];
                 if (weapon == null || weapon.data == null) continue;
+
                 WeaponUpgradeProfile profile = GetProfile(weapon);
 
-                foreach (UpgradeData upgrade in allAvailableUpgrades)
+                for (int u = 0; u < allAvailableUpgrades.Count; u++)
                 {
+                    UpgradeData upgrade = allAvailableUpgrades[u];
                     if (upgrade == null) continue;
 
                     if (blacklistedUpgrades.TryGetValue(weapon, out UpgradeData blacklisted) && blacklisted == upgrade)
@@ -90,7 +100,7 @@ namespace PatronesAplicados
                         {
                             if (UnityEngine.Random.Range(0f, 100f) <= 15f)
                             {
-                                validOptions.Add(new UpgradeOptionRefactored { data = upgrade, weapon = weapon });
+                                _validOptionsBuffer.Add(new UpgradeOptionRefactored { data = upgrade, weapon = weapon });
                             }
                             healRolled = true;
                         }
@@ -112,20 +122,21 @@ namespace PatronesAplicados
                             continue;
                     }
 
-                    validOptions.Add(new UpgradeOptionRefactored { data = upgrade, weapon = weapon });
+                    _validOptionsBuffer.Add(new UpgradeOptionRefactored { data = upgrade, weapon = weapon });
                 }
             }
 
-            List<UpgradeOptionRefactored> chosen = new List<UpgradeOptionRefactored>(amount);
-            for (int i = 0; i < amount; i++)
+            for (int i = 0; i < amount && _validOptionsBuffer.Count > 0; i++)
             {
-                if (validOptions.Count == 0) break;
-                int rand = UnityEngine.Random.Range(0, validOptions.Count);
-                chosen.Add(validOptions[rand]);
-                validOptions.RemoveAt(rand);
+                int rand = UnityEngine.Random.Range(0, _validOptionsBuffer.Count);
+                _chosenOptionsBuffer.Add(_validOptionsBuffer[rand]);
+
+                int lastIndex = _validOptionsBuffer.Count - 1;
+                _validOptionsBuffer[rand] = _validOptionsBuffer[lastIndex];
+                _validOptionsBuffer.RemoveAt(lastIndex);
             }
 
-            return chosen;
+            return _chosenOptionsBuffer;
         }
 
         public void ApplyUpgrade(UpgradeData data, WeaponBaseRealRefactored weapon)
@@ -141,8 +152,14 @@ namespace PatronesAplicados
 
             if (weapon == null) return;
 
-            if (!choosenUpgrades.ContainsKey(data)) choosenUpgrades[data] = 0;
-            choosenUpgrades[data]++;
+            if (choosenUpgrades.TryGetValue(data, out int currentCount))
+            {
+                choosenUpgrades[data] = currentCount + 1;
+            }
+            else
+            {
+                choosenUpgrades[data] = 1;
+            }
 
             WeaponUpgradeProfile profile = GetProfile(weapon);
 
@@ -166,6 +183,7 @@ namespace PatronesAplicados
 
         public int GetPurgeCost(WeaponBaseRealRefactored weapon)
         {
+            if (weapon == null) return 200;
             int count = weaponPurgeCounts.TryGetValue(weapon, out int c) ? c : 0;
             return 200 * (count + 1);
         }
@@ -178,16 +196,21 @@ namespace PatronesAplicados
 
             if (profile.levels.TryGetValue(upgradeToPurge, out int purgedLevels))
             {
-                if (!weaponPurgeCounts.ContainsKey(weapon)) weaponPurgeCounts[weapon] = 0;
-                weaponPurgeCounts[weapon]++;
+                if (weaponPurgeCounts.TryGetValue(weapon, out int purgeCount))
+                {
+                    weaponPurgeCounts[weapon] = purgeCount + 1;
+                }
+                else
+                {
+                    weaponPurgeCounts[weapon] = 1;
+                }
 
                 blacklistedUpgrades[weapon] = upgradeToPurge;
 
                 profile.levels.Remove(upgradeToPurge);
-                profile.firingIcons.RemoveAll(icon => icon == upgradeToPurge.icon);
-                profile.impactIcons.RemoveAll(icon => icon == upgradeToPurge.icon);
+                RemoveIconFromList(profile.firingIcons, upgradeToPurge.icon);
+                RemoveIconFromList(profile.impactIcons, upgradeToPurge.icon);
 
- 
                 if (choosenUpgrades.TryGetValue(upgradeToPurge, out int totalCount))
                 {
                     int newCount = totalCount - purgedLevels;
@@ -199,11 +222,23 @@ namespace PatronesAplicados
             }
         }
 
+        private static void RemoveIconFromList(List<Sprite> icons, Sprite targetIcon)
+        {
+            if (icons == null) return;
+            for (int i = icons.Count - 1; i >= 0; i--)
+            {
+                if (icons[i] == targetIcon)
+                {
+                    icons.RemoveAt(i);
+                }
+            }
+        }
+
         private void RecalculateWeaponStats(WeaponBaseRealRefactored weapon, WeaponUpgradeProfile profile)
         {
             weapon.ResetWeaponStats();
 
-            foreach (var kvp in profile.levels)
+            foreach (KeyValuePair<UpgradeData, int> kvp in profile.levels)
             {
                 UpgradeData uData = kvp.Key;
                 int levelReached = kvp.Value;

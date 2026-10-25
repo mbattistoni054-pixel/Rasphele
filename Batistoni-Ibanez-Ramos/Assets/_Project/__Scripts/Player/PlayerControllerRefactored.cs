@@ -1,538 +1,293 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.UIElements;
 
 namespace PatronesAplicados
 {
-    public class PlayerControllerRefactored : MonoBehaviour
+    [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider), typeof(PlayerView))]
+    public class PlayerControllerRefactored : MonoBehaviour, IKnockbackable, IRootable, IPausable
     {
-        public enum PlayerState { Walking, Airborne, Sliding, WallRiding, Dashing }
+        [Header("Configuración (Modelo SO)")]
+        [SerializeField] private PlayerConfigSO config;
 
-    [Header("Estado Actual")]
-    public PlayerState currentState = PlayerState.Walking;
+        [Header("Estado Actual (Solo Lectura)")]
+        public PlayerState currentState = PlayerState.Walking;
 
-    private PlayerControls _controls;
-    private PlayerMovement _movement;
+        [Header("Referencias")]
+        public Transform cam;
+        public Transform groundCheck;
 
-    [Header("Referencias")]
-    private Rigidbody rb;
-    private CapsuleCollider col;
-    [SerializeField] Animator animator;
-    public Transform cam;
+        [Header("Input System")]
+        public InputActionReference moveAction;
+        public InputActionReference jumpAction;
+        public InputActionReference slideAction;
+        public InputActionReference dashAction;
+        public InputActionReference walkToggleAction;
+        public InputActionReference togglePause;
 
-    [Header("Ajustes de Velocidad")]
-    public float walkSpeed = 4f;
-    public float runSpeed = 8f;
-    private float currentSpeed;
-    private bool isRunning = true;
-    public float turnSmoothTime = 0.1f;
+        [Header("Canvas & Menús")]
+        [SerializeField] private Canvas CanvasPause;
+        [SerializeField] private GameObject optionsMenu;
+        [SerializeField] private GameObject controlsMenu;
 
-    [Header("Ajustes de Inclinación (Anti-Spiderman)")]
-    [Tooltip("Ángulo máximo que el jugador puede subir caminando o corriendo. Paredes más empinadas lo bloquearán.")]
-    public float maxWalkableAngle = 45f;
+        private Rigidbody _rb;
+        private PlayerModel _model;
+        private PlayerView _view;
+        private PlayerControls _controls;
+        private PlayerMovement _movement;
+        private PlayerHealthRefactored _health;
 
-    [Header("Ajustes de Salto")]
-    public float jumpForce = 7f;
-    public float fallMultiplier = 5f;
-    public float lowJumpMultiplier = 4f;
-    public float airControl = 5f;
-    public Transform groundCheck;
-    public float groundDistance = 0.2f;
-    public LayerMask groundMask;
-    private bool isGrounded;
-    private float jumpCooldown;
-    private int additionalJumpsLeft;
+        private Dictionary<PlayerState, IPlayerState> _states;
+        private IPlayerState _activeState;
 
-    [Header("Ajustes de Deslizamiento")]
-    public float minSlideSpeed = 4f;
-    public float slideBoost = 5f;
-    public float slideDrag = 15f;
-    public float slopeAcceleration = 10f;
-    public float slideHeight = 1f;
-    private float originalHeight;
-    private Vector3 originalCenter;
-    private Vector3 slideDirection;
+        private bool _isPaused;
+        private Vector3 _savedVelocity;
+        private Vector3 _savedAngularVelocity;
+        private bool _wasKinematicBeforePause;
 
-    [Header("Ajustes de Dash")]
-    public float dashSpeed = 50f;
-    public float dashDuration = 0.2f;
-    public float dashCooldown = 2f;
-    private float dashTimeLeft;
-    private float dashCooldownTimer;
-    private Vector3 dashDirection;
-    private int currentDashesAvailable = 1;
+        public Transform CameraTransform => cam;
 
-    [Header("Ajustes de Wall Jump")]
-    public LayerMask wallMask;
-    public float wallCheckDistance = 0.8f;
-    public float wallSlideSpeed = -2f;
-    public float wallJumpUpForce = 8f;
-    public float wallJumpSideForce = 8f;
-    private RaycastHit wallHit;
-
-    [Header("Input System")]
-    public InputActionReference moveAction;
-    public InputActionReference jumpAction;
-    public InputActionReference slideAction;
-    public InputActionReference dashAction;
-    public InputActionReference walkToggleAction;
-    public InputActionReference togglePause;
-
-    [Header("Canvas & Timers")]
-    [SerializeField] Canvas CanvasPause;
-    [SerializeField] GameObject optionsMenu;
-    [SerializeField] GameObject controlsMenu;
-    public float inputBufferTime = 0.2f;
-    public float coyoteTime = 0.15f;
-    private float coyoteTimer;
-    private float regenTimer;
-    public float knockbackTimer = 0f;
-
-    [Header("Audio y VFX")]
-    public AudioClip footstepSound;
-    public float baseFootstepInterval = 0.4f;
-    private float footstepTimer;
-    public AudioClip dashSound;
-    public AudioClip slideSound;
-    public AudioClip jumpSound;
-    public ParticleSystem footstepParticles;
-
-    private Vector3 moveDirection;
-
-    private float FinalSpeed
-    {
-        get
+        private void Awake()
         {
-            if (PlayerStatsRefactored.Instance != null)
-                return PlayerStatsRefactored.Instance.GetTotalSpeed(currentSpeed);
+            _rb = GetComponent<Rigidbody>();
+            CapsuleCollider col = GetComponent<CapsuleCollider>();
+            _rb.freezeRotation = true;
 
-            return currentSpeed;
-        }
-    }
+            _view = GetComponent<PlayerView>();
+            _health = GetComponent<PlayerHealthRefactored>();
 
-    void Awake()
-    {
-        rb = GetComponent<Rigidbody>();
-        col = GetComponent<CapsuleCollider>();
-        if (animator == null) animator = GetComponent<Animator>();
-        rb.freezeRotation = true;
+            _model = new PlayerModel(config);
+            _controls = new PlayerControls(moveAction, jumpAction, slideAction, dashAction, walkToggleAction, togglePause, config.inputBufferTime);
+            _movement = new PlayerMovement(_rb, col, transform, groundCheck, config);
 
-        originalHeight = col.height;
-        originalCenter = col.center;
-        currentSpeed = runSpeed;
+            _view.Initialize(_model);
 
-        _controls = new PlayerControls(moveAction, jumpAction, slideAction, dashAction, walkToggleAction, togglePause, inputBufferTime);
-        _movement = new PlayerMovement(rb, col, transform);
-    }
+            InitializeStateMachine();
 
-    void Start()
-    {
-        if (footstepParticles != null)
-        {
-            var em = footstepParticles.emission;
-            em.enabled = false;
-            footstepParticles.Play();
-        }
-    }
-
-    private void OnEnable() => _controls?.EnableKeys();
-    private void OnDisable() => _controls?.DisableKeys();
-
-    void Update()
-    {
-        if (jumpCooldown > 0) jumpCooldown -= Time.deltaTime;
-
-        _controls?.ListenKeys(Time.deltaTime);
-
-        int maxDashesAllowed = 1 + ((PlayerStatsRefactored.Instance != null) ? PlayerStatsRefactored.Instance.itemExtraDashes : 0);
-        if (currentDashesAvailable < maxDashesAllowed)
-        {
-            dashCooldownTimer -= Time.deltaTime;
-            if (dashCooldownTimer <= 0f)
+            if (GameManagerRefactored.Instance != null)
             {
-                currentDashesAvailable++;
-                dashCooldownTimer = (currentDashesAvailable < maxDashesAllowed) ? dashCooldown : 0f;
+                GameManagerRefactored.Instance.RegisterPlayer(transform);
             }
         }
-        else dashCooldownTimer = 0f;
 
-        if (PlayerStatsRefactored.Instance != null && PlayerStatsRefactored.Instance.itemRegenMoving > 0f)
+        private void InitializeStateMachine()
         {
-            if (_movement.GetHorizontalSpeed() > 0.5f && moveDirection.magnitude > 0.1f && isGrounded)
+            _states = new Dictionary<PlayerState, IPlayerState>(5)
             {
-                regenTimer += Time.deltaTime;
-                if (regenTimer >= 1f)
+                { PlayerState.Walking, new WalkingState(this, _model, _movement, _controls) },
+                { PlayerState.Airborne, new AirborneState(this, _model, _movement, _controls) },
+                { PlayerState.Sliding, new SlidingState(this, _model, _movement, _controls) },
+                { PlayerState.WallRiding, new WallRidingState(this, _model, _movement, _controls) },
+                { PlayerState.Dashing, new DashingState(this, _model, _movement, _controls) }
+            };
+
+            _activeState = _states[PlayerState.Walking];
+            _activeState.Enter();
+        }
+
+        public void TransitionToState(PlayerState nextStateType)
+        {
+            if (_model.CurrentState == nextStateType && _activeState != null) return;
+
+            _activeState?.Exit();
+            _model.CurrentState = nextStateType;
+            currentState = nextStateType;
+            _activeState = _states[nextStateType];
+            _activeState.Enter();
+        }
+
+        private void OnEnable()
+        {
+            _controls?.EnableKeys();
+            PauseManager.Register(this);
+        }
+
+        private void OnDisable()
+        {
+            _controls?.DisableKeys();
+            PauseManager.Unregister(this);
+        }
+
+        private void Update()
+        {
+            if (_controls.WasPausePressed())
+            {
+                TogglePause();
+            }
+
+            if (_isPaused) return;
+
+            float dt = Time.deltaTime;
+
+            if (_model.JumpCooldown > 0f) _model.JumpCooldown -= dt;
+
+            _controls.ListenKeys(dt);
+            UpdateDashCooldown(dt);
+            UpdateMovementRegen(dt);
+            UpdateEnvironmentTransitions(dt);
+
+            if (_model.KnockbackTimer <= 0f)
+            {
+                _activeState?.HandleInput(dt);
+            }
+
+            _view.TickView(dt);
+        }
+
+        private void FixedUpdate()
+        {
+            if (_isPaused) return;
+
+            float fdt = Time.fixedDeltaTime;
+
+            if (_model.KnockbackTimer > 0f)
+            {
+                _model.KnockbackTimer -= fdt;
+                Vector3 vel = _movement.GetVelocity();
+                if (vel.y < 0f)
                 {
-                    regenTimer = 0f;
-                    GetComponent<PatronesAplicados.PlayerHealthRefactored>()?.Heal(PlayerStatsRefactored.Instance.itemRegenMoving);
+                    _movement.SetVelocity(vel + Vector3.up * (Physics.gravity.y * (config.fallMultiplier - 1f) * fdt));
+                }
+                return;
+            }
+
+            _activeState?.UpdatePhysics(fdt);
+        }
+
+        private void UpdateDashCooldown(float dt)
+        {
+            int maxDashesAllowed = 1 + (PlayerStatsRefactored.Instance != null ? PlayerStatsRefactored.Instance.itemExtraDashes : 0);
+            if (_model.CurrentDashesAvailable < maxDashesAllowed)
+            {
+                float nextTimer = _model.DashCooldownTimer - dt;
+                if (nextTimer <= 0f)
+                {
+                    _model.CurrentDashesAvailable++;
+                    nextTimer = (_model.CurrentDashesAvailable < maxDashesAllowed) ? config.dashCooldown : 0f;
+                }
+                _model.SetDashCooldown(nextTimer);
+            }
+            else
+            {
+                _model.SetDashCooldown(0f);
+            }
+        }
+
+        private void UpdateMovementRegen(float dt)
+        {
+            if (_health == null || PlayerStatsRefactored.Instance == null || PlayerStatsRefactored.Instance.itemRegenMoving <= 0f)
+                return;
+
+            if (_movement.GetHorizontalSpeed() > 0.5f && _model.IsMoving && _model.IsGrounded)
+            {
+                _model.RegenTimer += dt;
+                if (_model.RegenTimer >= 1f)
+                {
+                    _model.RegenTimer = 0f;
+                    _health.Heal(PlayerStatsRefactored.Instance.itemRegenMoving);
                 }
             }
         }
 
-        if (EventManager.Instance != null)
+        private void UpdateEnvironmentTransitions(float dt)
         {
-            EventManager.Instance.TriggerEvent("DashCooldownChanged", dashCooldownTimer, dashCooldown);
-        }
+            _model.IsGrounded = _movement.CheckGrounded(_model.JumpCooldown);
 
-        CheckGrounded();
-        CheckWall();
+            if (_model.IsGrounded) _model.CoyoteTimer = config.coyoteTime;
+            else _model.CoyoteTimer -= dt;
 
-        bool isMovingOnGround = isGrounded && currentState == PlayerState.Walking && moveDirection.magnitude > 0.1f;
-
-        if (footstepParticles != null)
-        {
-            var em = footstepParticles.emission;
-            em.enabled = isMovingOnGround;
-        }
-
-        if (isMovingOnGround)
-        {
-            footstepTimer -= Time.deltaTime;
-            if (footstepTimer <= 0f)
+            if (_model.IsGrounded && _model.CurrentState == PlayerState.Airborne && _movement.GetVelocity().y <= 0f && _model.JumpCooldown <= 0f)
             {
-                if (footstepSound != null && AudioManager.Instance != null) AudioManager.Instance.PlaySFX(footstepSound, "Footsteps");
-                footstepTimer = isRunning ? baseFootstepInterval * 0.6f : baseFootstepInterval;
+                _model.AdditionalJumpsLeft = PlayerStatsRefactored.Instance != null ? PlayerStatsRefactored.Instance.itemExtraJumps : 0;
+                TransitionToState(PlayerState.Walking);
             }
-        }
-        else footstepTimer = 0f;
-
-        if (knockbackTimer <= 0f)
-        {
-            switch (currentState)
+            else if (!_model.IsGrounded && _model.CurrentState == PlayerState.Walking && _model.CoyoteTimer <= 0f)
             {
-                case PlayerState.Walking: HandleWalkingInput(); break;
-                case PlayerState.Airborne: HandleAirborneInput(); break;
-                case PlayerState.Sliding: HandleSlidingInput(); break;
-                case PlayerState.WallRiding: HandleWallRidingInput(); break;
-                case PlayerState.Dashing: HandleDashingInput(); break;
+                TransitionToState(PlayerState.Airborne);
+            }
+
+            if (_model.CurrentState == PlayerState.Airborne && _model.JumpCooldown <= 0f)
+            {
+                if (_movement.CheckWallForward(out RaycastHit wallHit))
+                {
+                    _model.LastWallHit = wallHit;
+                    TransitionToState(PlayerState.WallRiding);
+                }
             }
         }
 
-        if (_controls.WasPausePressed()) TogglePause();
-        if (animator != null) animator.SetBool("Grounded", isGrounded);
-    }
-
-    private void FixedUpdate()
-    {
-
-        if (knockbackTimer > 0f)
+        private void TogglePause()
         {
-            knockbackTimer -= Time.fixedDeltaTime;
+            if (CanvasPause == null) return;
 
-            if (rb.linearVelocity.y < 0)
-                rb.linearVelocity += Vector3.up * Physics.gravity.y * (fallMultiplier - 1) * Time.fixedDeltaTime;
-
-            return; 
-        }
-
-        switch (currentState)
-        {
-            case PlayerState.Walking: HandleWalkingPhysics(); break;
-            case PlayerState.Airborne: HandleAirbornePhysics(); break;
-            case PlayerState.Sliding: HandleSlidingPhysics(); break;
-            case PlayerState.WallRiding: HandleWallRidingPhysics(); break;
-            case PlayerState.Dashing: HandleDashingPhysics(); break;
-        }
-    }
-
-    private void CheckGrounded()
-    {
-        bool sphereGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
-        isGrounded = sphereGrounded;
-
-        if (!isGrounded && jumpCooldown <= 0f)
-        {
-            if (Physics.Raycast(groundCheck.position, Vector3.down, out RaycastHit hit, 1.0f, groundMask))
+            bool willActivate = !CanvasPause.gameObject.activeSelf;
+            if (!willActivate && ((controlsMenu != null && controlsMenu.activeSelf) || (optionsMenu != null && optionsMenu.activeSelf)))
             {
-                isGrounded = true;
+                return;
+            }
+
+            CanvasPause.gameObject.SetActive(willActivate);
+
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.TriggerEvent(willActivate ? GameEventKeys.PauseRequested : GameEventKeys.ResumeRequested);
             }
         }
 
-        if (isGrounded) coyoteTimer = coyoteTime;
-        else coyoteTimer -= Time.deltaTime;
-
-        if (isGrounded && currentState == PlayerState.Airborne && _movement.GetVelocity().y <= 0 && jumpCooldown <= 0f)
+        public void ApplyKnockback(Vector3 force, float stunDuration = 0.4f)
         {
-            currentState = PlayerState.Walking;
-            additionalJumpsLeft = (PlayerStatsRefactored.Instance != null) ? PlayerStatsRefactored.Instance.itemExtraJumps : 0;
-        }
-        else if (!isGrounded && currentState == PlayerState.Walking && coyoteTimer <= 0f)
-        {
-            currentState = PlayerState.Airborne;
-        }
-    }
+            _model.KnockbackTimer = stunDuration;
+            _model.JumpCooldown = stunDuration;
+            TransitionToState(PlayerState.Airborne);
 
-    private void CheckWall()
-    {
-        if (currentState == PlayerState.Airborne && jumpCooldown <= 0f)
-        {
-            if (Physics.Raycast(transform.position, transform.forward, out wallHit, wallCheckDistance, wallMask))
-            {
-                StartWallRiding();
-            }
-        }
-    }
-
-    private void SnapToGround()
-    {
-        if (jumpCooldown > 0) return;
-        if (Physics.Raycast(groundCheck.position, Vector3.down, out RaycastHit hit, 1.0f, groundMask))
-        {
-            _movement.ApplyForce(Vector3.down * 200f, ForceMode.Acceleration);
-        }
-    }
-
-    private RaycastHit slopeHit;
-    private bool OnSlope()
-    {
-        if (Physics.Raycast(groundCheck.position, Vector3.down, out slopeHit, 1.0f, groundMask))
-        {
-            float angle = Vector3.Angle(Vector3.up, slopeHit.normal);
-            return angle < maxWalkableAngle && angle != 0;
-        }
-        return false;
-    }
-
-    private Vector3 GetSlopeMoveDirection(Vector3 direction) => Vector3.ProjectOnPlane(direction, slopeHit.normal).normalized;
-
-    private void PreventSteepWallClimbing()
-    {
-        if (moveDirection.magnitude < 0.1f) return;
-
-        Vector3 origin = transform.position + Vector3.up * 0.5f;
-
-        if (Physics.SphereCast(origin, col.radius * 0.9f, moveDirection, out RaycastHit hit, 0.5f, groundMask))
-        {
-            float wallAngle = Vector3.Angle(Vector3.up, hit.normal);
-
-            if (wallAngle > maxWalkableAngle)
-            {
-                Vector3 projected = Vector3.ProjectOnPlane(moveDirection, hit.normal);
-                moveDirection = new Vector3(projected.x, 0f, projected.z).normalized;
-            }
-        }
-    }
-
-    private void HandleWalkingInput()
-    {
-        if (_controls.WasWalkToggled())
-        {
-            isRunning = !isRunning;
-            currentSpeed = isRunning ? runSpeed : walkSpeed;
-            if (animator != null) animator.SetFloat("Walk", isRunning ? 0 : 1);
-        }
-
-        moveDirection = _movement.UpdateRotation(_controls.GetMoveInput(), cam.eulerAngles.y, turnSmoothTime);
-
-        PreventSteepWallClimbing();
-
-        if (animator != null) animator.SetBool("Moving", moveDirection.magnitude >= 0.1f);
-
-        if (_controls.dashBuffer > 0f && currentDashesAvailable > 0)
-        {
-            _controls.dashBuffer = 0f;
-            StartDash();
-            return;
-        }
-
-        if (_controls.slideBuffer > 0f && isGrounded && _movement.GetHorizontalSpeed() >= minSlideSpeed)
-        {
-            _controls.slideBuffer = 0f;
-            StartSlide();
-            return;
-        }
-
-        if (_controls.jumpBuffer > 0f && (coyoteTimer > 0f || isGrounded))
-        {
-            _controls.jumpBuffer = 0f; coyoteTimer = 0f; jumpCooldown = 0.2f;
-            currentState = PlayerState.Airborne;
-
-            _movement.ExecuteJump(jumpForce, false);
-            if (animator != null) animator.SetTrigger("Jump");
-            if (jumpSound != null && AudioManager.Instance != null) AudioManager.Instance.PlaySFX(jumpSound, "Jump");
-        }
-    }
-
-    private void HandleWalkingPhysics()
-    {
-        if (OnSlope())
-        {
-            Vector3 slopeDirection = GetSlopeMoveDirection(moveDirection);
-            _movement.SetVelocity(slopeDirection * FinalSpeed);
-            if (moveDirection == Vector3.zero) _movement.SetVelocity(Vector3.zero);
-        }
-        else
-        {
-            _movement.SetVelocity(new Vector3(moveDirection.x * FinalSpeed, _movement.GetVelocity().y, moveDirection.z * FinalSpeed));
-        }
-        SnapToGround();
-    }
-
-    private void HandleAirborneInput()
-    {
-        moveDirection = _movement.UpdateRotation(_controls.GetMoveInput(), cam.eulerAngles.y, turnSmoothTime);
-
-        PreventSteepWallClimbing();
-
-        if (_controls.dashBuffer > 0f && currentDashesAvailable > 0)
-        {
-            _controls.dashBuffer = 0f; StartDash(); return;
-        }
-
-        if (_controls.jumpBuffer > 0f && additionalJumpsLeft > 0 && jumpCooldown <= 0f)
-        {
-            _controls.jumpBuffer = 0f; jumpCooldown = 0.2f; additionalJumpsLeft--;
-            _movement.ExecuteJump(jumpForce, true);
-            if (animator != null) animator.SetTrigger("Jump");
-        }
-    }
-
-    private void HandleAirbornePhysics()
-    {
-        Vector3 currentHorizontal = new Vector3(_movement.GetVelocity().x, 0, _movement.GetVelocity().z);
-        Vector3 targetHorizontal = moveDirection * FinalSpeed;
-
-        Vector3 newHorizontal = Vector3.Lerp(currentHorizontal, targetHorizontal, airControl * Time.fixedDeltaTime);
-        _movement.SetVelocity(new Vector3(newHorizontal.x, _movement.GetVelocity().y, newHorizontal.z));
-
-        if (_movement.GetVelocity().y < 0)
-            _movement.SetVelocity(_movement.GetVelocity() + Vector3.up * Physics.gravity.y * (fallMultiplier - 1) * Time.fixedDeltaTime);
-        else if (_movement.GetVelocity().y > 0 && !_controls.IsJumpPressed())
-            _movement.SetVelocity(_movement.GetVelocity() + Vector3.up * Physics.gravity.y * (lowJumpMultiplier - 1) * Time.fixedDeltaTime);
-    }
-
-    private void HandleSlidingInput()
-    {
-        if (_controls.jumpBuffer > 0f && (coyoteTimer > 0f || isGrounded))
-        {
-            _controls.jumpBuffer = 0f; coyoteTimer = 0f; jumpCooldown = 0.2f;
-            StopSlide();
-            currentState = PlayerState.Airborne;
-            _movement.ExecuteJump(jumpForce, false);
-            if (animator != null) animator.SetTrigger("Jump");
-        }
-    }
-
-    private void HandleSlidingPhysics()
-    {
-        float currentSlideSpeed = _movement.GetHorizontalSpeed();
-
-        if (OnSlope())
-        {
-            Vector3 slopeDir = GetSlopeMoveDirection(slideDirection);
-            currentSlideSpeed += (slopeDir.y < -0.1f) ? slopeAcceleration * Time.fixedDeltaTime : -slideDrag * Time.fixedDeltaTime;
-            currentSlideSpeed = Mathf.Clamp(currentSlideSpeed, 0, 25f);
-            _movement.SetVelocity(slopeDir * currentSlideSpeed);
-        }
-        else
-        {
-            currentSlideSpeed -= slideDrag * Time.fixedDeltaTime;
-            _movement.SetVelocity(new Vector3(slideDirection.x * currentSlideSpeed, _movement.GetVelocity().y, slideDirection.z * currentSlideSpeed));
-        }
-
-        SnapToGround();
-        if (currentSlideSpeed < minSlideSpeed || !_controls.IsSlidePressed()) StopSlide();
-    }
-
-    private void StartSlide()
-    {
-        currentState = PlayerState.Sliding;
-        _movement.StartSlideHitbox(slideHeight, originalHeight, originalCenter);
-        slideDirection = transform.forward;
-        _movement.ApplyForce(slideDirection * slideBoost, ForceMode.Impulse);
-        if (animator != null) animator.SetBool("Slide", true);
-        if (slideSound != null && AudioManager.Instance != null) AudioManager.Instance.PlaySFX(slideSound, "Slide");
-    }
-
-    private void StopSlide()
-    {
-        currentState = PlayerState.Walking;
-        _movement.StopSlideHitbox(originalHeight, originalCenter);
-        if (animator != null) animator.SetBool("Slide", false);
-    }
-
-    private void HandleDashingInput()
-    {
-        dashTimeLeft -= Time.deltaTime;
-        if (dashTimeLeft <= 0f) StopDash();
-    }
-
-    private void HandleDashingPhysics() => _movement.SetVelocity(dashDirection * dashSpeed);
-
-    private void StartDash()
-    {
-        if (currentState == PlayerState.Sliding) StopSlide();
-        currentState = PlayerState.Dashing;
-        dashTimeLeft = dashDuration;
-        currentDashesAvailable--;
-        if (dashCooldownTimer <= 0f) dashCooldownTimer = dashCooldown;
-        dashDirection = transform.forward;
-        if (dashSound != null && AudioManager.Instance != null) AudioManager.Instance.PlaySFX(dashSound, "Dash");
-    }
-
-    private void StopDash()
-    {
-        currentState = isGrounded ? PlayerState.Walking : PlayerState.Airborne;
-        _movement.SetVelocity(_movement.GetVelocity().normalized * FinalSpeed);
-    }
-
-    private void HandleWallRidingInput()
-    {
-        if (_controls.jumpBuffer > 0f)
-        {
-            _controls.jumpBuffer = 0f; jumpCooldown = 0.2f;
-            StopWallRiding();
-            Vector3 jumpDir = (transform.forward * wallJumpSideForce) + (Vector3.up * wallJumpUpForce);
             _movement.SetVelocity(Vector3.zero);
-            _movement.ApplyForce(jumpDir, ForceMode.Impulse);
-            if (animator != null) animator.SetTrigger("Jump");
+            _movement.ApplyForce(force, ForceMode.Impulse);
         }
-    }
 
-    private void HandleWallRidingPhysics()
-    {
-        if (!Physics.Raycast(transform.position, -transform.forward, out RaycastHit backHit, wallCheckDistance + 0.2f, wallMask))
+        public void ApplyRoot(float duration)
         {
-            StopWallRiding(); return;
+            _model.KnockbackTimer = Mathf.Max(_model.KnockbackTimer, duration);
+            _movement.SetVelocity(new Vector3(0f, _movement.GetVelocity().y, 0f));
         }
 
-        _movement.SetVelocity(new Vector3(0f, wallSlideSpeed, 0f));
-        _movement.ApplyForce(-transform.forward * 10f, ForceMode.Force);
-
-        if (isGrounded)
+        public void OnPause()
         {
-            StopWallRiding();
-            currentState = PlayerState.Walking;
+            if (_isPaused) return;
+            _isPaused = true;
+
+            _view?.SetPaused(true);
+
+            if (_rb != null)
+            {
+                _wasKinematicBeforePause = _rb.isKinematic;
+                if (!_rb.isKinematic)
+                {
+                    _savedVelocity = _rb.linearVelocity;
+                    _savedAngularVelocity = _rb.angularVelocity;
+                    _rb.linearVelocity = Vector3.zero;
+                    _rb.angularVelocity = Vector3.zero;
+                    _rb.isKinematic = true;
+                }
+            }
         }
-    }
 
-    private void StartWallRiding()
-    {
-        currentState = PlayerState.WallRiding;
-        _movement.SetVelocity(Vector3.zero);
-        transform.rotation = Quaternion.LookRotation(wallHit.normal);
-    }
-
-    private void StopWallRiding() => currentState = PlayerState.Airborne;
-
-    private void TogglePause()
-    {
-        if (CanvasPause != null)
+        public void OnResume()
         {
-            if (!CanvasPause.gameObject.activeSelf) CanvasPause.gameObject.SetActive(true);
+            if (!_isPaused) return;
+            _isPaused = false;
 
-            else if (CanvasPause.gameObject.activeSelf) CanvasPause.gameObject.SetActive(false);
+            _view?.SetPaused(false);
+
+            if (_rb != null)
+            {
+                _rb.isKinematic = _wasKinematicBeforePause;
+                if (!_rb.isKinematic)
+                {
+                    _rb.linearVelocity = _savedVelocity;
+                    _rb.angularVelocity = _savedAngularVelocity;
+                }
+            }
         }
-    }
 
-    public void ApplyKnockback(Vector3 force, float stunDuration = 0.4f)
-    {
-        knockbackTimer = stunDuration;
-        currentState = PlayerState.Airborne;
-        jumpCooldown = stunDuration; 
-
-        rb.linearVelocity = Vector3.zero; 
-        rb.AddForce(force, ForceMode.Impulse); 
     }
-}
 }

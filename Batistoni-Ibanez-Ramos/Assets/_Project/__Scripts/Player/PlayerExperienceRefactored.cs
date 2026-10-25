@@ -12,13 +12,15 @@ namespace PatronesAplicados
         [Header("Referencias UI")]
         public GameObject menuMejorasPanel;
 
-        void Start()
+        private void Start()
         {
             NotifyExperienceChanged();
         }
 
         public void AddExperience(float amount)
         {
+            if (amount <= 0f) return;
+
             if (PlayerStatsRefactored.Instance != null)
             {
                 amount *= PlayerStatsRefactored.Instance.itemXpMultiplier;
@@ -26,8 +28,7 @@ namespace PatronesAplicados
 
             currentXP += amount;
 
-
-            if (currentXP >= xpToNextLevel)
+            while (currentXP >= xpToNextLevel)
             {
                 LevelUp();
             }
@@ -39,18 +40,11 @@ namespace PatronesAplicados
         {
             currentXP -= xpToNextLevel;
             currentLevel++;
-
             xpToNextLevel = Mathf.Round(xpToNextLevel * 1.2f);
-
-
 
             if (menuMejorasPanel != null)
             {
                 menuMejorasPanel.SetActive(true);
-            }
-            else
-            {
-
             }
         }
 
@@ -58,7 +52,7 @@ namespace PatronesAplicados
         {
             if (EventManager.Instance != null)
             {
-                EventManager.Instance.TriggerEvent("ExperienceChanged", currentXP, xpToNextLevel, currentLevel);
+                EventManager.Instance.TriggerEvent(GameEventKeys.ExperienceChanged, currentXP, xpToNextLevel, currentLevel);
             }
         }
     }

@@ -4,10 +4,9 @@ using PatronesAplicados.RealImplementation;
 
 namespace PatronesAplicados
 {
-
     public class WeaponRewardService
     {
-        private readonly List<GameObject> _validWeaponPrefabs = new List<GameObject>(8);
+        private readonly List<WeaponBaseRealRefactored> _validWeaponPrefabs = new List<WeaponBaseRealRefactored>(8);
         private readonly List<GameObject> _currentChoices = new List<GameObject>(3);
 
         public IReadOnlyList<GameObject> CurrentChoices => _currentChoices;
@@ -41,32 +40,34 @@ namespace PatronesAplicados
 
                 if (!PlayerAlreadyOwnsWeapon(wpScript.data, playerActiveWeapons))
                 {
-                    _validWeaponPrefabs.Add(wpPrefab);
+                    _validWeaponPrefabs.Add(wpScript);
                 }
             }
 
             for (int i = 0; i < maxChoices && _validWeaponPrefabs.Count > 0; i++)
             {
                 int randIndex = Random.Range(0, _validWeaponPrefabs.Count);
-                GameObject chosenPrefab = _validWeaponPrefabs[randIndex];
-                _validWeaponPrefabs.RemoveAt(randIndex);
+                WeaponBaseRealRefactored chosenWeaponScript = _validWeaponPrefabs[randIndex];
 
-                _currentChoices.Add(chosenPrefab);
-                WeaponBaseRealRefactored weaponScript = chosenPrefab.GetComponent<WeaponBaseRealRefactored>();
-                outCardWeapons.Add(weaponScript);
+                int lastIndex = _validWeaponPrefabs.Count - 1;
+                _validWeaponPrefabs[randIndex] = _validWeaponPrefabs[lastIndex];
+                _validWeaponPrefabs.RemoveAt(lastIndex);
+
+                _currentChoices.Add(chosenWeaponScript.gameObject);
+                outCardWeapons.Add(chosenWeaponScript);
 
                 outCardsViewData.Add(new UpgradeCardViewData
                 {
-                    mainIcon = weaponScript.data.weaponIcon,
-                    title = weaponScript.data.weaponName,
+                    mainIcon = chosenWeaponScript.data.weaponIcon,
+                    title = chosenWeaponScript.data.weaponName,
                     titleColor = Color.white,
                     levelLabel = "NUEVA",
                     levelColor = Color.yellow,
-                    damageTypeText = weaponScript.data.damageType.ToString(),
+                    damageTypeText = chosenWeaponScript.data.damageType.ToString(),
                     inlineDescription = string.Empty,
                     showWeaponBadge = false,
                     weaponBadgeIcon = null,
-                    tooltipTitle = weaponScript.data.weaponName,
+                    tooltipTitle = chosenWeaponScript.data.weaponName,
                     tooltipDescription = "Obtienes una nueva arma que orbitará o disparará automáticamente."
                 });
             }
@@ -79,7 +80,11 @@ namespace PatronesAplicados
             GameObject chosenWeaponPrefab = _currentChoices[choiceIndex];
             if (playerTransform != null && chosenWeaponPrefab != null)
             {
-                Object.Instantiate(chosenWeaponPrefab, playerTransform.position, Quaternion.identity, playerTransform);
+                GameObject newWeaponObj = Object.Instantiate(chosenWeaponPrefab, playerTransform.position, Quaternion.identity, playerTransform);
+                if (newWeaponObj.TryGetComponent(out WeaponBaseRealRefactored weaponScript))
+                {
+                    weaponScript.EnsureInitialized();
+                }
             }
         }
 

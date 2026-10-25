@@ -7,9 +7,10 @@ namespace PatronesAplicados
     public class BossPlantRefactored : EnemyBaseRefactored
     {
         [Header("Ajustes de Spawn")]
+        public string bossDisplayName = "Planta Mutante";
         public float spawnHeightOffset = 0f;
 
-        [Header("Estadísticas del Jefe")]
+        [Header("Estadísticas del Jefe (Fallback si no hay EnemyData)")]
         public float attackDamage = 30f;
         public float attackCooldown = 3f;
 
@@ -26,7 +27,7 @@ namespace PatronesAplicados
         public int orbsPerBurstPhase2 = 12;
         public int rootsPhase2 = 3;
         public float delayBetweenRootsPhase2 = 1f;
-        private bool isPhase2 = false;
+        private bool _isPhase2;
 
         [Header("Ataque C (Defensivo): Golpe Cuerpo a Cuerpo")]
         public float meleeRange = 5f;
@@ -38,156 +39,188 @@ namespace PatronesAplicados
         [Header("Animaciones (Opcional)")]
         public Animator animator;
 
-        private float attackTimer;
-        private bool isAttacking = false;
-        private float lastHealth;
-        private bool heightOffsetApplied = false;
+        private static readonly int AttackHash = Animator.StringToHash("Attack");
+        private static readonly int ShootHash = Animator.StringToHash("Shoot");
+        private static readonly int CastHash = Animator.StringToHash("Cast");
+
+        protected override bool UsesNavigation => false;
+
+        private float _attackTimer;
+        private bool _isAttacking;
+        private bool _heightOffsetApplied;
+
+        protected override void Awake()
+        {
+            base.Awake();
+            SyncConfigFromEnemyData();
+        }
+
+        private void SyncConfigFromEnemyData()
+        {
+            if (data == null) return;
+
+            if (data.AttackDamage > 0f) attackDamage = data.AttackDamage;
+            if (data.AttackCooldown > 0f) attackCooldown = data.AttackCooldown;
+            if (data.OrbPrefab != null) orbPrefab = data.OrbPrefab;
+            if (data.OrbsPerBurst > 0) orbsPerBurst = data.OrbsPerBurst;
+            if (data.TimeBetweenOrbs > 0f) timeBetweenOrbs = data.TimeBetweenOrbs;
+            if (data.RootTrapPrefab != null) rootTrapPrefab = data.RootTrapPrefab;
+            if (data.OrbsPerBurstPhase2 > 0) orbsPerBurstPhase2 = data.OrbsPerBurstPhase2;
+            if (data.RootsPhase2 > 0) rootsPhase2 = data.RootsPhase2;
+            if (data.DelayBetweenRootsPhase2 > 0f) delayBetweenRootsPhase2 = data.DelayBetweenRootsPhase2;
+            if (data.MeleeRange > 0f) meleeRange = data.MeleeRange;
+            if (data.MeleeDamage > 0f) meleeDamage = data.MeleeDamage;
+            if (data.BossKnockbackHorizontal > 0f) knockbackHorizontal = data.BossKnockbackHorizontal;
+            if (data.BossKnockbackUpward > 0f) knockbackUpward = data.BossKnockbackUpward;
+            if (data.MeleeHitDelay > 0f) meleeHitDelay = data.MeleeHitDelay;
+        }
 
         protected override void Start()
         {
             base.Start();
 
-            if (data != null && maxHealth <= 0f)
-            {
-                maxHealth = data.MaxHealth;
-            }
-            currentHealth = maxHealth;
-
             if (animator == null) animator = GetComponent<Animator>();
 
-            if (agent != null)
-            {
-                agent.speed = 0f;
-                if (agent.isOnNavMesh) agent.isStopped = true;
-            }
-
-            if (!heightOffsetApplied && spawnHeightOffset != 0f)
+            if (!_heightOffsetApplied && spawnHeightOffset != 0f)
             {
                 transform.position += Vector3.up * spawnHeightOffset;
-                heightOffsetApplied = true;
+                _heightOffsetApplied = true;
             }
 
-            lastHealth = currentHealth;
-
-            if (EventManager.Instance != null)
-            {
-                EventManager.Instance.TriggerEvent("BossSpawned", "Planta Mutante", currentHealth, maxHealth);
-            }
+            NotifyBossSpawned();
         }
 
         public override void ResetStats()
         {
             base.ResetStats();
+            SyncConfigFromEnemyData();
 
-            isPhase2 = false;
-            isAttacking = false;
-            attackTimer = 0f;
-            lastHealth = currentHealth;
+            _isPhase2 = false;
+            _isAttacking = false;
+            _attackTimer = 0f;
 
-            if (agent != null)
-            {
-                agent.speed = 0f;
-                if (agent.isOnNavMesh) agent.isStopped = true;
-            }
+            NotifyBossSpawned();
+        }
 
+        private void NotifyBossSpawned()
+        {
             if (EventManager.Instance != null)
             {
-                EventManager.Instance.TriggerEvent("BossSpawned", "Planta Mutante", currentHealth, maxHealth);
+                EventManager.Instance.TriggerEvent(GameEventKeys.BossSpawned, bossDisplayName, currentHealth, maxHealth);
             }
         }
 
         protected override void Update()
         {
             base.Update();
-            if (isDead) return;
+            if (isDead || isPaused || player == null || isStunned || _isAttacking) return;
 
-            if (!Mathf.Approximately(currentHealth, lastHealth))
+            RotateTowardsPlayer(Time.deltaTime);
+
+            _attackTimer += Time.deltaTime;
+            if (_attackTimer >= attackCooldown)
             {
-                lastHealth = currentHealth;
+                _attackTimer = 0f;
 
-                if (EventManager.Instance != null)
+                float sqrDistance = (player.position - transform.position).sqrMagnitude;
+                if (sqrDistance <= meleeRange * meleeRange)
                 {
-                    EventManager.Instance.TriggerEvent("BossHealthChanged", currentHealth, maxHealth);
+                    StartCoroutine(MeleeAttackRoutine());
                 }
-
-                if (!isPhase2 && currentHealth <= maxHealth * 0.5f)
+                else
                 {
-                    isPhase2 = true;
-                }
-            }
-
-            if (player == null) return;
-
-            if (!isStunned && !isAttacking)
-            {
-                Vector3 directionToPlayer = (player.position - transform.position).normalized;
-                directionToPlayer.y = 0f;
-
-                if (directionToPlayer != Vector3.zero)
-                {
-                    Quaternion targetRotation = Quaternion.LookRotation(directionToPlayer);
-                    transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 3f);
-                }
-
-                attackTimer += Time.deltaTime;
-                if (attackTimer >= attackCooldown)
-                {
-                    attackTimer = 0f;
-
-                    float distanceToPlayer = Vector3.Distance(transform.position, player.position);
-
-                    if (distanceToPlayer <= meleeRange)
-                    {
-                        StartCoroutine(MeleeAttackRoutine());
-                    }
-                    else
-                    {
-                        StartCoroutine(DecideAttackRoutine());
-                    }
+                    StartCoroutine(DecideAttackRoutine());
                 }
             }
         }
 
-        public override void TakeDamage(float amount, bool isCrit, DamageType type, bool isBleed = false)
+        private void RotateTowardsPlayer(float deltaTime)
         {
-            if (isPhase2)
+            Vector3 directionToPlayer = player.position - transform.position;
+            directionToPlayer.y = 0f;
+
+            if (directionToPlayer.sqrMagnitude > 0.001f)
+            {
+                Quaternion targetRotation = Quaternion.LookRotation(directionToPlayer.normalized);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, deltaTime * 3f);
+            }
+        }
+
+        public override void TakeDamage(float amount, bool isCrit = false, DamageType type = DamageType.Fisico, bool isBleed = false)
+        {
+            if (isDead) return;
+
+            if (_isPhase2)
             {
                 amount *= 0.5f;
             }
 
             base.TakeDamage(amount, isCrit, type, isBleed);
+
+            if (!isDead)
+            {
+                if (!_isPhase2 && currentHealth <= maxHealth * 0.5f)
+                {
+                    _isPhase2 = true;
+                }
+
+                if (EventManager.Instance != null)
+                {
+                    EventManager.Instance.TriggerEvent(GameEventKeys.BossHealthChanged, currentHealth, maxHealth);
+                }
+            }
+        }
+
+        private IEnumerator WaitPausableSeconds(float seconds)
+        {
+            float elapsed = 0f;
+            while (elapsed < seconds)
+            {
+                if (!isPaused)
+                {
+                    elapsed += Time.deltaTime;
+                }
+                yield return null;
+            }
         }
 
         private IEnumerator MeleeAttackRoutine()
         {
-            isAttacking = true;
+            _isAttacking = true;
 
-            if (animator != null) animator.SetTrigger("Attack");
+            if (animator != null) animator.SetTrigger(AttackHash);
 
-            yield return new WaitForSeconds(meleeHitDelay);
+            yield return StartCoroutine(WaitPausableSeconds(meleeHitDelay));
 
-            if (!isDead && !isStunned && player != null && Vector3.Distance(transform.position, player.position) <= meleeRange + 1f)
+            float hitRadius = meleeRange + 1f;
+            if (!isDead && !isStunned && player != null &&
+                (player.position - transform.position).sqrMagnitude <= hitRadius * hitRadius)
             {
                 float finalMeleeDmg = meleeDamage * damageMultiplier;
 
-                if (player.TryGetComponent(out PlayerHealthRefactored hpRefactored))
-                    hpRefactored.TakeDamage(finalMeleeDmg);
+                if (player.TryGetComponent(out IDamageable damageable))
+                {
+                    damageable.TakeDamage(finalMeleeDmg);
+                }
 
-                Vector3 pushDir = (player.position - transform.position).normalized;
+                Vector3 pushDir = player.position - transform.position;
                 pushDir.y = 0f;
+                pushDir.Normalize();
                 Vector3 finalKnockback = (pushDir * knockbackHorizontal) + (Vector3.up * knockbackUpward);
 
-                if (player.TryGetComponent(out PlayerControllerRefactored pcRefactored))
-                    pcRefactored.ApplyKnockback(finalKnockback);
+                if (player.TryGetComponent(out IKnockbackable knockbackable))
+                {
+                    knockbackable.ApplyKnockback(finalKnockback);
+                }
             }
 
-            yield return new WaitForSeconds(1f);
-            isAttacking = false;
+            yield return StartCoroutine(WaitPausableSeconds(1f));
+            _isAttacking = false;
         }
 
         private IEnumerator DecideAttackRoutine()
         {
-            isAttacking = true;
+            _isAttacking = true;
             float randomRoll = Random.Range(0f, 100f);
 
             if (randomRoll <= 70f)
@@ -199,19 +232,20 @@ namespace PatronesAplicados
                 yield return StartCoroutine(AttackB_Roots_Routine());
             }
 
-            isAttacking = false;
+            _isAttacking = false;
         }
 
         private IEnumerator AttackA_Burst()
         {
             if (orbPrefab == null) yield break;
-            if (animator != null) animator.SetTrigger("Shoot");
+            if (animator != null) animator.SetTrigger(ShootHash);
 
-            int orbsToShoot = isPhase2 ? orbsPerBurstPhase2 : orbsPerBurst;
+            int orbsToShoot = _isPhase2 ? orbsPerBurstPhase2 : orbsPerBurst;
             float finalDamage = attackDamage * damageMultiplier;
 
             for (int i = 0; i < orbsToShoot; i++)
             {
+                while (isPaused) yield return null;
                 if (isDead || isStunned || player == null) break;
 
                 Vector3 spawnOrigin = firePoint != null ? firePoint.position : transform.position + Vector3.up * 1.5f;
@@ -231,10 +265,12 @@ namespace PatronesAplicados
                 {
                     GameObject orbObj = Instantiate(orbPrefab, spawnOrigin, rot);
                     if (orbObj.TryGetComponent(out NEWBossOrb orbScript))
+                    {
                         orbScript.Setup(finalDamage);
+                    }
                 }
 
-                yield return new WaitForSeconds(timeBetweenOrbs);
+                yield return StartCoroutine(WaitPausableSeconds(timeBetweenOrbs));
             }
         }
 
@@ -242,14 +278,15 @@ namespace PatronesAplicados
         {
             if (rootTrapPrefab == null) yield break;
 
-            int rootsToSpawn = isPhase2 ? rootsPhase2 : 1;
+            int rootsToSpawn = _isPhase2 ? rootsPhase2 : 1;
             float finalDamage = attackDamage * damageMultiplier;
 
             for (int i = 0; i < rootsToSpawn; i++)
             {
+                while (isPaused) yield return null;
                 if (isDead || isStunned || player == null) break;
 
-                if (animator != null) animator.SetTrigger("Cast");
+                if (animator != null) animator.SetTrigger(CastHash);
 
                 if (ProjectilePoolManager.Instance != null)
                 {
@@ -263,27 +300,29 @@ namespace PatronesAplicados
                 {
                     GameObject trapObj = Instantiate(rootTrapPrefab, player.position, Quaternion.identity);
                     if (trapObj.TryGetComponent(out NEWBossRootTrap trapScript))
+                    {
                         trapScript.Setup(player, finalDamage);
+                    }
                 }
 
                 if (i < rootsToSpawn - 1)
                 {
-                    yield return new WaitForSeconds(delayBetweenRootsPhase2);
+                    yield return StartCoroutine(WaitPausableSeconds(delayBetweenRootsPhase2));
                 }
             }
 
-            yield return new WaitForSeconds(1.5f);
+            yield return StartCoroutine(WaitPausableSeconds(1.5f));
         }
 
         protected override void Die()
         {
             if (isDead) return;
-            isAttacking = false;
+            _isAttacking = false;
 
             if (EventManager.Instance != null)
             {
-                EventManager.Instance.TriggerEvent("BossDefeated");
-                EventManager.Instance.TriggerEvent("LevelComplete");
+                EventManager.Instance.TriggerEvent(GameEventKeys.BossDefeated);
+                EventManager.Instance.TriggerEvent(GameEventKeys.LevelComplete);
             }
 
             base.Die();

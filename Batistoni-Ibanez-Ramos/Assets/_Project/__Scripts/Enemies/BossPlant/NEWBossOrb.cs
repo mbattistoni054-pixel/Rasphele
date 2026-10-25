@@ -1,9 +1,8 @@
-using System.Collections;
 using UnityEngine;
 using PatronesAplicados;
 using PatronesAplicados.RealImplementation;
 
-public class NEWBossOrb : MonoBehaviour
+public class NEWBossOrb : MonoBehaviour, IPausable
 {
     public float speed = 18f;
     public float lifeTime = 4f;
@@ -16,31 +15,39 @@ public class NEWBossOrb : MonoBehaviour
     public GameObject impactVisualPrefab;
     public float impactVisualDuration = 0.5f;
 
-    private float damage;
-    private float timer;
-    private bool hasExploded;
+    private float _damage;
+    private float _timer;
+    private bool _hasExploded;
+    private bool _isPaused;
 
     public void Setup(float dmg)
     {
-        damage = dmg;
-        timer = 0f;
-        hasExploded = false;
+        _damage = dmg;
+        _timer = 0f;
+        _hasExploded = false;
     }
 
     private void OnEnable()
     {
-        timer = 0f;
-        hasExploded = false;
+        _timer = 0f;
+        _hasExploded = false;
+        _isPaused = PauseManager.IsPaused;
+        PauseManager.Register(this);
+    }
+
+    private void OnDisable()
+    {
+        PauseManager.Unregister(this);
     }
 
     private void Update()
     {
-        if (hasExploded) return;
+        if (_hasExploded || _isPaused) return;
 
         transform.position += transform.forward * (speed * Time.deltaTime);
 
-        timer += Time.deltaTime;
-        if (timer >= lifeTime)
+        _timer += Time.deltaTime;
+        if (_timer >= lifeTime)
         {
             Explode();
         }
@@ -48,11 +55,14 @@ public class NEWBossOrb : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (hasExploded) return;
+        if (_hasExploded || _isPaused) return;
 
         if (other.CompareTag("Player"))
         {
-            ApplyDamageToPlayer(other.gameObject, damage);
+            if (other.TryGetComponent(out IDamageable damageable))
+            {
+                damageable.TakeDamage(_damage);
+            }
             Explode();
         }
         else if (((1 << other.gameObject.layer) & obstacleMask) != 0)
@@ -61,32 +71,21 @@ public class NEWBossOrb : MonoBehaviour
         }
     }
 
-    private static void ApplyDamageToPlayer(GameObject playerObj, float dmg)
-    {
-        if (playerObj.TryGetComponent(out PlayerHealthRefactored refHealth))
-        {
-            refHealth.TakeDamage(dmg);
-        }
-    }
-
     private void Explode()
     {
-        if (hasExploded) return;
-        hasExploded = true;
+        if (_hasExploded) return;
+        _hasExploded = true;
 
         if (impactVisualPrefab != null)
         {
-            if (ProjectilePoolManager.Instance != null)
+            if (VfxPoolManager.Instance != null)
             {
-                GameObject vfx = ProjectilePoolManager.Instance.GetProjectile(impactVisualPrefab, transform.position, Quaternion.identity);
-                if (vfx != null && vfx.GetComponent<ExplosionVisual>() == null)
-                {
-                    ProjectilePoolManager.Instance.StartCoroutine(ReturnVfxAfterDelay(vfx, impactVisualDuration));
-                }
+                VfxPoolManager.Instance.GetVfx(impactVisualPrefab, transform.position, Quaternion.identity, impactVisualDuration);
             }
             else
             {
-                Instantiate(impactVisualPrefab, transform.position, Quaternion.identity);
+                GameObject vfx = Instantiate(impactVisualPrefab, transform.position, Quaternion.identity);
+                Destroy(vfx, impactVisualDuration);
             }
         }
 
@@ -100,12 +99,6 @@ public class NEWBossOrb : MonoBehaviour
         }
     }
 
-    private static IEnumerator ReturnVfxAfterDelay(GameObject vfxObj, float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        if (vfxObj != null && vfxObj.activeInHierarchy && ProjectilePoolManager.Instance != null)
-        {
-            ProjectilePoolManager.Instance.ReturnProjectile(vfxObj);
-        }
-    }
+    public void OnPause() => _isPaused = true;
+    public void OnResume() => _isPaused = false;
 }

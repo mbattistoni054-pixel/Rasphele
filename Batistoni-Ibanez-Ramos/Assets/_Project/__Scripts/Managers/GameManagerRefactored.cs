@@ -1,3 +1,4 @@
+using PatronesAplicados.RealImplementation;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -7,25 +8,27 @@ namespace PatronesAplicados
     {
         public static GameManagerRefactored Instance { get; private set; }
 
-        private Transform player;
+        private Transform _player;
+        private bool _hasSearchedPlayer;
 
         public Transform Player
         {
             get
             {
-                if (player == null)
+                if (_player == null && !_hasSearchedPlayer)
                 {
                     GameObject p = GameObject.FindGameObjectWithTag("Player");
-                    if (p != null) player = p.transform;
+                    if (p != null) _player = p.transform;
+                    _hasSearchedPlayer = true;
                 }
-                return player;
+                return _player;
             }
         }
 
         [Header("Reloj del Nivel (Tiempo Jugado)")]
-        private float timer = 0f;
-        private int currentTimerSeconds = -1;
-        private bool isGameActive = true;
+        private float _timer;
+        private int _currentTimerSeconds = -1;
+        private bool _isGameActive = true;
 
         [Header("UI Menús de Fin de Nivel")]
         public GameObject gameOverCanvas;
@@ -34,15 +37,21 @@ namespace PatronesAplicados
         [Header("Nombres de Escenas")]
         public string mainMenuSceneName = "MainMenu";
 
-        private int pauseCount;
-
         public GameObject globalVolume;
+
+        public void RegisterPlayer(Transform playerTransform)
+        {
+            _player = playerTransform;
+            _hasSearchedPlayer = true;
+        }
 
         private void Awake()
         {
             if (Instance == null)
             {
                 Instance = this;
+                DamageableRegistry.Clear();
+                PauseManager.ClearAll();
             }
             else
             {
@@ -57,93 +66,92 @@ namespace PatronesAplicados
 
             if (EventManager.Instance != null)
             {
-                EventManager.Instance.StartListening("PlayerDeath", ShowGameOver);
-                EventManager.Instance.StartListening("LevelComplete", ShowLevelComplete);
-                EventManager.Instance.StartListening("PauseRequested", OnPauseRequested);
-                EventManager.Instance.StartListening("ResumeRequested", OnResumeRequested);
+                EventManager.Instance.StartListening(GameEventKeys.PlayerDeath, ShowGameOver);
+                EventManager.Instance.StartListening(GameEventKeys.LevelComplete, ShowLevelComplete);
+                EventManager.Instance.StartListening(GameEventKeys.PauseRequested, OnPauseRequested);
+                EventManager.Instance.StartListening(GameEventKeys.ResumeRequested, OnResumeRequested);
             }
 
-            _ = Player; 
+            _ = Player;
         }
 
         private void OnDestroy()
         {
             if (EventManager.Instance != null)
             {
-                EventManager.Instance.StopListening("PlayerDeath", ShowGameOver);
-                EventManager.Instance.StopListening("LevelComplete", ShowLevelComplete);
-                EventManager.Instance.StopListening("PauseRequested", OnPauseRequested);
-                EventManager.Instance.StopListening("ResumeRequested", OnResumeRequested);
+                EventManager.Instance.StopListening(GameEventKeys.PlayerDeath, ShowGameOver);
+                EventManager.Instance.StopListening(GameEventKeys.LevelComplete, ShowLevelComplete);
+                EventManager.Instance.StopListening(GameEventKeys.PauseRequested, OnPauseRequested);
+                EventManager.Instance.StopListening(GameEventKeys.ResumeRequested, OnResumeRequested);
             }
         }
 
         private void Update()
         {
-            if (!isGameActive) return;
+            if (!_isGameActive || PauseManager.IsPaused) return;
 
-            timer += Time.deltaTime;
+            _timer += Time.deltaTime;
 
-            int newSeconds = Mathf.FloorToInt(timer);
-            if (newSeconds > currentTimerSeconds)
+            int newSeconds = Mathf.FloorToInt(_timer);
+            if (newSeconds > _currentTimerSeconds)
             {
-                currentTimerSeconds = newSeconds;
+                _currentTimerSeconds = newSeconds;
 
                 if (EventManager.Instance != null)
                 {
-                    EventManager.Instance.TriggerEvent("TimeUpdated", currentTimerSeconds);
+                    EventManager.Instance.TriggerEvent(GameEventKeys.TimeUpdated, _currentTimerSeconds);
                 }
             }
         }
 
         private void OnPauseRequested()
         {
-            if (pauseCount == 0) Time.timeScale = 0f;
-            pauseCount++;
+            PauseManager.RequestPause();
         }
 
         private void OnResumeRequested()
         {
-            pauseCount--;
-            if (pauseCount <= 0)
+            if (_isGameActive)
             {
-                pauseCount = 0;
-                if (isGameActive) Time.timeScale = 1f;
-                if (TooltipManager.Instance != null) TooltipManager.Instance.HideTooltip();
+                PauseManager.RequestResume();
+            }
+
+            if (!PauseManager.IsPaused && TooltipManager.Instance != null)
+            {
+                TooltipManager.Instance.HideTooltip();
             }
         }
 
-        public void ShowGameOver()
+        public void ShowGameOver() => EndGameSession(gameOverCanvas);
+
+        public void ShowLevelComplete() => EndGameSession(levelCompleteCanvas);
+
+        private void EndGameSession(GameObject targetCanvas)
         {
-            isGameActive = false;
-            if (gameOverCanvas != null) gameOverCanvas.SetActive(true);
+            _isGameActive = false;
+            if (targetCanvas != null) targetCanvas.SetActive(true);
 
-            Time.timeScale = 0f;
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
-        }
-
-        public void ShowLevelComplete()
-        {
-            isGameActive = false;
-            if (levelCompleteCanvas != null) levelCompleteCanvas.SetActive(true);
-
-            Time.timeScale = 0f;
+            PauseManager.ForcePause();
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
         }
 
         public void RestartLevel()
         {
-            pauseCount = 0;
-            Time.timeScale = 1f;
+            ResetCaches();
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 
         public void LoadMainMenu()
         {
-            pauseCount = 0;
-            Time.timeScale = 1f;
+            ResetCaches();
             SceneManager.LoadScene(mainMenuSceneName);
+        }
+
+        private void ResetCaches()
+        {
+            PauseManager.ClearAll();
+            DamageableRegistry.Clear();
         }
     }
 }

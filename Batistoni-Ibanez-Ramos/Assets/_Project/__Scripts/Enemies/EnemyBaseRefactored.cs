@@ -1,4 +1,4 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
@@ -6,9 +6,13 @@ using PatronesAplicados.RealImplementation;
 
 namespace PatronesAplicados
 {
-    public abstract class EnemyBaseRefactored : MonoBehaviour, IDamageable, IObservable
+    public abstract class EnemyBaseRefactored : MonoBehaviour, IDamageable, IEffectReceivable, IObservable, IPausable
     {
-        private readonly List<IObserver> _allObservers = new List<IObserver>();
+        public const string ActionTakeDamage = "TakeDamage";
+        public const string ActionDie = "Die";
+        private const float FlashDuration = 0.1f;
+
+        private readonly List<IObserver> _allObservers = new List<IObserver>(4);
 
         [SerializeField] protected EnemyData data;
 
@@ -36,52 +40,68 @@ namespace PatronesAplicados
 
         [Header("Efectos Visuales")]
         public Material flashMaterial;
-        private Material[] originalMaterials;
-        private Renderer[] renderers;
 
         [Header("Estado de Efectos")]
-        protected bool isStunned = false;
-        protected bool isDead = false;
+        protected bool isStunned;
+        protected bool isDead;
+        protected bool isPaused;
 
         [SerializeField] private EnemyVisual enemyVisual;
 
-        private readonly EnemyStatusEffectHandler statusHandler = new EnemyStatusEffectHandler();
-        private System.Action<float, bool, DamageType, bool> cachedDamageCallback;
-        private bool isInitialized = false;
+        protected virtual bool UsesNavigation => true;
+
+        private readonly EnemyStatusEffectHandler _statusHandler = new EnemyStatusEffectHandler();
+        private readonly EnemyFlashController _flashController = new EnemyFlashController();
+
+        private Action<float, bool, DamageType, bool> _cachedDamageCallback;
+        private Animator _cachedAnimator;
+        private bool _isInitialized;
 
         protected virtual void Awake()
         {
             InitializeComponents();
         }
 
+        protected virtual void OnEnable()
+        {
+            if (enemyCollider != null)
+            {
+                DamageableRegistry.Register(enemyCollider, this, transform);
+            }
+
+            PauseManager.Register(this);
+        }
+
+        protected virtual void OnDisable()
+        {
+            PauseManager.Unregister(this);
+        }
+
         private void InitializeComponents()
         {
-            if (isInitialized) return;
-            isInitialized = true;
+            if (_isInitialized) return;
+            _isInitialized = true;
 
-            cachedDamageCallback = TakeDamage;
+            _cachedDamageCallback = TakeDamage;
+            _statusHandler.BindCallbacks(RecalculateSpeed, OnStunStateChanged);
+
             agent = GetComponent<NavMeshAgent>();
             rb = GetComponent<Rigidbody>();
             enemyCollider = GetComponent<Collider>();
+            _cachedAnimator = GetComponentInChildren<Animator>();
 
-            renderers = GetComponentsInChildren<Renderer>();
-            if (renderers != null && renderers.Length > 0)
+            if (enemyCollider != null)
             {
-                originalMaterials = new Material[renderers.Length];
-                for (int i = 0; i < renderers.Length; i++)
-                {
-                    if (renderers[i] != null)
-                    {
-                        originalMaterials[i] = renderers[i].sharedMaterial;
-                    }
-                }
+                DamageableRegistry.Register(enemyCollider, this, transform);
             }
+
+            _flashController.Initialize(this);
 
             if (data != null)
             {
                 maxHealth = data.MaxHealth;
                 currentHealth = maxHealth;
-                currentSpeed = data.BaseSpeed;
+                currentSpeed = UsesNavigation ? data.BaseSpeed : 0f;
             }
         }
 
@@ -94,7 +114,32 @@ namespace PatronesAplicados
                 player = GameManagerRefactored.Instance.Player;
             }
 
-            if (agent != null) agent.speed = currentSpeed;
+            ConfigureInitialNavigation();
+        }
+
+        protected virtual void ConfigureInitialNavigation()
+        {
+            if (agent == null) return;
+
+            if (UsesNavigation)
+            {
+                agent.speed = currentSpeed;
+            }
+            else
+            {
+                agent.speed = 0f;
+                if (agent.enabled && agent.isOnNavMesh) agent.isStopped = true;
+            }
+        }
+
+        protected virtual void OnDestroy()
+        {
+            PauseManager.Unregister(this);
+
+            if (enemyCollider != null)
+            {
+                DamageableRegistry.Unregister(enemyCollider);
+            }
         }
 
         public virtual void ResetStats()
@@ -104,21 +149,28 @@ namespace PatronesAplicados
 
             isDead = false;
             isStunned = false;
-            statusHandler.ResetAll();
+            isPaused = PauseManager.IsPaused;
+            _statusHandler.ResetAll();
+            _flashController.RestoreOriginalMaterials();
 
             currentHealth = maxHealth;
-            currentSpeed = data != null ? data.BaseSpeed : currentSpeed;
+            currentSpeed = UsesNavigation ? (data != null ? data.BaseSpeed : currentSpeed) : 0f;
 
-            if (enemyCollider != null) enemyCollider.enabled = true;
+            if (enemyCollider != null)
+            {
+                enemyCollider.enabled = true;
+                DamageableRegistry.Register(enemyCollider, this, transform);
+            }
 
             if (agent != null)
             {
                 agent.enabled = true;
-                agent.speed = currentSpeed;
-                if (agent.isOnNavMesh) agent.isStopped = false;
+                ConfigureInitialNavigation();
+                if (UsesNavigation && agent.isOnNavMesh)
+                {
+                    agent.isStopped = isPaused;
+                }
             }
-
-            RestoreOriginalMaterials();
         }
 
         public void ApplyDifficulty(float hpMult, float dmgMult)
@@ -138,17 +190,19 @@ namespace PatronesAplicados
 
         protected virtual void Update()
         {
-            if (isDead) return;
+            if (isDead || isPaused) return;
 
             if (player == null && GameManagerRefactored.Instance != null)
             {
                 player = GameManagerRefactored.Instance.Player;
             }
 
-            statusHandler.Tick(Time.deltaTime, currentHealth, cachedDamageCallback);
+            float dt = Time.deltaTime;
+            _flashController.Tick(dt);
+            _statusHandler.Tick(dt, currentHealth, _cachedDamageCallback);
         }
 
-        public virtual void TakeDamage(float amount, bool isCrit, DamageType type, bool isBleed = false)
+        public virtual void TakeDamage(float amount, bool isCrit = false, DamageType type = DamageType.Fisico, bool isBleed = false)
         {
             if (isDead) return;
 
@@ -161,8 +215,8 @@ namespace PatronesAplicados
 
             currentHealth -= finalDamage;
 
-            NotifyObservers("TakeDamage");
-            SpawnDamagePopup(finalDamage, type, isCrit, isBleed);
+            NotifyObservers(ActionTakeDamage);
+            EnemyFeedbackService.SpawnDamagePopup(damagePopupPrefab, transform.position, finalDamage, type, isCrit, isBleed);
 
             if (currentHealth <= 0f)
             {
@@ -170,24 +224,7 @@ namespace PatronesAplicados
                 return;
             }
 
-            if (gameObject.activeInHierarchy)
-            {
-                StartCoroutine(FlashWhite());
-            }
-        }
-
-        private void SpawnDamagePopup(float finalDamage, DamageType type, bool isCrit, bool isBleed)
-        {
-            if (damagePopupPrefab == null) return;
-
-            Vector3 spawnPosition = transform.position + Vector3.up * 2.5f;
-            GameObject popup = Instantiate(damagePopupPrefab, spawnPosition, Quaternion.identity);
-            DamagePopup popupScript = popup.GetComponent<DamagePopup>();
-
-            if (popupScript != null)
-            {
-                popupScript.Setup(finalDamage, type, isCrit, false, isBleed);
-            }
+            _flashController.TriggerFlash(flashMaterial, FlashDuration);
         }
 
         public Transform GetTransform() => transform;
@@ -196,67 +233,51 @@ namespace PatronesAplicados
         {
             if (isDead) return;
 
-            if (effects.burnDamage > 0f) statusHandler.ApplyBurn(effects.burnDamage, sourceWeaponID);
-            if (effects.bleedPercent > 0f) statusHandler.ApplyBleed(effects.bleedPercent, sourceWeaponID);
-            if (effects.poisonDamage > 0f) statusHandler.ApplyPoison(effects.poisonDamage, sourceWeaponID);
-            if (effects.freezePercent > 0f) ApplyFreeze(effects.freezePercent);
-            if (effects.stunChance > 0f) ApplyStun(effects.stunChance);
+            float baseSpd = data != null ? data.BaseSpeed : currentSpeed;
+            _statusHandler.ApplyAllEffects(in effects, sourceWeaponID, baseSpd);
         }
 
-        private void ApplyFreeze(float slowPercent)
+        protected virtual void RecalculateSpeed()
         {
-            if (!statusHandler.CanApplyFreeze() || !gameObject.activeInHierarchy) return;
+            if (!UsesNavigation) return;
 
             float baseSpd = data != null ? data.BaseSpeed : currentSpeed;
-            float speedReduction = baseSpd * (slowPercent / 100f);
-            StartCoroutine(statusHandler.FreezeRoutine(speedReduction, RecalculateSpeed));
-        }
-
-        private void RecalculateSpeed()
-        {
-            float baseSpd = data != null ? data.BaseSpeed : currentSpeed;
-            currentSpeed = statusHandler.CalculateCurrentSpeed(baseSpd);
+            currentSpeed = _statusHandler.CalculateCurrentSpeed(baseSpd);
             if (agent != null && agent.enabled) agent.speed = currentSpeed;
         }
 
-        private void ApplyStun(float stunChance)
+        protected virtual void OnStunStateChanged(bool stunState)
         {
-            if (!gameObject.activeInHierarchy || !statusHandler.TryRollStun(stunChance)) return;
-
-            StartCoroutine(statusHandler.StunRoutine(stunState =>
+            isStunned = stunState;
+            if (UsesNavigation && agent != null && agent.enabled && agent.isOnNavMesh)
             {
-                isStunned = stunState;
-                if (agent != null && agent.enabled && agent.isOnNavMesh)
-                {
-                    agent.isStopped = stunState;
-                }
-            }));
-        }
-
-        private IEnumerator FlashWhite()
-        {
-            if (flashMaterial == null || renderers == null) yield break;
-
-            for (int i = 0; i < renderers.Length; i++)
-            {
-                if (renderers[i] != null) renderers[i].sharedMaterial = flashMaterial;
+                agent.isStopped = stunState || isPaused;
             }
-
-            yield return new WaitForSeconds(0.1f);
-
-            RestoreOriginalMaterials();
         }
 
-        private void RestoreOriginalMaterials()
+        public virtual void OnPause()
         {
-            if (renderers == null || originalMaterials == null) return;
-
-            for (int i = 0; i < renderers.Length; i++)
+            isPaused = true;
+            if (agent != null && agent.enabled && agent.isOnNavMesh)
             {
-                if (renderers[i] != null && originalMaterials[i] != null)
-                {
-                    renderers[i].sharedMaterial = originalMaterials[i];
-                }
+                agent.isStopped = true;
+            }
+            if (_cachedAnimator != null)
+            {
+                _cachedAnimator.speed = 0f;
+            }
+        }
+
+        public virtual void OnResume()
+        {
+            isPaused = false;
+            if (UsesNavigation && !isDead && !isStunned && agent != null && agent.enabled && agent.isOnNavMesh)
+            {
+                agent.isStopped = false;
+            }
+            if (_cachedAnimator != null)
+            {
+                _cachedAnimator.speed = 1f;
             }
         }
 
@@ -266,33 +287,13 @@ namespace PatronesAplicados
             isDead = true;
 
             StopAllCoroutines();
-            RestoreOriginalMaterials();
+            _flashController.RestoreOriginalMaterials();
 
             if (enemyCollider != null) enemyCollider.enabled = false;
             if (agent != null && agent.enabled && agent.isOnNavMesh) agent.isStopped = true;
 
-            NotifyObservers("Die");
-
-            if (xpOrbPrefab != null)
-            {
-                if (ProjectilePoolManager.Instance != null)
-                {
-                    ProjectilePoolManager.Instance.GetProjectile(xpOrbPrefab, transform.position, Quaternion.identity);
-                }
-                else
-                {
-                    Instantiate(xpOrbPrefab, transform.position, Quaternion.identity);
-                }
-            }
-
-            if (EventManager.Instance != null)
-            {
-                if (data != null)
-                {
-                    EventManager.Instance.TriggerEvent<int>("EnemyKilled_GoldReward", data.GoldReward);
-                }
-                EventManager.Instance.TriggerEvent("EnemyDied");
-            }
+            NotifyObservers(ActionDie);
+            EnemyFeedbackService.SpawnDeathRewards(xpOrbPrefab, transform.position, data);
 
             if (enemyVisual == null && _allObservers.Count == 0)
             {
@@ -315,13 +316,17 @@ namespace PatronesAplicados
         public void Subscribe(IObserver observer)
         {
             if (observer != null && !_allObservers.Contains(observer))
+            {
                 _allObservers.Add(observer);
+            }
         }
 
         public void Unsubscribe(IObserver observer)
         {
             if (observer != null)
+            {
                 _allObservers.Remove(observer);
+            }
         }
 
         public void NotifyObservers(string action)

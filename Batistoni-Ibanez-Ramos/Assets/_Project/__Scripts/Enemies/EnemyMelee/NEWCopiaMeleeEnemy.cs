@@ -1,44 +1,53 @@
-using PatronesAplicados;
 using UnityEngine;
+using PatronesAplicados;
 
 public class NEWCopiaMeleeEnemy : EnemyBaseRefactored
 {
-
     private float lastAttackTime;
     private float lastFrameTime;
+    private bool onAttack;
 
-    bool onAttack;
-
-    [SerializeField] Animator animator;
+    [SerializeField] private Animator animator;
 
     private bool hasMoveParam = false;
     private float pathTimer = 0f;
 
+    public override void ResetStats()
+    {
+        base.ResetStats();
+        onAttack = false;
+        pathTimer = 0f;
+    }
+
     protected override void Start()
     {
         base.Start();
-        animator = GetComponent<Animator>();
+        if (animator == null) animator = GetComponent<Animator>();
 
         if (animator != null)
         {
             foreach (var param in animator.parameters)
             {
-                if (param.name == "Move") hasMoveParam = true;
+                if (param.name == "Move")
+                {
+                    hasMoveParam = true;
+                    break;
+                }
             }
         }
 
         if (agent != null)
         {
-            agent.stoppingDistance = 1.5f; 
-            agent.acceleration = 60f;      
-            agent.angularSpeed = 600f;     
+            agent.stoppingDistance = 1.5f;
+            agent.acceleration = 60f;
+            agent.angularSpeed = 600f;
         }
     }
-
 
     protected override void Update()
     {
         base.Update();
+        if (isDead || data == null) return;
 
         if (player != null && !isStunned && agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh)
         {
@@ -66,7 +75,7 @@ public class NEWCopiaMeleeEnemy : EnemyBaseRefactored
             if (distance <= 2f || onAttack)
             {
                 Vector3 directionToPlayer = (player.position - transform.position).normalized;
-                directionToPlayer.y = 0; 
+                directionToPlayer.y = 0f;
 
                 if (directionToPlayer != Vector3.zero)
                 {
@@ -89,10 +98,9 @@ public class NEWCopiaMeleeEnemy : EnemyBaseRefactored
 
                 if (Time.time >= lastFrameTime + 0.3f && onAttack)
                 {
-                    if (distance <= 2f)
+                    if (distance <= 2f && player.TryGetComponent(out PlayerHealthRefactored newHealth))
                     {
-                        PatronesAplicados.PlayerHealthRefactored newHealth = player.GetComponent<PatronesAplicados.PlayerHealthRefactored>();
-                        if (newHealth != null) newHealth.TakeDamage(data.AttackDamage * damageMultiplier);
+                        newHealth.TakeDamage(data.AttackDamage * damageMultiplier);
                     }
 
                     lastFrameTime = Time.time;
