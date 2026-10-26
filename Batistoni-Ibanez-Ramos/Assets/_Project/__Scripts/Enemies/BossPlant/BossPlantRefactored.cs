@@ -115,7 +115,7 @@ namespace PatronesAplicados
             base.Update();
             if (isDead || isPaused || player == null || isStunned || _isAttacking) return;
 
-            RotateTowardsPlayer(Time.deltaTime);
+            RotateTowardsPlayer(Time.deltaTime, 3f);
 
             _attackTimer += Time.deltaTime;
             if (_attackTimer >= attackCooldown)
@@ -134,19 +134,7 @@ namespace PatronesAplicados
             }
         }
 
-        private void RotateTowardsPlayer(float deltaTime)
-        {
-            Vector3 directionToPlayer = player.position - transform.position;
-            directionToPlayer.y = 0f;
-
-            if (directionToPlayer.sqrMagnitude > 0.001f)
-            {
-                Quaternion targetRotation = Quaternion.LookRotation(directionToPlayer.normalized);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, deltaTime * 3f);
-            }
-        }
-
-        public override void TakeDamage(float amount, bool isCrit = false, DamageType type = DamageType.Fisico, bool isBleed = false)
+        public override void TakeDamage(float amount, bool isCrit, DamageType type, bool isBleed = false)
         {
             if (isDead) return;
 
@@ -157,26 +145,35 @@ namespace PatronesAplicados
 
             base.TakeDamage(amount, isCrit, type, isBleed);
 
-            if (!isDead)
+            if (!isDead && !_isPhase2 && currentHealth <= maxHealth * 0.5f)
             {
-                if (!_isPhase2 && currentHealth <= maxHealth * 0.5f)
-                {
-                    _isPhase2 = true;
-                }
+                _isPhase2 = true;
+            }
 
-                if (EventManager.Instance != null)
-                {
-                    EventManager.Instance.TriggerEvent(GameEventKeys.BossHealthChanged, currentHealth, maxHealth);
-                }
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.TriggerEvent(GameEventKeys.BossHealthChanged, currentHealth, maxHealth);
             }
         }
 
-        private IEnumerator WaitPausableSeconds(float seconds)
+        public override void OnPause()
+        {
+            base.OnPause();
+            if (animator != null) animator.speed = 0f;
+        }
+
+        public override void OnResume()
+        {
+            base.OnResume();
+            if (animator != null) animator.speed = 1f;
+        }
+
+        private IEnumerator WaitForSecondsPausable(float duration)
         {
             float elapsed = 0f;
-            while (elapsed < seconds)
+            while (elapsed < duration)
             {
-                if (!isPaused)
+                if (!isPaused && !PauseManager.IsPaused)
                 {
                     elapsed += Time.deltaTime;
                 }
@@ -190,7 +187,7 @@ namespace PatronesAplicados
 
             if (animator != null) animator.SetTrigger(AttackHash);
 
-            yield return StartCoroutine(WaitPausableSeconds(meleeHitDelay));
+            yield return WaitForSecondsPausable(meleeHitDelay);
 
             float hitRadius = meleeRange + 1f;
             if (!isDead && !isStunned && player != null &&
@@ -198,9 +195,9 @@ namespace PatronesAplicados
             {
                 float finalMeleeDmg = meleeDamage * damageMultiplier;
 
-                if (player.TryGetComponent(out IDamageable damageable))
+                if (player.TryGetComponent(out PlayerHealthRefactored hpRefactored))
                 {
-                    damageable.TakeDamage(finalMeleeDmg);
+                    hpRefactored.TakeDamage(finalMeleeDmg);
                 }
 
                 Vector3 pushDir = player.position - transform.position;
@@ -208,13 +205,13 @@ namespace PatronesAplicados
                 pushDir.Normalize();
                 Vector3 finalKnockback = (pushDir * knockbackHorizontal) + (Vector3.up * knockbackUpward);
 
-                if (player.TryGetComponent(out IKnockbackable knockbackable))
+                if (player.TryGetComponent(out PlayerControllerRefactored pcRefactored))
                 {
-                    knockbackable.ApplyKnockback(finalKnockback);
+                    pcRefactored.ApplyKnockback(finalKnockback);
                 }
             }
 
-            yield return StartCoroutine(WaitPausableSeconds(1f));
+            yield return WaitForSecondsPausable(1f);
             _isAttacking = false;
         }
 
@@ -245,7 +242,6 @@ namespace PatronesAplicados
 
             for (int i = 0; i < orbsToShoot; i++)
             {
-                while (isPaused) yield return null;
                 if (isDead || isStunned || player == null) break;
 
                 Vector3 spawnOrigin = firePoint != null ? firePoint.position : transform.position + Vector3.up * 1.5f;
@@ -270,7 +266,7 @@ namespace PatronesAplicados
                     }
                 }
 
-                yield return StartCoroutine(WaitPausableSeconds(timeBetweenOrbs));
+                yield return WaitForSecondsPausable(timeBetweenOrbs);
             }
         }
 
@@ -283,7 +279,6 @@ namespace PatronesAplicados
 
             for (int i = 0; i < rootsToSpawn; i++)
             {
-                while (isPaused) yield return null;
                 if (isDead || isStunned || player == null) break;
 
                 if (animator != null) animator.SetTrigger(CastHash);
@@ -307,11 +302,11 @@ namespace PatronesAplicados
 
                 if (i < rootsToSpawn - 1)
                 {
-                    yield return StartCoroutine(WaitPausableSeconds(delayBetweenRootsPhase2));
+                    yield return WaitForSecondsPausable(delayBetweenRootsPhase2);
                 }
             }
 
-            yield return StartCoroutine(WaitPausableSeconds(1.5f));
+            yield return WaitForSecondsPausable(1.5f);
         }
 
         protected override void Die()

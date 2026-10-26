@@ -19,7 +19,7 @@ MonoBehaviour:
   rangeAttack: 1.5
   fleeDistance: 0
   goldReward: 5
-  expReward: 0
+  expReward: 20
   bullet: {fileID: 0}
   bulletSpeed: 0
   explosionRadius: 0

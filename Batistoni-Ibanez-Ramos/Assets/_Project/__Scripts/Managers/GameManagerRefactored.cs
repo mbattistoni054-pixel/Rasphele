@@ -51,7 +51,7 @@ namespace PatronesAplicados
             {
                 Instance = this;
                 DamageableRegistry.Clear();
-                PauseManager.ClearAll();
+                PauseManager.ResetPauseState();
             }
             else
             {
@@ -68,7 +68,6 @@ namespace PatronesAplicados
             {
                 EventManager.Instance.StartListening(GameEventKeys.PlayerDeath, ShowGameOver);
                 EventManager.Instance.StartListening(GameEventKeys.LevelComplete, ShowLevelComplete);
-                EventManager.Instance.StartListening(GameEventKeys.PauseRequested, OnPauseRequested);
                 EventManager.Instance.StartListening(GameEventKeys.ResumeRequested, OnResumeRequested);
             }
 
@@ -81,7 +80,6 @@ namespace PatronesAplicados
             {
                 EventManager.Instance.StopListening(GameEventKeys.PlayerDeath, ShowGameOver);
                 EventManager.Instance.StopListening(GameEventKeys.LevelComplete, ShowLevelComplete);
-                EventManager.Instance.StopListening(GameEventKeys.PauseRequested, OnPauseRequested);
                 EventManager.Instance.StopListening(GameEventKeys.ResumeRequested, OnResumeRequested);
             }
         }
@@ -104,18 +102,8 @@ namespace PatronesAplicados
             }
         }
 
-        private void OnPauseRequested()
-        {
-            PauseManager.RequestPause();
-        }
-
         private void OnResumeRequested()
         {
-            if (_isGameActive)
-            {
-                PauseManager.RequestResume();
-            }
-
             if (!PauseManager.IsPaused && TooltipManager.Instance != null)
             {
                 TooltipManager.Instance.HideTooltip();

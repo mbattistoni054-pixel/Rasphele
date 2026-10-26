@@ -1,55 +1,57 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 using TMPro;
 
-public class MagnetStructure : MonoBehaviour
+namespace PatronesAplicados
 {
-    public GameObject pressE_Text;
-    public TextMeshPro floatingCostText;
-
-    private Transform _playerTransform;
-
-    void Start()
+    public class MagnetStructure : MonoBehaviour
     {
-        if (pressE_Text != null) pressE_Text.SetActive(false);
-        if (floatingCostText != null) floatingCostText.text = "Gratis";
-    }
+        public GameObject pressE_Text;
+        public TextMeshPro floatingCostText;
 
-    private void Update()
-    {
-        gameObject.transform.Rotate(0, 90 * Time.deltaTime, 0);   
-    }
+        private Transform _playerTransform;
+        private bool _isActivated;
 
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.CompareTag("Player"))
+        private void OnEnable()
         {
-            _playerTransform = other.transform;
+            _isActivated = false;
+            _playerTransform = null;
 
-            ActivateMagnet();
-
-            Destroy(gameObject);
-        }
-    }
-
-
-    private void ActivateMagnet()
-    {
-        if (_playerTransform == null) return;
-
-        // Busca todas las gemas de experiencia en la escena entera
-        NEWExperienceOrb[] allOrbs = Object.FindObjectsByType<NEWExperienceOrb>(FindObjectsSortMode.None);
-
-        int count = 0;
-        foreach (NEWExperienceOrb orb in allOrbs)
-        {
-            orb.ForceAttract(_playerTransform);
-            count++;
+            if (pressE_Text != null) pressE_Text.SetActive(false);
+            if (floatingCostText != null) floatingCostText.text = "Gratis";
         }
 
-        Debug.Log($"�Im�n activado! Atrayendo {count} gemas.");
+        private void Update()
+        {
+            transform.Rotate(0f, 90f * Time.deltaTime, 0f);
+        }
 
-        // Destruimos el im�n tras usarlo
-        Destroy(gameObject);
+        private void OnTriggerEnter(Collider other)
+        {
+            if (_isActivated) return;
+
+            if (other.CompareTag("Player"))
+            {
+                _isActivated = true;
+                _playerTransform = other.transform;
+
+                ActivateMagnet();
+                gameObject.SetActive(false);
+            }
+        }
+
+        private void ActivateMagnet()
+        {
+            if (_playerTransform == null) return;
+
+            NEWExperienceOrb[] allOrbs = Object.FindObjectsByType<NEWExperienceOrb>(FindObjectsSortMode.None);
+
+            for (int i = 0; i < allOrbs.Length; i++)
+            {
+                if (allOrbs[i] != null && allOrbs[i].gameObject.activeInHierarchy)
+                {
+                    allOrbs[i].ForceAttract(_playerTransform);
+                }
+            }
+        }
     }
 }

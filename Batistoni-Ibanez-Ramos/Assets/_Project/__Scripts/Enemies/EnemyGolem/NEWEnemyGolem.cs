@@ -10,17 +10,25 @@ public class NEWEnemyGolem : EnemyBaseRefactored
     public GameObject slamVisualPrefab;
     public Animator animator;
 
-    private bool isAttacking = false;
-    private bool hasMoveParam = false;
-    private float pathTimer = 0f;
+    [Header("Control de Empuje y Stun")]
+    [Tooltip("Duración del aturdimiento que este Golem aplica al jugador al golpearlo.")]
+    public float knockbackStunDuration = 0.4f;
+
+    private bool _isAttacking;
+    private bool _hasMoveParam;
+    private float _pathTimer;
+
+    private static readonly int MoveHash = Animator.StringToHash("Move");
+    private static readonly int AttackHash = Animator.StringToHash("Attack");
 
     private readonly Collider[] _slamHitsBuffer = new Collider[16];
 
     public override void ResetStats()
     {
         base.ResetStats();
-        isAttacking = false;
-        pathTimer = 0f;
+        _isAttacking = false;
+        _pathTimer = 0f;
+        if (animator != null) animator.speed = isPaused ? 0f : 1f;
     }
 
     protected override void Start()
@@ -30,11 +38,12 @@ public class NEWEnemyGolem : EnemyBaseRefactored
 
         if (animator != null)
         {
-            foreach (var param in animator.parameters)
+            AnimatorControllerParameter[] parameters = animator.parameters;
+            for (int i = 0; i < parameters.Length; i++)
             {
-                if (param.name == "Move")
+                if (parameters[i].nameHash == MoveHash)
                 {
-                    hasMoveParam = true;
+                    _hasMoveParam = true;
                     break;
                 }
             }
@@ -48,63 +57,88 @@ public class NEWEnemyGolem : EnemyBaseRefactored
         }
     }
 
+    public override void OnPause()
+    {
+        base.OnPause();
+        if (animator != null) animator.speed = 0f;
+    }
+
+    public override void OnResume()
+    {
+        base.OnResume();
+        if (animator != null) animator.speed = 1f;
+    }
+
     protected override void Update()
     {
         base.Update();
-        if (isDead || data == null) return;
+        if (isDead || isPaused || data == null) return;
+
+        float dt = Time.deltaTime;
+        _pathTimer -= dt;
 
         if (player != null && !isStunned && agent != null && agent.enabled && agent.isOnNavMesh)
         {
-            float distance = Vector3.Distance(player.position, transform.position);
+            Vector3 toPlayer = player.position - transform.position;
+            float sqrDistance = toPlayer.sqrMagnitude;
+            float rangeAttackSqr = data.RangeAttack * data.RangeAttack;
 
-            if (!isAttacking)
+            if (!_isAttacking)
             {
-                if (distance > data.RangeAttack)
+                if (sqrDistance > rangeAttackSqr)
                 {
                     agent.isStopped = false;
 
-                    if (Time.time >= pathTimer)
+                    if (_pathTimer <= 0f)
                     {
                         agent.SetDestination(player.position);
-                        pathTimer = Time.time + 0.2f;
+                        _pathTimer = 0.2f;
                     }
 
-                    if (animator != null && hasMoveParam) animator.SetBool("Move", true);
+                    if (animator != null && _hasMoveParam) animator.SetBool(MoveHash, true);
                 }
                 else
                 {
                     agent.isStopped = true;
-                    if (animator != null && hasMoveParam) animator.SetBool("Move", false);
+                    if (animator != null && _hasMoveParam) animator.SetBool(MoveHash, false);
 
                     StartCoroutine(SlamAttackRoutine());
                 }
             }
 
-            if (isAttacking && distance <= data.RangeAttack * 2f)
+            float maxRotateRange = data.RangeAttack * 2f;
+            if (_isAttacking && sqrDistance <= maxRotateRange * maxRotateRange)
             {
-                Vector3 directionToPlayer = (player.position - transform.position).normalized;
-                directionToPlayer.y = 0f;
-
-                if (directionToPlayer != Vector3.zero)
-                {
-                    Quaternion targetRotation = Quaternion.LookRotation(directionToPlayer);
-                    transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 5f);
-                }
+                RotateTowardsPlayer(dt, 5f);
             }
         }
     }
 
     private IEnumerator SlamAttackRoutine()
     {
-        isAttacking = true;
+        _isAttacking = true;
 
-        if (animator != null) animator.SetTrigger("Attack");
+        if (animator != null) animator.SetTrigger(AttackHash);
 
-        yield return new WaitForSeconds(data.HitDelay);
+        float hitDelayTimer = data.HitDelay;
+        while (hitDelayTimer > 0f)
+        {
+            if (isDead || isStunned)
+            {
+                _isAttacking = false;
+                yield break;
+            }
+
+            if (!isPaused && !PauseManager.IsPaused)
+            {
+                hitDelayTimer -= Time.deltaTime;
+            }
+            yield return null;
+        }
 
         if (isDead || isStunned)
         {
-            isAttacking = false;
+            _isAttacking = false;
             yield break;
         }
 
@@ -113,13 +147,9 @@ public class NEWEnemyGolem : EnemyBaseRefactored
 
         if (visualPrefabToUse != null)
         {
-            GameObject visual = null;
-
-
-            if (VfxPoolManager.Instance != null)
-            {
-                visual = VfxPoolManager.Instance.GetVfx(visualPrefabToUse, impactCenter, Quaternion.identity, 1.5f);
-            }
+            GameObject visual = VfxPoolManager.Instance != null
+                ? VfxPoolManager.Instance.GetVfx(visualPrefabToUse, impactCenter, Quaternion.identity, 1.5f)
+                : Instantiate(visualPrefabToUse, impactCenter, Quaternion.identity);
 
             if (visual != null)
             {
@@ -136,22 +166,48 @@ public class NEWEnemyGolem : EnemyBaseRefactored
             {
                 float finalDamage = data.AttackDamage * damageMultiplier;
 
-                if (hit.TryGetComponent(out PlayerHealthRefactored refHealth))
+                if (hit.TryGetComponent(out IDamageable damageable))
+                {
+                    damageable.TakeDamage(finalDamage, false, DamageType.Fisico);
+                }
+                else if (hit.TryGetComponent(out PlayerHealthRefactored refHealth))
+                {
                     refHealth.TakeDamage(finalDamage);
+                }
 
-                Vector3 pushDir = (hit.transform.position - transform.position).normalized;
+                Vector3 pushDir = hit.transform.position - transform.position;
                 pushDir.y = 0f;
+                pushDir.Normalize();
                 Vector3 finalKnockback = (pushDir * data.KnockbackHorizontal) + (Vector3.up * data.KnockbackUpward);
 
-                if (hit.TryGetComponent(out PlayerControllerRefactored playerCtrl))
+                if (hit.TryGetComponent(out IKnockbackable knockbackable))
                 {
-                    playerCtrl.ApplyKnockback(finalKnockback);
+                    knockbackable.ApplyKnockback(finalKnockback, knockbackStunDuration);
+                }
+                else if (hit.TryGetComponent(out PlayerControllerRefactored pcRefactored))
+                {
+                    pcRefactored.ApplyKnockback(finalKnockback, knockbackStunDuration);
                 }
             }
         }
 
-        yield return new WaitForSeconds(data.AttackCooldown);
-        isAttacking = false;
+        float cooldownTimer = data.AttackCooldown;
+        while (cooldownTimer > 0f)
+        {
+            if (isDead)
+            {
+                _isAttacking = false;
+                yield break;
+            }
+
+            if (!isPaused && !PauseManager.IsPaused)
+            {
+                cooldownTimer -= Time.deltaTime;
+            }
+            yield return null;
+        }
+
+        _isAttacking = false;
     }
 
     private void OnDrawGizmosSelected()

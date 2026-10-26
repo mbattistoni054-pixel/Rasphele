@@ -7,57 +7,53 @@ namespace PatronesAplicados.RealImplementation
         [Header("Ajustes del Rastro")]
         public LayerMask groundMask;
 
-        private Vector3 lastDropPosition;
+        private Vector3 _lastDropPosition;
 
         protected override void Start()
         {
             base.Start();
-            lastDropPosition = transform.position;
-        }
-
-        protected override void Update()
-        {
-            if (data == null) return;
-
-            currentCooldownTimer += Time.deltaTime;
-            
-            float actualCooldown = CurrentBaseCooldown * cachedGlobalFireRateMult;
-
-            if (currentCooldownTimer >= actualCooldown)
-            {
-                bool isMoving = Vector3.Distance(transform.position, lastDropPosition) > 0.1f;
-                bool isGrounded = Physics.Raycast(transform.position + Vector3.up * 0.5f, Vector3.down, 1f, groundMask);
-
-                if (isMoving && isGrounded)
-                {
-                    Attack();
-                    lastDropPosition = transform.position;
-                    currentCooldownTimer = 0f;
-                }
-            }
+            _lastDropPosition = transform.position;
         }
 
         protected override void Attack()
         {
-            Vector3 spawnPos = transform.position + Vector3.up * 0.05f;
-            
-            GameObject fireObj = ProjectilePoolManager.Instance.GetProjectile(data.projectilePrefab, spawnPos, Quaternion.identity);
+            if (data == null || data.projectilePrefab == null)
+            {
+                attackSuccessful = false;
+                return;
+            }
 
-            FireZoneRefactored fireZone = fireObj.GetComponent<FireZoneRefactored>();
+            bool isMoving = (transform.position - _lastDropPosition).sqrMagnitude > 0.01f;
+            bool isGrounded = Physics.Raycast(transform.position + Vector3.up * 0.5f, Vector3.down, 1f, groundMask, QueryTriggerInteraction.Ignore);
+
+            if (!isMoving || !isGrounded)
+            {
+                attackSuccessful = false;
+                return;
+            }
+
+            Vector3 spawnPos = transform.position + Vector3.up * 0.05f;
+            FireZoneRefactored fireZone = null;
+
+            if (ProjectilePoolManager.Instance != null)
+            {
+                fireZone = ProjectilePoolManager.Instance.GetProjectile<FireZoneRefactored>(
+                    data.projectilePrefab,
+                    spawnPos,
+                    Quaternion.identity);
+            }
+            else
+            {
+                GameObject fireObj = Instantiate(data.projectilePrefab, spawnPos, Quaternion.identity);
+                fireObj.TryGetComponent(out fireZone);
+            }
+
             if (fireZone != null)
             {
-                float finalDuration = CurrentDuration;
-
-                fireZone.Setup(
-                    GetFinalDamage(), 
-                    CurrentEffects, 
-                    GetFinalRange(), 
-                    WeaponID, 
-                    CurrentDamageType, 
-                    CurrentHeatHeal, 
-                    finalDuration
-                ); 
+                fireZone.Setup(GetFinalDamage(), CurrentEffects, GetFinalRange(), WeaponID, CurrentDamageType, CurrentHeatHeal, CurrentDuration);
             }
+
+            _lastDropPosition = transform.position;
         }
     }
 }

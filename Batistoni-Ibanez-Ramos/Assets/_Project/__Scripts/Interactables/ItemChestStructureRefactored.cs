@@ -1,20 +1,24 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using TMPro;
 
 namespace PatronesAplicados
 {
     public class ItemChestStructureRefactored : MonoBehaviour
     {
-        [Header("Configuracin del Cofre")]
+        [Header("Configuración del Cofre")]
         public bool isSpecialChest = false;
         public int cost = 50;
-        
-        private bool isPlayerNear = false;
 
-        void Update()
+        private bool _isPlayerNear;
+
+        private void OnEnable()
         {
-            if (isPlayerNear && Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
+            _isPlayerNear = false;
+        }
+
+        private void Update()
+        {
+            if (_isPlayerNear && Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
             {
                 TryOpenChest();
             }
@@ -24,18 +28,13 @@ namespace PatronesAplicados
         {
             if (other.CompareTag("Player"))
             {
-                isPlayerNear = true;
+                _isPlayerNear = true;
 
-                if (isSpecialChest)
-                {
-                    string txt = "Press E\n$50\nCofre Especial (25% Exito)";
-                    if (EventManager.Instance != null) EventManager.Instance.TriggerEvent("ShowInteractText", txt);
-                }
-                else
-                {
-                    string txt = "Press E\n$50";
-                    if (EventManager.Instance != null) EventManager.Instance.TriggerEvent("ShowInteractText", txt);
-                }
+                string txt = isSpecialChest
+                    ? $"Press E\n${cost}\nCofre Especial (25% Éxito)"
+                    : $"Press E\n${cost}";
+
+                ShowInteractMessage(txt);
             }
         }
 
@@ -43,8 +42,8 @@ namespace PatronesAplicados
         {
             if (other.CompareTag("Player"))
             {
-                isPlayerNear = false;
-                if (EventManager.Instance != null) EventManager.Instance.TriggerEvent("ShowInteractText", "");
+                _isPlayerNear = false;
+                ShowInteractMessage(string.Empty);
             }
         }
 
@@ -52,21 +51,14 @@ namespace PatronesAplicados
         {
             if (ItemManager.Instance == null || NEWItemRewardUI.Instance == null) return;
 
-            bool spendSuccess = false;
-            if (PlayerStatsRefactored.Instance != null)
-                spendSuccess = PlayerStatsRefactored.Instance.SpendMoney(cost);
+            bool spendSuccess = PlayerStatsRefactored.Instance != null && PlayerStatsRefactored.Instance.SpendMoney(cost);
 
             if (spendSuccess)
             {
-                if (isSpecialChest)
+                if (isSpecialChest && Random.Range(0f, 100f) > 25f)
                 {
-                    if (Random.Range(0f, 100f) > 25f)
-                    {
-                        Debug.Log("El cofre especial fall al abrirse. Dinero perdido.");
-                        string txt = "El cofre fallo al abrirse.\nPress E\n$50\n(25%)";
-                        if (EventManager.Instance != null) EventManager.Instance.TriggerEvent("ShowInteractText", txt);
-                        return;
-                    }
+                    ShowInteractMessage($"El cofre falló al abrirse.\nPress E\n${cost}\n(25%)");
+                    return;
                 }
 
                 ItemTier rolledTier = RollTier();
@@ -81,14 +73,13 @@ namespace PatronesAplicados
                     Debug.LogWarning($"No hay objetos en la lista de {rolledTier} en el ItemManager.");
                 }
 
-                if (EventManager.Instance != null) EventManager.Instance.TriggerEvent("ShowInteractText", "");
-
-                Destroy(gameObject);
+                _isPlayerNear = false;
+                ShowInteractMessage(string.Empty);
+                gameObject.SetActive(false);
             }
             else
             {
-                string txt = "No tienes suficiente dinero.";
-                if (EventManager.Instance != null) EventManager.Instance.TriggerEvent("ShowInteractText", txt);
+                ShowInteractMessage("No tienes suficiente dinero.");
             }
         }
 
@@ -102,15 +93,16 @@ namespace PatronesAplicados
                 if (roll <= 95f) return ItemTier.Raro;
                 return ItemTier.Extraordinario;
             }
-            else
+
+            return roll <= 80f ? ItemTier.Raro : ItemTier.Extraordinario;
+        }
+
+        private static void ShowInteractMessage(string message)
+        {
+            if (EventManager.Instance != null)
             {
-                if (roll <= 80f) return ItemTier.Raro;
-                return ItemTier.Extraordinario;
+                EventManager.Instance.TriggerEvent(GameEventKeys.ShowInteractText, message);
             }
         }
     }
 }
-
-
-
-

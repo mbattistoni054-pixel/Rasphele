@@ -1,98 +1,134 @@
+using System.Collections.Generic;
 using UnityEngine;
-using System.Collections;
 
 namespace PatronesAplicados.RealImplementation
 {
-    public class MeteorProjectileRefactored : MonoBehaviour
+    public class MeteorProjectileRefactored : MonoBehaviour, IPausable
     {
-        [Header("Configuracin")]
+        [Header("Configuración")]
         public float fallSpeed = 25f;
+        public float maxLifeTime = 10f;
         public LayerMask groundMask;
         public GameObject explosionVisualPrefab;
 
-        private float damage;
-        private WeaponData.ImpactEffects effects;
-        private float extraExplosionRadius;
-        private int weaponID;
-        private DamageType damageType;
-        private LayerMask enemyMask;
-        private Vector3 fallDirection;
-        
-        private Vector3 originalScale;
-        private Color originalColor;
-        private Coroutine lifeTimerCoroutine;
+        private float _damage;
+        private WeaponData.ImpactEffects _effects;
+        private float _extraExplosionRadius;
+        private int _weaponID;
+        private DamageType _damageType;
+        private LayerMask _enemyMask;
+        private Vector3 _fallDirection;
+
+        private Vector3 _originalScale;
+        private Renderer _cachedRenderer;
+        private MaterialPropertyBlock _propBlock;
+        private Color _originalColor = Color.white;
+
+        private float _lifeTimer;
+        private bool _isReturned;
+        private bool _isPaused;
+
+        private static readonly Collider[] HitBuffer = new Collider[64];
+        private static readonly HashSet<IDamageable> DamagedTargets = new HashSet<IDamageable>();
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        private static readonly int ColorId = Shader.PropertyToID("_Color");
 
         private void Awake()
         {
-            originalScale = transform.localScale;
-            Renderer rend = GetComponentInChildren<Renderer>();
-            if (rend != null) originalColor = rend.material.color;
+            _originalScale = transform.localScale;
+            _cachedRenderer = GetComponentInChildren<Renderer>();
+            _propBlock = new MaterialPropertyBlock();
+
+            if (_cachedRenderer != null && _cachedRenderer.sharedMaterial != null)
+            {
+                if (_cachedRenderer.sharedMaterial.HasProperty(BaseColorId))
+                    _originalColor = _cachedRenderer.sharedMaterial.GetColor(BaseColorId);
+                else if (_cachedRenderer.sharedMaterial.HasProperty(ColorId))
+                    _originalColor = _cachedRenderer.sharedMaterial.GetColor(ColorId);
+            }
+        }
+
+        private void OnEnable()
+        {
+            _lifeTimer = 0f;
+            _isReturned = false;
+            _isPaused = PauseManager.IsPaused;
+            PauseManager.Register(this);
+        }
+
+        private void OnDisable()
+        {
+            PauseManager.Unregister(this);
         }
 
         public void Setup(float dmg, WeaponData.ImpactEffects fx, float expRadius, int wID, DamageType dType, LayerMask eMask, Vector3 direction, bool isScatter, bool isComet)
         {
-            damage = dmg;
-            effects = fx;
-            extraExplosionRadius = expRadius;
-            weaponID = wID;
-            damageType = dType;
-            enemyMask = eMask;
-            fallDirection = direction;
+            _damage = dmg;
+            _effects = fx;
+            _extraExplosionRadius = expRadius;
+            _weaponID = wID;
+            _damageType = dType;
+            _enemyMask = eMask;
+            _fallDirection = direction != Vector3.zero ? direction.normalized : Vector3.down;
 
-            transform.localScale = originalScale;
-            Renderer rend = GetComponentInChildren<Renderer>();
-            if (rend != null) rend.material.color = originalColor;
+            _lifeTimer = 0f;
+            _isReturned = false;
 
-            if (isScatter) transform.localScale *= 0.5f;
-            if (isComet && rend != null) rend.material.color = Color.cyan;
-
-            if (lifeTimerCoroutine != null) StopCoroutine(lifeTimerCoroutine);
-            lifeTimerCoroutine = StartCoroutine(ReturnToPoolAfterTime(10f));
+            transform.localScale = isScatter ? _originalScale * 0.5f : _originalScale;
+            ApplyMeteorColor(isComet ? Color.cyan : _originalColor);
         }
 
-        private IEnumerator ReturnToPoolAfterTime(float time)
+        private void ApplyMeteorColor(Color targetColor)
         {
-            yield return new WaitForSeconds(time);
-            ReturnToPool();
+            if (_cachedRenderer == null) return;
+            if (_propBlock == null) _propBlock = new MaterialPropertyBlock();
+
+            _cachedRenderer.GetPropertyBlock(_propBlock);
+            _propBlock.SetColor(BaseColorId, targetColor);
+            _propBlock.SetColor(ColorId, targetColor);
+            _cachedRenderer.SetPropertyBlock(_propBlock);
         }
 
-        private void ReturnToPool()
+        private void Update()
         {
-            if (lifeTimerCoroutine != null) StopCoroutine(lifeTimerCoroutine);
-            
-            if (ProjectilePoolManager.Instance != null)
-                ProjectilePoolManager.Instance.ReturnProjectile(gameObject);
-            else
-                Destroy(gameObject);
-        }
+            if (_isReturned || _isPaused) return;
 
-        void Update()
-        {
-            float moveDistance = fallSpeed * Time.deltaTime;
+            float dt = Time.deltaTime;
+            _lifeTimer += dt;
+            if (_lifeTimer >= maxLifeTime)
+            {
+                ReturnToPool();
+                return;
+            }
 
-            if (Physics.Raycast(transform.position, fallDirection, out RaycastHit hit, moveDistance, groundMask))
+            float moveDistance = fallSpeed * dt;
+
+            if (Physics.Raycast(transform.position, _fallDirection, out RaycastHit hit, moveDistance, groundMask))
             {
                 transform.position = hit.point;
                 ExplodeOnGround();
                 return;
             }
 
-            transform.position += fallDirection * moveDistance;
+            transform.position += _fallDirection * moveDistance;
 
-            if (fallDirection != Vector3.zero)
-                transform.rotation = Quaternion.LookRotation(fallDirection);
+            if (_fallDirection != Vector3.zero)
+            {
+                transform.rotation = Quaternion.LookRotation(_fallDirection);
+            }
         }
 
         private void OnTriggerEnter(Collider other)
         {
-            if (((1 << other.gameObject.layer) & enemyMask) != 0 || other.CompareTag("Enemy"))
+            if (_isReturned || _isPaused) return;
+
+            if (((1 << other.gameObject.layer) & _enemyMask) != 0 || other.CompareTag("Enemy"))
             {
-                IDamageable enemy = other.GetComponent<IDamageable>();
-                if (enemy != null)
+                if (DamageableRegistry.TryGet(other, out IDamageable enemy, out _))
                 {
-                    bool isCrit = Random.Range(0f, 100f) <= effects.critChance;
-                    enemy.TakeDamage(damage, isCrit, damageType);
-                    enemy.ApplyEffects(effects, weaponID);
+                    bool isCrit = Random.Range(0f, 100f) <= _effects.critChance;
+                    enemy.TakeDamage(_damage, isCrit, _damageType);
+                    enemy.ApplyEffects(_effects, _weaponID);
                 }
 
                 ReturnToPool();
@@ -105,30 +141,57 @@ namespace PatronesAplicados.RealImplementation
 
         private void ExplodeOnGround()
         {
-            float finalExplosionRadius = transform.localScale.x + extraExplosionRadius;
-            float explosionDamage = damage / 2f;
+            if (_isReturned) return;
+
+            float finalExplosionRadius = transform.localScale.x + _extraExplosionRadius;
+            float explosionDamage = _damage * 0.5f;
 
             if (explosionVisualPrefab != null)
             {
-                GameObject visualObj = Instantiate(explosionVisualPrefab, transform.position, Quaternion.identity);
-                float visualScale = finalExplosionRadius * 2f;
-                visualObj.transform.localScale = new Vector3(visualScale, visualScale, visualScale);
-                Destroy(visualObj, 2f);
+                GameObject visualObj = VfxPoolManager.Instance != null ? VfxPoolManager.Instance.GetVfx(explosionVisualPrefab, transform.position, Quaternion.identity, 2f) : Instantiate(explosionVisualPrefab, transform.position, Quaternion.identity);
+
+                if (visualObj != null)
+                {
+                    float visualScale = finalExplosionRadius * 2f;
+                    visualObj.transform.localScale = new Vector3(visualScale, visualScale, visualScale);
+                }
             }
 
-            Collider[] hitEnemies = Physics.OverlapSphere(transform.position, finalExplosionRadius, enemyMask);
-            foreach (Collider hit in hitEnemies)
+            DamagedTargets.Clear();
+            int hitCount = Physics.OverlapSphereNonAlloc(transform.position, finalExplosionRadius, HitBuffer, _enemyMask);
+
+            for (int i = 0; i < hitCount; i++)
             {
-                IDamageable enemy = hit.GetComponent<IDamageable>();
-                if (enemy != null)
+                Collider hit = HitBuffer[i];
+                if (hit == null) continue;
+
+                if (DamageableRegistry.TryGet(hit, out IDamageable enemy, out _) && DamagedTargets.Add(enemy))
                 {
-                    bool isCrit = Random.Range(0f, 100f) <= effects.critChance;
-                    enemy.TakeDamage(explosionDamage, isCrit, damageType);
-                    enemy.ApplyEffects(effects, weaponID);
+                    bool isCrit = Random.Range(0f, 100f) <= _effects.critChance;
+                    enemy.TakeDamage(explosionDamage, isCrit, _damageType);
+                    enemy.ApplyEffects(_effects, _weaponID);
                 }
             }
 
             ReturnToPool();
         }
+
+        private void ReturnToPool()
+        {
+            if (_isReturned) return;
+            _isReturned = true;
+
+            if (ProjectilePoolManager.Instance != null)
+            {
+                ProjectilePoolManager.Instance.ReturnProjectile(gameObject);
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
+        }
+
+        public void OnPause() => _isPaused = true;
+        public void OnResume() => _isPaused = false;
     }
 }

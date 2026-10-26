@@ -53,7 +53,12 @@ public class NEWEnemyFireLine : MonoBehaviour
         if (warningVisual != null) warningVisual.gameObject.SetActive(true);
         if (fireVisual != null) fireVisual.gameObject.SetActive(false);
 
-        yield return new WaitForSeconds(1f);
+        float warningTimer = 1f;
+        while (warningTimer > 0f)
+        {
+            if (!PauseManager.IsPaused) warningTimer -= Time.deltaTime;
+            yield return null;
+        }
 
         if (warningVisual != null) warningVisual.gameObject.SetActive(false);
         if (fireVisual != null) fireVisual.gameObject.SetActive(true);
@@ -63,15 +68,18 @@ public class NEWEnemyFireLine : MonoBehaviour
 
         while (activeTimer > 0f)
         {
-            damageTickTimer -= Time.deltaTime;
-
-            if (damageTickTimer <= 0f)
+            if (!PauseManager.IsPaused)
             {
-                damageTickTimer = 1f;
-                DealDamage();
-            }
+                damageTickTimer -= Time.deltaTime;
 
-            activeTimer -= Time.deltaTime;
+                if (damageTickTimer <= 0f)
+                {
+                    damageTickTimer = 1f;
+                    DealDamage();
+                }
+
+                activeTimer -= Time.deltaTime;
+            }
             yield return null;
         }
 

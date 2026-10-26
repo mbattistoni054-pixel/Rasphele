@@ -12,18 +12,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f1fcab4aa7d248d489c3d30a84b9e38e, type: 3}
   m_Name: Data_PlayerConfig
   m_EditorClassIdentifier: 
-  walkSpeed: 4
-  runSpeed: 8
-  turnSmoothTime: 0.1
+  walkSpeed: 7
+  runSpeed: 20
+  turnSmoothTime: 0.05
   maxWalkableAngle: 45
-  jumpForce: 7
+  jumpForce: 14
   fallMultiplier: 5
   lowJumpMultiplier: 4
   airControl: 5
   groundDistance: 0.2
   groundMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 8
   minSlideSpeed: 4
   slideBoost: 5
   slideDrag: 15

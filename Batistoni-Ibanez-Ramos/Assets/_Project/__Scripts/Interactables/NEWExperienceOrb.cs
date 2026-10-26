@@ -41,7 +41,7 @@ public class NEWExperienceOrb : MonoBehaviour
 
     private void Update()
     {
-        if (_isCollected || _player == null) return;
+        if (PauseManager.IsPaused || _isCollected || _player == null) return;
 
         if (!_isAttracted)
         {

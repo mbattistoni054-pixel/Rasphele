@@ -2,7 +2,7 @@ using UnityEngine;
 using PatronesAplicados;
 using PatronesAplicados.RealImplementation;
 
-public class NEWBulletEnemy : MonoBehaviour, IPausable
+public class NEWBulletEnemy : MonoBehaviour
 {
     private Transform _player;
     public float damage;
@@ -12,14 +12,11 @@ public class NEWBulletEnemy : MonoBehaviour, IPausable
     private float _lifeTimer;
     [SerializeField] private float maxLifeTime = 4f;
     private bool _isReturned;
-    private bool _isPaused;
 
     private void OnEnable()
     {
         _lifeTimer = 0f;
         _isReturned = false;
-        _isPaused = PauseManager.IsPaused;
-        PauseManager.Register(this);
 
         _player = GameManagerRefactored.Instance != null ? GameManagerRefactored.Instance.Player : null;
         if (_player == null)
@@ -29,11 +26,6 @@ public class NEWBulletEnemy : MonoBehaviour, IPausable
         }
 
         AimAtTarget();
-    }
-
-    private void OnDisable()
-    {
-        PauseManager.Unregister(this);
     }
 
     public void Setup(float bulletDamage, Transform targetPlayer = null)
@@ -60,7 +52,7 @@ public class NEWBulletEnemy : MonoBehaviour, IPausable
 
     private void Update()
     {
-        if (_isReturned || _isPaused) return;
+        if (_isReturned || PauseManager.IsPaused) return;
 
         transform.position += transform.up * (speed * Time.deltaTime);
 
@@ -73,13 +65,13 @@ public class NEWBulletEnemy : MonoBehaviour, IPausable
 
     private void OnTriggerEnter(Collider other)
     {
-        if (_isReturned || _isPaused) return;
+        if (_isReturned) return;
 
         if (other.CompareTag("Player"))
         {
-            if (other.TryGetComponent(out IDamageable damageable))
+            if (other.TryGetComponent(out PlayerHealthRefactored pHealthRef))
             {
-                damageable.TakeDamage(damage);
+                pHealthRef.TakeDamage(damage);
             }
 
             ReturnToPool();
@@ -100,7 +92,4 @@ public class NEWBulletEnemy : MonoBehaviour, IPausable
             Destroy(gameObject);
         }
     }
-
-    public void OnPause() => _isPaused = true;
-    public void OnResume() => _isPaused = false;
 }

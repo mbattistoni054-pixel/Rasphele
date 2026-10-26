@@ -2,7 +2,7 @@ using UnityEngine;
 using PatronesAplicados;
 using PatronesAplicados.RealImplementation;
 
-public class NEWBossOrb : MonoBehaviour, IPausable
+public class NEWBossOrb : MonoBehaviour
 {
     public float speed = 18f;
     public float lifeTime = 4f;
@@ -18,7 +18,6 @@ public class NEWBossOrb : MonoBehaviour, IPausable
     private float _damage;
     private float _timer;
     private bool _hasExploded;
-    private bool _isPaused;
 
     public void Setup(float dmg)
     {
@@ -31,18 +30,11 @@ public class NEWBossOrb : MonoBehaviour, IPausable
     {
         _timer = 0f;
         _hasExploded = false;
-        _isPaused = PauseManager.IsPaused;
-        PauseManager.Register(this);
-    }
-
-    private void OnDisable()
-    {
-        PauseManager.Unregister(this);
     }
 
     private void Update()
     {
-        if (_hasExploded || _isPaused) return;
+        if (_hasExploded || PauseManager.IsPaused) return;
 
         transform.position += transform.forward * (speed * Time.deltaTime);
 
@@ -55,19 +47,24 @@ public class NEWBossOrb : MonoBehaviour, IPausable
 
     private void OnTriggerEnter(Collider other)
     {
-        if (_hasExploded || _isPaused) return;
+        if (_hasExploded) return;
 
         if (other.CompareTag("Player"))
         {
-            if (other.TryGetComponent(out IDamageable damageable))
-            {
-                damageable.TakeDamage(_damage);
-            }
+            ApplyDamageToPlayer(other.gameObject, _damage);
             Explode();
         }
         else if (((1 << other.gameObject.layer) & obstacleMask) != 0)
         {
             Explode();
+        }
+    }
+
+    private static void ApplyDamageToPlayer(GameObject playerObj, float dmg)
+    {
+        if (playerObj.TryGetComponent(out PlayerHealthRefactored refHealth))
+        {
+            refHealth.TakeDamage(dmg);
         }
     }
 
@@ -98,7 +95,4 @@ public class NEWBossOrb : MonoBehaviour, IPausable
             Destroy(gameObject);
         }
     }
-
-    public void OnPause() => _isPaused = true;
-    public void OnResume() => _isPaused = false;
 }

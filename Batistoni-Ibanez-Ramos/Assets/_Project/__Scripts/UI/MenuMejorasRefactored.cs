@@ -28,18 +28,13 @@ namespace PatronesAplicados
         private Transform _playerTransform;
         private PlayerExperienceRefactored _cachedPlayerExperience;
         private bool _isWeaponMode;
+        private bool _hasRequestedPause;
 
         private void OnEnable()
         {
             buttonWeapons.Clear();
 
-            if (EventManager.Instance != null)
-            {
-                EventManager.Instance.TriggerEvent(GameEventKeys.PauseRequested);
-            }
-
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
+            RequestPauseOnce();
 
             _sessionLogic.FetchSessionDataFromEvents();
             CachePlayerAndWeapons();
@@ -60,11 +55,24 @@ namespace PatronesAplicados
 
         private void OnDisable()
         {
-            if (EventManager.Instance != null)
-            {
-                EventManager.Instance.TriggerEvent(GameEventKeys.ResumeRequested);
-            }
+            ReleasePauseOnce();
             buttonWeapons.Clear();
+        }
+
+        public void RequestPauseOnce()
+        {
+            if (_hasRequestedPause) return;
+            _hasRequestedPause = true;
+
+            PauseManager.RequestPause();
+        }
+
+        public void ReleasePauseOnce()
+        {
+            if (!_hasRequestedPause) return;
+            _hasRequestedPause = false;
+
+            PauseManager.RequestResume();
         }
 
         private void CachePlayerAndWeapons()
@@ -189,12 +197,14 @@ namespace PatronesAplicados
                 _sessionLogic.ApplySelectedUpgrade(index);
             }
 
+            ReleasePauseOnce();
             gameObject.SetActive(false);
         }
 
         public void CloseMenu()
         {
             if (TooltipManager.Instance != null) TooltipManager.Instance.HideTooltip();
+            ReleasePauseOnce();
             gameObject.SetActive(false);
         }
 

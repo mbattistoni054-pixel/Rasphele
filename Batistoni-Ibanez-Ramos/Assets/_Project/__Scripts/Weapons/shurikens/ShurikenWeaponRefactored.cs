@@ -1,5 +1,5 @@
-using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace PatronesAplicados.RealImplementation
 {
@@ -10,11 +10,13 @@ namespace PatronesAplicados.RealImplementation
         public float orbitRadius = 2f;
         public float orbitSpeed = 120f;
 
-        [HideInInspector] public bool isMagicMode = false;
+        [HideInInspector] public bool isMagicMode;
 
-        private List<ShurikenProjectileRefactored> shurikens = new List<ShurikenProjectileRefactored>();
-        private float currentOrbitAngle = 0f;
-        private float internalFireTimer = 0f;
+        private readonly List<ShurikenProjectileRefactored> _shurikens = new List<ShurikenProjectileRefactored>(8);
+        private float _currentOrbitAngle;
+        private float _internalFireTimer;
+
+        private static readonly Collider[] HitBuffer = new Collider[64];
 
         protected override void Start()
         {
@@ -24,38 +26,38 @@ namespace PatronesAplicados.RealImplementation
 
         protected override void Update()
         {
-            if (data == null) return;
+            if (data == null || isPaused) return;
 
             CurrentDamageType = isMagicMode ? DamageType.Magico : data.damageType;
 
-            currentCooldownTimer += Time.deltaTime;
-            float actualCooldown = CurrentBaseCooldown * cachedGlobalFireRateMult;
+            float dt = Time.deltaTime;
+            currentCooldownTimer += dt;
 
             UpdateShurikenCount();
 
-            currentOrbitAngle += orbitSpeed * Time.deltaTime;
-            if (currentOrbitAngle >= 360f) currentOrbitAngle -= 360f;
+            _currentOrbitAngle += orbitSpeed * dt;
+            if (_currentOrbitAngle >= 360f) _currentOrbitAngle -= 360f;
 
-            float angleStep = 360f / Mathf.Max(1, shurikens.Count);
+            int activeCount = _shurikens.Count;
+            float angleStep = 360f / Mathf.Max(1, activeCount);
+            Vector3 orbitCenter = transform.position + Vector3.up;
 
-            for (int i = 0; i < shurikens.Count; i++)
+            for (int i = 0; i < activeCount; i++)
             {
-                if (shurikens[i] != null)
+                ShurikenProjectileRefactored shuriken = _shurikens[i];
+                if (shuriken != null)
                 {
-                    float angle = currentOrbitAngle + (i * angleStep);
-                    Vector3 offset = new Vector3(Mathf.Sin(angle * Mathf.Deg2Rad), 0, Mathf.Cos(angle * Mathf.Deg2Rad)) * orbitRadius;
-                    Vector3 targetOrbitPos = transform.position + Vector3.up * 1f + offset; 
-
-                    shurikens[i].UpdateOrbitPosition(targetOrbitPos);
+                    float angleRad = (_currentOrbitAngle + (i * angleStep)) * Mathf.Deg2Rad;
+                    Vector3 offset = new Vector3(Mathf.Sin(angleRad), 0f, Mathf.Cos(angleRad)) * orbitRadius;
+                    shuriken.UpdateOrbitPosition(orbitCenter + offset);
                 }
             }
 
-            internalFireTimer += Time.deltaTime;
-
-            if (internalFireTimer >= 0.05f)
+            _internalFireTimer += dt;
+            if (_internalFireTimer >= 0.05f)
             {
                 Attack();
-                internalFireTimer = 0f;
+                _internalFireTimer = 0f;
             }
         }
 
@@ -70,67 +72,86 @@ namespace PatronesAplicados.RealImplementation
 
             bool fired = false;
 
-            foreach (var shuriken in shurikens)
+            for (int i = 0; i < _shurikens.Count; i++)
             {
+                ShurikenProjectileRefactored shuriken = _shurikens[i];
                 if (shuriken != null && shuriken.IsIdle)
                 {
                     shuriken.Fire(nearestEnemy, GetFinalDamage(), CurrentEffects, WeaponID, CurrentDamageType, enemyLayer, CurrentProjectileSpeed);
                     fired = true;
-                    break; 
+                    break;
                 }
             }
 
-            if (!fired) attackSuccessful = false;
+            if (!fired)
+            {
+                attackSuccessful = false;
+            }
         }
 
         private void UpdateShurikenCount()
         {
-            if (data == null || data.projectilePrefab == null) return;
+            if (data == null || data.projectilePrefab == null || ProjectilePoolManager.Instance == null) return;
 
-            shurikens.RemoveAll(s => s == null || !s.gameObject.activeInHierarchy);
-
-            while (shurikens.Count < CurrentMultipleShots)
+            for (int i = _shurikens.Count - 1; i >= 0; i--)
             {
-                GameObject obj = ProjectilePoolManager.Instance.GetProjectile(data.projectilePrefab, transform.position, Quaternion.identity);
-                ShurikenProjectileRefactored proj = obj.GetComponent<ShurikenProjectileRefactored>();
-                
-                if (proj != null) 
+                if (_shurikens[i] == null || !_shurikens[i].gameObject.activeInHierarchy)
                 {
-                    shurikens.Add(proj);
-                    proj.ForceIdleState();
-                }
-                else 
-                {
-                    ProjectilePoolManager.Instance.ReturnProjectile(obj);
+                    _shurikens.RemoveAt(i);
                 }
             }
 
-            while (shurikens.Count > CurrentMultipleShots)
+            while (_shurikens.Count < CurrentMultipleShots)
             {
-                int lastIndex = shurikens.Count - 1;
-                if (shurikens[lastIndex] != null) 
+                ShurikenProjectileRefactored proj = ProjectilePoolManager.Instance.GetProjectile<ShurikenProjectileRefactored>(data.projectilePrefab, transform.position, Quaternion.identity);
+
+                if (proj != null)
                 {
-                    ProjectilePoolManager.Instance.ReturnProjectile(shurikens[lastIndex].gameObject);
+                    _shurikens.Add(proj);
+                    proj.ForceIdleState();
                 }
-                shurikens.RemoveAt(lastIndex);
+                else
+                {
+                    break;
+                }
+            }
+
+            while (_shurikens.Count > CurrentMultipleShots)
+            {
+                int lastIndex = _shurikens.Count - 1;
+                if (_shurikens[lastIndex] != null)
+                {
+                    ProjectilePoolManager.Instance.ReturnProjectile(_shurikens[lastIndex].gameObject);
+                }
+                _shurikens.RemoveAt(lastIndex);
             }
         }
 
         private Transform FindNearestEnemy()
         {
-            Collider[] enemiesInRange = Physics.OverlapSphere(transform.position, GetFinalRange(), enemyLayer);
-            float shortestDist = Mathf.Infinity;
+            Vector3 myPos = transform.position;
+            int count = Physics.OverlapSphereNonAlloc(myPos, GetFinalRange(), HitBuffer, enemyLayer);
+
+            float shortestSqrDist = Mathf.Infinity;
             Transform nearest = null;
 
-            foreach (Collider col in enemiesInRange)
+            for (int i = 0; i < count; i++)
             {
-                float dist = Vector3.Distance(transform.position, col.transform.position);
-                if (dist < shortestDist)
+                Collider col = HitBuffer[i];
+                if (col == null || !col.gameObject.activeInHierarchy) continue;
+
+                Transform candidate = DamageableRegistry.TryGet(col, out _, out Transform root) && root != null
+                    ? root
+                    : col.transform;
+
+                float sqrDist = (candidate.position - myPos).sqrMagnitude;
+                if (sqrDist < shortestSqrDist)
                 {
-                    shortestDist = dist;
-                    nearest = col.transform;
+                    shortestSqrDist = sqrDist;
+                    nearest = candidate;
                 }
             }
+
             return nearest;
         }
 
@@ -138,6 +159,23 @@ namespace PatronesAplicados.RealImplementation
         {
             base.ResetWeaponStats();
             isMagicMode = false;
+        }
+
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+
+            if (ProjectilePoolManager.Instance != null)
+            {
+                for (int i = _shurikens.Count - 1; i >= 0; i--)
+                {
+                    if (_shurikens[i] != null)
+                    {
+                        ProjectilePoolManager.Instance.ReturnProjectile(_shurikens[i].gameObject);
+                    }
+                }
+            }
+            _shurikens.Clear();
         }
     }
 }

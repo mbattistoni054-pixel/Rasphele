@@ -6,7 +6,7 @@ using PatronesAplicados.RealImplementation;
 
 namespace PatronesAplicados
 {
-    public abstract class EnemyBaseRefactored : MonoBehaviour, IDamageable, IEffectReceivable, IObservable, IPausable
+    public abstract class EnemyBaseRefactored : MonoBehaviour, IDamageable, IObservable, IPausable
     {
         public const string ActionTakeDamage = "TakeDamage";
         public const string ActionDie = "Die";
@@ -54,7 +54,6 @@ namespace PatronesAplicados
         private readonly EnemyFlashController _flashController = new EnemyFlashController();
 
         private Action<float, bool, DamageType, bool> _cachedDamageCallback;
-        private Animator _cachedAnimator;
         private bool _isInitialized;
 
         protected virtual void Awake()
@@ -72,11 +71,6 @@ namespace PatronesAplicados
             PauseManager.Register(this);
         }
 
-        protected virtual void OnDisable()
-        {
-            PauseManager.Unregister(this);
-        }
-
         private void InitializeComponents()
         {
             if (_isInitialized) return;
@@ -88,7 +82,6 @@ namespace PatronesAplicados
             agent = GetComponent<NavMeshAgent>();
             rb = GetComponent<Rigidbody>();
             enemyCollider = GetComponent<Collider>();
-            _cachedAnimator = GetComponentInChildren<Animator>();
 
             if (enemyCollider != null)
             {
@@ -132,10 +125,14 @@ namespace PatronesAplicados
             }
         }
 
+        protected virtual void OnDisable()
+        {
+            PauseManager.Unregister(this);
+        }
+
         protected virtual void OnDestroy()
         {
             PauseManager.Unregister(this);
-
             if (enemyCollider != null)
             {
                 DamageableRegistry.Unregister(enemyCollider);
@@ -202,7 +199,21 @@ namespace PatronesAplicados
             _statusHandler.Tick(dt, currentHealth, _cachedDamageCallback);
         }
 
-        public virtual void TakeDamage(float amount, bool isCrit = false, DamageType type = DamageType.Fisico, bool isBleed = false)
+        protected void RotateTowardsPlayer(float deltaTime, float rotationSpeed = 5f)
+        {
+            if (player == null) return;
+
+            Vector3 dirToPlayer = player.position - transform.position;
+            dirToPlayer.y = 0f;
+
+            if (dirToPlayer.sqrMagnitude > 0.0001f)
+            {
+                Quaternion targetRot = Quaternion.LookRotation(dirToPlayer.normalized);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, deltaTime * rotationSpeed);
+            }
+        }
+
+        public virtual void TakeDamage(float amount, bool isCrit, DamageType type, bool isBleed = false)
         {
             if (isDead) return;
 
@@ -258,13 +269,9 @@ namespace PatronesAplicados
         public virtual void OnPause()
         {
             isPaused = true;
-            if (agent != null && agent.enabled && agent.isOnNavMesh)
+            if (UsesNavigation && agent != null && agent.enabled && agent.isOnNavMesh)
             {
                 agent.isStopped = true;
-            }
-            if (_cachedAnimator != null)
-            {
-                _cachedAnimator.speed = 0f;
             }
         }
 
@@ -274,10 +281,6 @@ namespace PatronesAplicados
             if (UsesNavigation && !isDead && !isStunned && agent != null && agent.enabled && agent.isOnNavMesh)
             {
                 agent.isStopped = false;
-            }
-            if (_cachedAnimator != null)
-            {
-                _cachedAnimator.speed = 1f;
             }
         }
 

@@ -5,7 +5,9 @@ using PatronesAplicados;
 
 public class NEWItemRewardUI : MonoBehaviour
 {
-    public static NEWItemRewardUI Instance;
+    public static NEWItemRewardUI Instance { get; private set; }
+
+    private static readonly Color ExtraordinaryColor = new Color(1f, 0.5f, 0f);
 
     [Header("Elementos Visuales")]
     public GameObject panel;
@@ -15,8 +17,8 @@ public class NEWItemRewardUI : MonoBehaviour
     public TextMeshProUGUI itemDescText;
     public TextMeshProUGUI tierText;
 
-    private ItemData currentItem;
-    private PlayerInventory playerInventory;
+    private ItemData _currentItem;
+    private PlayerInventory _playerInventory;
 
     private void Awake()
     {
@@ -28,55 +30,94 @@ public class NEWItemRewardUI : MonoBehaviour
 
     private void Start()
     {
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player != null) playerInventory = player.GetComponent<PlayerInventory>();
+        CachePlayerInventory();
+    }
+
+    private void CachePlayerInventory()
+    {
+        if (_playerInventory != null) return;
+
+        Transform playerTransform = GameManagerRefactored.Instance != null
+            ? GameManagerRefactored.Instance.Player
+            : null;
+
+        if (playerTransform == null)
+        {
+            GameObject player = GameObject.FindGameObjectWithTag("Player");
+            if (player != null) playerTransform = player.transform;
+        }
+
+        if (playerTransform != null)
+        {
+            playerTransform.TryGetComponent(out _playerInventory);
+        }
     }
 
     public void ShowReward(ItemData item)
     {
-        currentItem = item;
-        itemIcon.sprite = item.icon;
-        itemNameText.text = item.itemName;
-        itemDescText.text = item.description;
+        if (item == null) return;
+
+        _currentItem = item;
+        if (itemIcon != null) itemIcon.sprite = item.icon;
+        if (itemNameText != null) itemNameText.text = item.itemName;
+        if (itemDescText != null) itemDescText.text = item.description;
 
         switch (item.tier)
         {
-            case ItemTier.Comun: tierText.text = "COMN"; tierText.color = Color.cyan; border.color = Color.cyan; break;
-            case ItemTier.Raro: tierText.text = "RARO"; tierText.color = Color.magenta; border.color = Color.magenta; break;
-            case ItemTier.Extraordinario: tierText.text = "EXTRAORDINARIO"; tierText.color = new Color(1f, 0.5f, 0f); border.color = new Color(1f, 0.5f, 0f); break; // Naranja
+            case ItemTier.Comun:
+                SetTierVisuals("COMÚN", Color.cyan);
+                break;
+            case ItemTier.Raro:
+                SetTierVisuals("RARO", Color.magenta);
+                break;
+            case ItemTier.Extraordinario:
+                SetTierVisuals("EXTRAORDINARIO", ExtraordinaryColor);
+                break;
         }
 
-        panel.SetActive(true);
-        
+        if (panel != null) panel.SetActive(true);
+
         if (EventManager.Instance != null)
         {
-            EventManager.Instance.TriggerEvent("PauseRequested");
+            EventManager.Instance.TriggerEvent(GameEventKeys.PauseRequested);
         }
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
 
+    private void SetTierVisuals(string label, Color color)
+    {
+        if (tierText != null)
+        {
+            tierText.text = label;
+            tierText.color = color;
+        }
+        if (border != null)
+        {
+            border.color = color;
+        }
+    }
 
     public void KeepItem()
     {
-        if (currentItem == null) return; 
+        if (_currentItem == null) return;
 
-        if (playerInventory != null)
+        CachePlayerInventory();
+        if (_playerInventory != null)
         {
-            playerInventory.AddItem(currentItem);
+            _playerInventory.AddItem(_currentItem);
         }
         ClosePanel();
     }
 
     public void SellItem()
     {
-        if (currentItem == null) return; 
+        if (_currentItem == null) return;
 
         if (PlayerStatsRefactored.Instance != null)
         {
             PlayerStatsRefactored.Instance.AddMoney(25);
-            Debug.Log("Objeto vendido por $25.");
         }
 
         ClosePanel();
@@ -84,12 +125,12 @@ public class NEWItemRewardUI : MonoBehaviour
 
     private void ClosePanel()
     {
-        currentItem = null; 
-        panel.SetActive(false);
-        
+        _currentItem = null;
+        if (panel != null) panel.SetActive(false);
+
         if (EventManager.Instance != null)
         {
-            EventManager.Instance.TriggerEvent("ResumeRequested");
+            EventManager.Instance.TriggerEvent(GameEventKeys.ResumeRequested);
         }
     }
 }

@@ -22062,7 +22062,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3472547810342023430}
-  - component: {fileID: 411043918068577389}
+  - component: {fileID: 4559656691933352779}
   m_Layer: 0
   m_Name: Canvas Interact
   m_TagString: Untagged
@@ -22086,7 +22086,7 @@ Transform:
   - {fileID: 2771122311164966192}
   m_Father: {fileID: 6937446725547266628}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &411043918068577389
+--- !u!114 &4559656691933352779
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -22095,7 +22095,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 6270083964298705668}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 38262ff632b769f41972d64661143ef3, type: 3}
+  m_Script: {fileID: 11500000, guid: a460a523b32b0744d9ab13bf5f389240, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   useText: {fileID: 3985411278489170419}
@@ -22793,6 +22793,7 @@ GameObject:
   - component: {fileID: 7241457491174636295}
   - component: {fileID: 4953168554474728751}
   - component: {fileID: 4101666861326945886}
+  - component: {fileID: 1202030503111829834}
   m_Layer: 0
   m_Name: NEW-PLAYER-
   m_TagString: Player
@@ -22987,37 +22988,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 984f2f06994e70743abbed4d4a04d33a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  config: {fileID: 11400000, guid: ec24837b365a8084aae8269ac24b08d3, type: 2}
   currentState: 0
-  animator: {fileID: 0}
   cam: {fileID: 0}
-  walkSpeed: 7
-  runSpeed: 20
-  turnSmoothTime: 0
-  maxWalkableAngle: 30
-  jumpForce: 14
-  fallMultiplier: 5
-  lowJumpMultiplier: 4
-  airControl: 5
   groundCheck: {fileID: 1802609505148053795}
-  groundDistance: 0.15
-  groundMask:
-    serializedVersion: 2
-    m_Bits: 8
-  minSlideSpeed: 4
-  slideBoost: 5
-  slideDrag: 15
-  slopeAcceleration: 10
-  slideHeight: 1
-  dashSpeed: 50
-  dashDuration: 0.2
-  dashCooldown: 2
-  wallMask:
-    serializedVersion: 2
-    m_Bits: 64
-  wallCheckDistance: 0.8
-  wallSlideSpeed: -2
-  wallJumpUpForce: 8
-  wallJumpSideForce: 8
   moveAction: {fileID: -2888610488885566585, guid: 73b1a07d5ce48c644a887bb9921dd69e, type: 3}
   jumpAction: {fileID: 7476643175978843232, guid: 73b1a07d5ce48c644a887bb9921dd69e, type: 3}
   slideAction: {fileID: -1020630327481676097, guid: 73b1a07d5ce48c644a887bb9921dd69e, type: 3}
@@ -23027,15 +23001,6 @@ MonoBehaviour:
   CanvasPause: {fileID: 0}
   optionsMenu: {fileID: 0}
   controlsMenu: {fileID: 0}
-  inputBufferTime: 0.2
-  coyoteTime: 0.15
-  knockbackTimer: 0
-  footstepSound: {fileID: 8300000, guid: 6ba890e2752b3694fb19a1bb635f0986, type: 3}
-  baseFootstepInterval: 0.4
-  dashSound: {fileID: 8300000, guid: 4506b9230f684434f87893666c3d117f, type: 3}
-  slideSound: {fileID: 8300000, guid: 5ff271845d0bf514cb10248b0ecfc4b3, type: 3}
-  jumpSound: {fileID: 8300000, guid: a8c7642ff3a8cf14b82ffb08857c1b24, type: 3}
-  footstepParticles: {fileID: 198255508796863634, guid: 8e763fa58b0a27f4bac310134b28f9a2, type: 3}
 --- !u!114 &7241457491174636295
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -23100,6 +23065,25 @@ MonoBehaviour:
   goldBagStacks: 0
   shieldStacks: 0
   weaponSpeedFlat: 0
+--- !u!114 &1202030503111829834
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7210461084881904350}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5de07e65ece91ee4ca2e31e449f2e5c3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  animator: {fileID: 982103994518081049}
+  footstepParticles: {fileID: 198255508796863634, guid: 8e763fa58b0a27f4bac310134b28f9a2, type: 3}
+  footstepSound: {fileID: 8300000, guid: 6ba890e2752b3694fb19a1bb635f0986, type: 3}
+  baseFootstepInterval: 0.4
+  dashSound: {fileID: 8300000, guid: 4506b9230f684434f87893666c3d117f, type: 3}
+  slideSound: {fileID: 8300000, guid: 5ff271845d0bf514cb10248b0ecfc4b3, type: 3}
+  jumpSound: {fileID: 8300000, guid: a8c7642ff3a8cf14b82ffb08857c1b24, type: 3}
 --- !u!1 &7302221024342500338
 GameObject:
   m_ObjectHideFlags: 0

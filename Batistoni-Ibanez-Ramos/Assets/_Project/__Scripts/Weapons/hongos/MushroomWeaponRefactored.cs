@@ -8,9 +8,22 @@ namespace PatronesAplicados.RealImplementation
         public float spawnRadius = 8f;
         public LayerMask enemyLayer;
 
+        private static int _cachedGroundMask = -1;
+
         protected override void Attack()
         {
-            int mushroomsToSpawn = CurrentMultipleShots;
+            if (data == null || data.projectilePrefab == null)
+            {
+                attackSuccessful = false;
+                return;
+            }
+
+            if (_cachedGroundMask == -1)
+            {
+                _cachedGroundMask = LayerMask.GetMask("Ground");
+            }
+
+            int mushroomsToSpawn = Mathf.Max(1, CurrentMultipleShots);
             float damagePerMushroom = GetFinalDamage();
             float sporeRadius = CurrentExplosiveRadius;
             float duration = CurrentDuration;
@@ -20,26 +33,29 @@ namespace PatronesAplicados.RealImplementation
                 Vector2 randomCircle = Random.insideUnitCircle * spawnRadius;
                 Vector3 spawnPos = transform.position + new Vector3(randomCircle.x, 0f, randomCircle.y);
 
-                if (Physics.Raycast(spawnPos + Vector3.up * 5f, Vector3.down, out RaycastHit hit, 10f, LayerMask.GetMask("Ground")))
+                if (Physics.Raycast(spawnPos + Vector3.up * 5f, Vector3.down, out RaycastHit hit, 10f, _cachedGroundMask, QueryTriggerInteraction.Ignore))
                 {
                     spawnPos = hit.point;
                 }
 
-                GameObject mushObj = ProjectilePoolManager.Instance.GetProjectile(data.projectilePrefab, spawnPos, Quaternion.identity);
-                MushroomEntityRefactored mush = mushObj.GetComponent<MushroomEntityRefactored>();
+                MushroomEntityRefactored mush = null;
+
+                if (ProjectilePoolManager.Instance != null)
+                {
+                    mush = ProjectilePoolManager.Instance.GetProjectile<MushroomEntityRefactored>(
+                        data.projectilePrefab,
+                        spawnPos,
+                        Quaternion.identity);
+                }
+                else
+                {
+                    GameObject mushObj = Instantiate(data.projectilePrefab, spawnPos, Quaternion.identity);
+                    mushObj.TryGetComponent(out mush);
+                }
 
                 if (mush != null)
                 {
-                    mush.Setup(
-                        damagePerMushroom, 
-                        sporeRadius, 
-                        duration, 
-                        CurrentEffects, 
-                        CurrentHeatHeal, 
-                        WeaponID, 
-                        CurrentDamageType, 
-                        enemyLayer
-                    );
+                    mush.Setup(damagePerMushroom, sporeRadius, duration, CurrentEffects, CurrentHeatHeal, WeaponID, CurrentDamageType, enemyLayer);
                 }
             }
         }

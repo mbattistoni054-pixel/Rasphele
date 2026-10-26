@@ -5,41 +5,38 @@ namespace PatronesAplicados
 {
     public class PuertaRefactored : MonoBehaviour
     {
-        bool playerClose = false;
-        bool bossSpawned = false;
+        private bool _playerClose;
+        private bool _bossSpawned;
+        private bool _doorOpened;
+
         public GameObject boss;
         public GameObject bossCheck;
         public GameObject barrier;
         public GameObject winZone;
         public Transform spawnPoint;
-
         public GameObject Spawner;
 
-        void Update()
+        private void Update()
         {
-            if (playerClose && Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame && bossSpawned == false)
+            if (_playerClose && !_bossSpawned && Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
             {
-                bossSpawned = true;
                 SpawnBoss();
             }
 
-            if (bossSpawned)
+            if (_bossSpawned && !_doorOpened && bossCheck == null)
             {
-                if (bossCheck == null)
-                {
-                    barrier.SetActive(false);
-                    winZone.SetActive(true);
-                }
+                _doorOpened = true;
+                if (barrier != null) barrier.SetActive(false);
+                if (winZone != null) winZone.SetActive(true);
             }
         }
 
         private void OnTriggerEnter(Collider other)
         {
-            if (other.CompareTag("Player"))
+            if (other.CompareTag("Player") && !_bossSpawned)
             {
-                playerClose = true;
-                string txt = "Desafiar a la montaa?\nPress E";
-                if (EventManager.Instance != null) EventManager.Instance.TriggerEvent("ShowInteractText", txt);
+                _playerClose = true;
+                ShowInteractMessage("¿Desafiar a la montaña?\nPress E");
             }
         }
 
@@ -47,21 +44,29 @@ namespace PatronesAplicados
         {
             if (other.CompareTag("Player"))
             {
-                playerClose = false;
-                if (EventManager.Instance != null) EventManager.Instance.TriggerEvent("ShowInteractText", "");
+                _playerClose = false;
+                ShowInteractMessage(string.Empty);
             }
         }
 
         private void SpawnBoss()
         {
-            string txt = "Jefe Invocado";
-            if (EventManager.Instance != null) EventManager.Instance.TriggerEvent("ShowInteractText", txt);
+            _bossSpawned = true;
+            ShowInteractMessage("Jefe Invocado");
 
-            Spawner.SetActive(false);
-            bossSpawned = true;
-            bossCheck = Instantiate(boss, spawnPoint.position, Quaternion.identity);
+            if (Spawner != null) Spawner.SetActive(false);
+            if (boss != null && spawnPoint != null)
+            {
+                bossCheck = Instantiate(boss, spawnPoint.position, Quaternion.identity);
+            }
+        }
+
+        private static void ShowInteractMessage(string message)
+        {
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.TriggerEvent(GameEventKeys.ShowInteractText, message);
+            }
         }
     }
 }
-
-

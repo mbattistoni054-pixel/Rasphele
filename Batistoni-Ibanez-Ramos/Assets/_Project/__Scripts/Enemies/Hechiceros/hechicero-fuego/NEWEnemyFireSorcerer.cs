@@ -1,14 +1,12 @@
-using PatronesAplicados.RealImplementation;
-using UnityEngine;
 using System.Collections;
+using UnityEngine;
+using PatronesAplicados;
+using PatronesAplicados.RealImplementation;
 
 public class NEWEnemyFireSorcerer : NEWEnemySorcererBase
 {
-    protected override void Start()
-    {
-        base.Start();
-
-    }
+    private const float CastRecoveryDuration = 1.5f;
+    private const float FireLineLength = 50f;
 
     protected override void StartAttackRoutine()
     {
@@ -18,36 +16,62 @@ public class NEWEnemyFireSorcerer : NEWEnemySorcererBase
     private IEnumerator PerformAttackRoutine()
     {
         isChargingAttack = true;
+        attackCooldownTimer = 0f;
 
-        if (animator != null) animator.SetTrigger("Cast");
+        if (animator != null) animator.SetTrigger(CastHash);
 
-        if (data.FireLinePrefab != null && player != null)
+        if (data != null && data.FireLinePrefab != null && player != null)
         {
-            Vector3 spawnPos = new Vector3(transform.position.x, transform.position.y, transform.position.z);
-            Vector3 direction = (player.position - transform.position).normalized;
-            direction.y = 0;
+            Vector3 spawnPos = transform.position;
+            Vector3 direction = player.position - spawnPos;
+            direction.y = 0f;
 
-            GameObject lineObj;
-            if (ProjectilePoolManager.Instance != null)
+            if (direction.sqrMagnitude < 0.0001f)
             {
-                lineObj = ProjectilePoolManager.Instance.GetProjectile(data.FireLinePrefab, spawnPos, Quaternion.LookRotation(direction));
+                direction = transform.forward;
             }
             else
             {
-                lineObj = Instantiate(data.FireLinePrefab, spawnPos, Quaternion.LookRotation(direction));
+                direction.Normalize();
             }
-            
-            NEWEnemyFireLine newFireLine = lineObj.GetComponent<NEWEnemyFireLine>();
-            if (newFireLine != null)
+
+            Quaternion spawnRotation = Quaternion.LookRotation(direction);
+            transform.rotation = spawnRotation;
+
+            NEWEnemyFireLine fireLine = null;
+            if (ProjectilePoolManager.Instance != null)
             {
-                newFireLine.Setup(data.AttackDamage * damageMultiplier, 50f);
+                fireLine = ProjectilePoolManager.Instance.GetProjectile<NEWEnemyFireLine>(data.FireLinePrefab, spawnPos, spawnRotation);
             }
-            
+            else
+            {
+                GameObject lineObj = Instantiate(data.FireLinePrefab, spawnPos, spawnRotation);
+                lineObj.TryGetComponent(out fireLine);
+            }
+
+            if (fireLine != null)
+            {
+                fireLine.Setup(data.AttackDamage * damageMultiplier, FireLineLength);
+            }
         }
 
-        yield return new WaitForSeconds(1.5f);
+        float recoveryTimer = CastRecoveryDuration;
+        while (recoveryTimer > 0f)
+        {
+            if (isDead || isStunned)
+            {
+                isChargingAttack = false;
+                yield break;
+            }
 
-        lastAttackTime = Time.time;
-        isChargingAttack = false; 
+            if (!isPaused && !PauseManager.IsPaused)
+            {
+                recoveryTimer -= Time.deltaTime;
+            }
+            yield return null;
+        }
+
+        attackCooldownTimer = 0f;
+        isChargingAttack = false;
     }
 }

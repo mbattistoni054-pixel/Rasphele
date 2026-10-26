@@ -39,7 +39,7 @@ namespace PatronesAplicados
         public List<EnemySpawnInfo> availableEnemies;
     }
 
-    public class EnemySpawnerRefactored : MonoBehaviour
+    public class EnemySpawnerRefactored : MonoBehaviour, IPausable
     {
         [Header("Referencias e Inyección de Dependencias")]
         public Transform player;
@@ -51,7 +51,7 @@ namespace PatronesAplicados
         [Header("Rendimiento")]
         [Tooltip("Máximo de enemigos permitidos a la vez para evitar lag.")]
         public int maxActiveEnemies = 50;
-        private int currentActiveEnemies = 0;
+        private int _currentActiveEnemies;
 
         [Header("Configuración de Fases")]
         public List<WavePhase> waves = new List<WavePhase>();
@@ -66,6 +66,7 @@ namespace PatronesAplicados
 
         private readonly EnemyWaveLogic _waveLogic = new EnemyWaveLogic();
         private readonly NavMeshSpawnLocator _spawnLocator = new NavMeshSpawnLocator();
+        private bool _isPaused;
 
         private void Awake()
         {
@@ -73,10 +74,21 @@ namespace PatronesAplicados
             if (enemyPool == null) enemyPool = EnemyPool.Instance != null ? EnemyPool.Instance : FindFirstObjectByType<EnemyPool>();
         }
 
+        private void OnEnable()
+        {
+            _isPaused = PauseManager.IsPaused;
+            PauseManager.Register(this);
+        }
+
+        private void OnDisable()
+        {
+            PauseManager.Unregister(this);
+        }
+
         private void Start()
         {
             _waveLogic.Reset();
-            currentActiveEnemies = 0;
+            _currentActiveEnemies = 0;
 
             if (player == null)
             {
@@ -92,32 +104,33 @@ namespace PatronesAplicados
 
             if (EventManager.Instance != null)
             {
-                EventManager.Instance.StartListening("EnemyDied", OnEnemyDied);
+                EventManager.Instance.StartListening(GameEventKeys.EnemyDied, OnEnemyDied);
             }
         }
 
         private void OnDestroy()
         {
+            PauseManager.Unregister(this);
             if (EventManager.Instance != null)
             {
-                EventManager.Instance.StopListening("EnemyDied", OnEnemyDied);
+                EventManager.Instance.StopListening(GameEventKeys.EnemyDied, OnEnemyDied);
             }
         }
 
         private void OnEnemyDied()
         {
-            currentActiveEnemies--;
-            if (currentActiveEnemies < 0) currentActiveEnemies = 0;
+            _currentActiveEnemies--;
+            if (_currentActiveEnemies < 0) _currentActiveEnemies = 0;
         }
 
         private void Update()
         {
-            if (player == null || waves == null || waves.Count == 0) return;
+            if (_isPaused || player == null || waves == null || waves.Count == 0) return;
 
             if (!_waveLogic.TickAndShouldSpawn(Time.deltaTime, waves, out WavePhase currentWave))
                 return;
 
-            if (currentActiveEnemies >= maxActiveEnemies)
+            if (_currentActiveEnemies >= maxActiveEnemies)
                 return;
 
             if (_waveLogic.ConsumeSkipTurnIfNeeded())
@@ -151,16 +164,12 @@ namespace PatronesAplicados
             EnemyBaseRefactored enemyScript = enemyPool.GetEnemy(selectedInfo.enemyPrefab, spawnPos);
             if (enemyScript != null)
             {
-                currentActiveEnemies++;
-                enemyFactory.SetupEnemy(
-                    enemyScript,
-                    spawnPos,
-                    player,
-                    currentWave.healthMultiplier,
-                    currentWave.damageMultiplier,
-                    selectedInfo.enemyPrefab.name
-                );
+                _currentActiveEnemies++;
+                enemyFactory.SetupEnemy(enemyScript, spawnPos, player, currentWave.healthMultiplier, currentWave.damageMultiplier, selectedInfo.enemyPrefab.name);
             }
         }
+
+        public void OnPause() => _isPaused = true;
+        public void OnResume() => _isPaused = false;
     }
 }

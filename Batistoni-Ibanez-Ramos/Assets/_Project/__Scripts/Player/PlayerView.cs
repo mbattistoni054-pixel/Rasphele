@@ -24,6 +24,7 @@ namespace PatronesAplicados
         private PlayerModel _model;
         private float _footstepTimer;
         private bool _wasEmittingFootsteps;
+        private bool _isPaused;
 
         private void Awake()
         {
@@ -63,9 +64,24 @@ namespace PatronesAplicados
             _model.OnDashCooldownUpdated -= HandleDashCooldownUpdated;
         }
 
+        public void SetPaused(bool paused)
+        {
+            _isPaused = paused;
+            if (animator != null)
+            {
+                animator.speed = paused ? 0f : 1f;
+            }
+
+            if (footstepParticles != null)
+            {
+                if (paused && footstepParticles.isPlaying) footstepParticles.Pause();
+                else if (!paused && footstepParticles.isPaused) footstepParticles.Play();
+            }
+        }
+
         public void TickView(float deltaTime)
         {
-            if (_model == null) return;
+            if (_model == null || _isPaused) return;
 
             bool isMovingOnGround = _model.IsGrounded && _model.CurrentState == PlayerState.Walking && _model.IsMoving;
 
@@ -136,21 +152,5 @@ namespace PatronesAplicados
             if (clip != null && AudioManager.Instance != null)
                 AudioManager.Instance.PlaySFX(clip, category);
         }
-
-        public void SetPaused(bool isPaused)
-        {
-            if (animator != null)
-            {
-                animator.speed = isPaused ? 0f : 1f;
-            }
-
-            if (isPaused && footstepParticles != null && _wasEmittingFootsteps)
-            {
-                var em = footstepParticles.emission;
-                em.enabled = false;
-                _wasEmittingFootsteps = false;
-            }
-        }
-
     }
 }

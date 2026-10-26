@@ -1,29 +1,35 @@
-using System.Collections;
 using UnityEngine;
 using PatronesAplicados;
 using PatronesAplicados.RealImplementation;
 
 public class NEWEnemyKamikaze : EnemyBaseRefactored
 {
-    private bool isTriggered = false;
-    private Renderer rend;
+    private bool _isTriggered;
+    private float _explosionTimer;
+    private int _lastBlinkPhase = -1;
+
+    private Renderer _rend;
     [SerializeField] private Animator animator;
 
-    private bool hasMoveParam = false;
-    private float pathTimer = 0f;
+    private bool _hasMoveParam;
+    private float _pathTimer;
 
     private MaterialPropertyBlock _propBlock;
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static readonly int ColorId = Shader.PropertyToID("_Color");
+    private static readonly int MoveHash = Animator.StringToHash("Move");
 
     private readonly Collider[] _explosionHitsBuffer = new Collider[16];
 
     public override void ResetStats()
     {
         base.ResetStats();
-        isTriggered = false;
-        pathTimer = 0f;
+        _isTriggered = false;
+        _explosionTimer = 0f;
+        _lastBlinkPhase = -1;
+        _pathTimer = 0f;
         ClearBlinkColor();
+        if (animator != null) animator.speed = isPaused ? 0f : 1f;
     }
 
     protected override void Start()
@@ -33,17 +39,18 @@ public class NEWEnemyKamikaze : EnemyBaseRefactored
 
         if (animator != null)
         {
-            foreach (var param in animator.parameters)
+            AnimatorControllerParameter[] parameters = animator.parameters;
+            for (int i = 0; i < parameters.Length; i++)
             {
-                if (param.name == "Move")
+                if (parameters[i].nameHash == MoveHash)
                 {
-                    hasMoveParam = true;
+                    _hasMoveParam = true;
                     break;
                 }
             }
         }
 
-        rend = GetComponentInChildren<Renderer>();
+        _rend = GetComponentInChildren<Renderer>();
         if (_propBlock == null) _propBlock = new MaterialPropertyBlock();
 
         if (agent != null && data != null)
@@ -54,94 +61,110 @@ public class NEWEnemyKamikaze : EnemyBaseRefactored
         }
     }
 
+    public override void OnPause()
+    {
+        base.OnPause();
+        if (animator != null) animator.speed = 0f;
+    }
+
+    public override void OnResume()
+    {
+        base.OnResume();
+        if (animator != null) animator.speed = 1f;
+    }
+
     protected override void Update()
     {
         base.Update();
-        if (isDead || data == null) return;
+        if (isDead || isPaused || data == null) return;
+
+        float dt = Time.deltaTime;
+        _pathTimer -= dt;
+
+        if (_isTriggered)
+        {
+            TickKamikazeCountdown(dt);
+            if (isDead) return;
+        }
 
         if (player != null && !isStunned && agent != null && agent.enabled && agent.isOnNavMesh)
         {
-            float distance = Vector3.Distance(player.position, transform.position);
+            float sqrDistance = (player.position - transform.position).sqrMagnitude;
+            float rangeAttackSqr = data.RangeAttack * data.RangeAttack;
 
-            if (!isTriggered)
+            if (!_isTriggered)
             {
-                if (distance > data.RangeAttack)
+                if (sqrDistance > rangeAttackSqr)
                 {
                     agent.isStopped = false;
 
-                    if (Time.time >= pathTimer)
+                    if (_pathTimer <= 0f)
                     {
                         agent.SetDestination(player.position);
-                        pathTimer = Time.time + 0.2f;
+                        _pathTimer = 0.2f;
                     }
 
-                    if (animator != null && hasMoveParam) animator.SetBool("Move", true);
+                    if (animator != null && _hasMoveParam) animator.SetBool(MoveHash, true);
                 }
                 else
                 {
-                    if (animator != null && hasMoveParam) animator.SetBool("Move", false);
-                    StartCoroutine(KamikazeRoutine());
+                    StartKamikazeCountdown();
                 }
             }
 
-            if (distance <= data.RangeAttack || isTriggered)
+            if (sqrDistance <= rangeAttackSqr || _isTriggered)
             {
-                Vector3 directionToPlayer = (player.position - transform.position).normalized;
-                directionToPlayer.y = 0f;
-
-                if (directionToPlayer != Vector3.zero)
-                {
-                    Quaternion targetRotation = Quaternion.LookRotation(directionToPlayer);
-                    transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 30f);
-                }
+                RotateTowardsPlayer(dt, 30f);
             }
         }
     }
 
-    private IEnumerator KamikazeRoutine()
+    private void StartKamikazeCountdown()
     {
-        isTriggered = true;
+        _isTriggered = true;
+        _explosionTimer = data.ExplosionDelay;
+        _lastBlinkPhase = -1;
 
         if (agent != null && agent.enabled && agent.isOnNavMesh) agent.isStopped = true;
-        if (animator != null && hasMoveParam) animator.SetBool("Move", false);
+        if (animator != null && _hasMoveParam) animator.SetBool(MoveHash, false);
+    }
 
-        float timer = data.ExplosionDelay;
+    private void TickKamikazeCountdown(float deltaTime)
+    {
+        _explosionTimer -= deltaTime;
 
-        while (timer > 0f)
-        {
-            if (isDead) yield break;
-
-            Color blinkColor = (Mathf.FloorToInt(timer * 8f) % 2 == 0) ? Color.red : Color.yellow;
-            SetBlinkColor(blinkColor);
-
-            yield return new WaitForSeconds(0.125f);
-            timer -= 0.125f;
-        }
-
-        if (!isDead)
+        if (_explosionTimer <= 0f)
         {
             Explode();
+            return;
+        }
+
+        int currentPhase = Mathf.FloorToInt(_explosionTimer * 8f) % 2;
+        if (currentPhase != _lastBlinkPhase)
+        {
+            _lastBlinkPhase = currentPhase;
+            SetBlinkColor(currentPhase == 0 ? Color.red : Color.yellow);
         }
     }
 
     private void SetBlinkColor(Color c)
     {
-        if (rend == null) return;
+        if (_rend == null) return;
         if (_propBlock == null) _propBlock = new MaterialPropertyBlock();
 
-        rend.GetPropertyBlock(_propBlock);
+        _rend.GetPropertyBlock(_propBlock);
         _propBlock.SetColor(BaseColorId, c);
         _propBlock.SetColor(ColorId, c);
-        rend.SetPropertyBlock(_propBlock);
+        _rend.SetPropertyBlock(_propBlock);
     }
 
     private void ClearBlinkColor()
     {
-        if (rend == null) return;
+        if (_rend == null) return;
         if (_propBlock == null) _propBlock = new MaterialPropertyBlock();
 
         _propBlock.Clear();
-        rend.SetPropertyBlock(_propBlock);
+        _rend.SetPropertyBlock(_propBlock);
     }
 
     private void Explode()
@@ -157,15 +180,9 @@ public class NEWEnemyKamikaze : EnemyBaseRefactored
 
         if (data.ExplosionVisualPrefab != null)
         {
-            GameObject visual;
-            if (VfxPoolManager.Instance != null)
-            {
-                visual = VfxPoolManager.Instance.GetVfx(data.ExplosionVisualPrefab, transform.position, Quaternion.identity, 1.5f);
-            }
-            else
-            {
-                visual = Instantiate(data.ExplosionVisualPrefab, transform.position, Quaternion.identity);
-            }
+            GameObject visual = VfxPoolManager.Instance != null
+                ? VfxPoolManager.Instance.GetVfx(data.ExplosionVisualPrefab, transform.position, Quaternion.identity, 1.5f)
+                : Instantiate(data.ExplosionVisualPrefab, transform.position, Quaternion.identity);
 
             if (visual != null)
             {
@@ -189,7 +206,7 @@ public class NEWEnemyKamikaze : EnemyBaseRefactored
 
         if (EventManager.Instance != null)
         {
-            EventManager.Instance.TriggerEvent("EnemyDied");
+            EventManager.Instance.TriggerEvent(GameEventKeys.EnemyDied);
         }
 
         ReturnEnemy();

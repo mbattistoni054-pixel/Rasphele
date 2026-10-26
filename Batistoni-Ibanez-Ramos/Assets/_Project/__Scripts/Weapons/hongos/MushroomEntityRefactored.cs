@@ -1,146 +1,170 @@
-using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace PatronesAplicados.RealImplementation
 {
-    public class MushroomEntityRefactored : MonoBehaviour
+    public class MushroomEntityRefactored : MonoBehaviour, IPausable
     {
         [Header("Efectos Visuales")]
         public Transform sporeVisualArea;
 
-        private float damage;
-        private float radius;
-        private WeaponData.ImpactEffects effects;
-        private float healAmount;
-        private int weaponID;
-        private DamageType damageType;
-        private LayerMask enemyMask;
+        private float _damage;
+        private float _radius;
+        private float _duration;
+        private WeaponData.ImpactEffects _effects;
+        private float _healAmount;
+        private int _weaponID;
+        private DamageType _damageType;
+        private LayerMask _enemyMask;
 
-        private float tickTimer = 0f;
-        
-        private static Dictionary<int, float> playerHealTimes = new Dictionary<int, float>();
-        private static float nextCleanupTime = 0f;
-        
-        private Coroutine lifeTimerCoroutine;
+        private float _tickTimer;
+        private float _lifeTimer;
+        private bool _isReturned;
+        private bool _isPaused;
+
+        private static readonly Collider[] HitBuffer = new Collider[64];
+        private static readonly HashSet<IDamageable> DamagedTargets = new HashSet<IDamageable>();
+
+        private static float _pausableClock;
+        private static int _lastClockFrame = -1;
+        private static float _nextAllowedPlayerHealTime;
+
+        private static Transform _cachedPlayerTransform;
+        private static IHealable _cachedPlayerHealable;
+
+        private void OnEnable()
+        {
+            _tickTimer = 0f;
+            _lifeTimer = 0f;
+            _isReturned = false;
+            _isPaused = PauseManager.IsPaused;
+            PauseManager.Register(this);
+        }
+
+        private void OnDisable()
+        {
+            PauseManager.Unregister(this);
+        }
 
         public void Setup(float dmg, float sporeRadius, float duration, WeaponData.ImpactEffects weaponEffects, float heal, int wID, DamageType dType, LayerMask mask)
         {
-            damage = dmg;
-            radius = sporeRadius;
-            effects = weaponEffects;
-            healAmount = heal;
-            weaponID = wID;
-            damageType = dType;
-            enemyMask = mask;
-            tickTimer = 0f;
+            _damage = dmg;
+            _radius = sporeRadius;
+            _duration = duration;
+            _effects = weaponEffects;
+            _healAmount = heal;
+            _weaponID = wID;
+            _damageType = dType;
+            _enemyMask = mask;
 
-            Debug.Log($" [HONGO REFACTORIZADO] Mi radio es {radius} y mi curacin es: {healAmount}");
+            _tickTimer = 0f;
+            _lifeTimer = 0f;
+            _isReturned = false;
 
             if (sporeVisualArea != null)
             {
-                sporeVisualArea.localScale = new Vector3(radius * 2f, radius * 2f, radius * 2f);
-            }
-
-            if (lifeTimerCoroutine != null) StopCoroutine(lifeTimerCoroutine);
-            lifeTimerCoroutine = StartCoroutine(ReturnToPoolAfterTime(duration));
-        }
-
-        private IEnumerator ReturnToPoolAfterTime(float time)
-        {
-            yield return new WaitForSeconds(time);
-            
-            if (ProjectilePoolManager.Instance != null)
-            {
-                ProjectilePoolManager.Instance.ReturnProjectile(gameObject);
-            }
-            else
-            {
-                Destroy(gameObject); 
+                float diameter = _radius * 2f;
+                sporeVisualArea.localScale = new Vector3(diameter, diameter, diameter);
             }
         }
 
-        void Update()
+        private void Update()
         {
-            if (Time.time > nextCleanupTime)
+            if (_isReturned || _isPaused) return;
+
+            float dt = Time.deltaTime;
+
+            if (Time.frameCount != _lastClockFrame)
             {
-                CleanUpDictionary();
+                _lastClockFrame = Time.frameCount;
+                _pausableClock += dt;
             }
 
-            tickTimer += Time.deltaTime;
-
-            if (tickTimer >= 1f)
+            _lifeTimer += dt;
+            if (_lifeTimer >= _duration)
             {
-                tickTimer -= 1f;
+                ReturnToPool();
+                return;
+            }
+
+            _tickTimer += dt;
+            if (_tickTimer >= 1f)
+            {
+                _tickTimer -= 1f;
                 SporeTick();
             }
         }
 
         private void SporeTick()
         {
-            Collider[] hitEnemies = Physics.OverlapSphere(transform.position, radius, enemyMask);
-            foreach (Collider hit in hitEnemies)
+            DamagedTargets.Clear();
+            int hitCount = Physics.OverlapSphereNonAlloc(transform.position, _radius, HitBuffer, _enemyMask);
+
+            for (int i = 0; i < hitCount; i++)
             {
-                IDamageable enemy = hit.GetComponent<IDamageable>();
-                if (enemy != null)
+                Collider hit = HitBuffer[i];
+                if (hit == null) continue;
+
+                if (DamageableRegistry.TryGet(hit, out IDamageable enemy, out _) && DamagedTargets.Add(enemy))
                 {
-                    bool isCrit = Random.Range(0f, 100f) <= effects.critChance;
-                    enemy.TakeDamage(damage, isCrit, damageType);
-                    enemy.ApplyEffects(effects, weaponID);
+                    bool isCrit = Random.Range(0f, 100f) <= _effects.critChance;
+                    enemy.TakeDamage(_damage, isCrit, _damageType);
+                    enemy.ApplyEffects(_effects, _weaponID);
                 }
             }
 
-            if (healAmount > 0f)
+            if (_healAmount > 0f && _pausableClock >= _nextAllowedPlayerHealTime)
             {
-                Collider[] hitPlayers = Physics.OverlapSphere(transform.position, radius);
-
-                foreach (Collider hit in hitPlayers)
-                {
-                    if (hit.CompareTag("Player"))
-                    {
-                        int playerId = hit.gameObject.GetInstanceID();
-                        if (!playerHealTimes.ContainsKey(playerId)) playerHealTimes[playerId] = 0f;
-
-                        if (Time.time >= playerHealTimes[playerId] + 0.95f)
-                        {
-                           
-                            PatronesAplicados.PlayerHealthRefactored newHealth = hit.GetComponent<PatronesAplicados.PlayerHealthRefactored>();
-                             if (newHealth != null)
-                             {
-                                playerHealTimes[playerId] = Time.time;
-                                newHealth.Heal(healAmount);
-                                Debug.Log($" [ESPORAS] CURACIN APLICADA! (+{healAmount})");
-                             }
-                            
-                        }
-                    }
-                }
+                TryHealPlayerInRadius();
             }
         }
+
+        private void TryHealPlayerInRadius()
+        {
+            Transform playerTransform = GameManagerRefactored.Instance != null
+                ? GameManagerRefactored.Instance.Player
+                : null;
+
+            if (playerTransform == null) return;
+
+            float sqrDist = (playerTransform.position - transform.position).sqrMagnitude;
+            if (sqrDist > _radius * _radius) return;
+
+            if (_cachedPlayerTransform != playerTransform || _cachedPlayerHealable == null)
+            {
+                _cachedPlayerTransform = playerTransform;
+                playerTransform.TryGetComponent(out _cachedPlayerHealable);
+            }
+
+            if (_cachedPlayerHealable != null)
+            {
+                _nextAllowedPlayerHealTime = _pausableClock + 0.95f;
+                _cachedPlayerHealable.Heal(_healAmount);
+            }
+        }
+
+        private void ReturnToPool()
+        {
+            if (_isReturned) return;
+            _isReturned = true;
+
+            if (ProjectilePoolManager.Instance != null)
+            {
+                ProjectilePoolManager.Instance.ReturnProjectile(gameObject);
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
+        }
+
+        public void OnPause() => _isPaused = true;
+        public void OnResume() => _isPaused = false;
 
         private void OnDrawGizmosSelected()
         {
             Gizmos.color = Color.green;
-            Gizmos.DrawWireSphere(transform.position, radius);
-        }
-
-        private void CleanUpDictionary()
-        {
-            nextCleanupTime = Time.time + 30f; 
-            
-            List<int> keysToRemove = new List<int>();
-            foreach (var kvp in playerHealTimes)
-            {
-                if (Time.time >= kvp.Value + 5f)
-                {
-                    keysToRemove.Add(kvp.Key);
-                }
-            }
-
-            foreach (int key in keysToRemove)
-            {
-                playerHealTimes.Remove(key);
-            }
+            Gizmos.DrawWireSphere(transform.position, _radius);
         }
     }
 }

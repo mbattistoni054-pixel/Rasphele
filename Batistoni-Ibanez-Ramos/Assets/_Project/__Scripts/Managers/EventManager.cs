@@ -20,9 +20,11 @@ namespace PatronesAplicados
         public const string RequestCurrentStats = "RequestCurrentStats";
         public const string PlayerStatsUpdated = "PlayerStatsUpdated";
 
+        public const string ShowInteractText = "ShowInteractText";
+        public const string HideInteractText = "HideInteractText";
+
         public const string EnemyKilledGoldReward = "EnemyKilled_GoldReward";
         public const string EnemyDied = "EnemyDied";
-
         public const string BossSpawned = "BossSpawned";
         public const string BossHealthChanged = "BossHealthChanged";
         public const string BossDefeated = "BossDefeated";
@@ -71,7 +73,6 @@ namespace PatronesAplicados
             {
                 if (thisEvent.GetType() != listener.GetType())
                 {
-                    Debug.LogError($"[EventManager] Conflicto de tipos en el evento '{eventName}'. Registrado: {thisEvent.GetType().Name}, Intentado: {listener.GetType().Name}");
                     return;
                 }
                 _eventDictionary[eventName] = Delegate.Combine(thisEvent, listener);

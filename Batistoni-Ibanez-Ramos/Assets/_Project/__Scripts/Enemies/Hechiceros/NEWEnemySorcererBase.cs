@@ -1,25 +1,28 @@
-using PatronesAplicados;
 using UnityEngine;
-using UnityEngine.AI;
-using System.Collections;
+using PatronesAplicados;
 
 public abstract class NEWEnemySorcererBase : EnemyBaseRefactored
 {
-
-    [Header("Animacin")]
+    [Header("Animación")]
     public Animator animator;
-    protected bool hasMoveParam = false;
+    protected bool hasMoveParam;
 
-    protected float lastAttackTime = -10f;
-    protected bool isChargingAttack = false;
-    protected bool isFleeing = false;
-    protected float pathTimer = 0f;
+    protected float attackCooldownTimer;
+    protected bool isChargingAttack;
+    protected bool isFleeing;
+    protected float pathTimer;
+
+    protected static readonly int MoveHash = Animator.StringToHash("Move");
+    protected static readonly int CastHash = Animator.StringToHash("Cast");
 
     public override void ResetStats()
     {
         base.ResetStats();
         isChargingAttack = false;
         isFleeing = false;
+        pathTimer = 0f;
+        attackCooldownTimer = data != null ? data.AttackCooldown : 0f;
+        if (animator != null) animator.speed = isPaused ? 0f : 1f;
     }
 
     protected override void Start()
@@ -29,9 +32,14 @@ public abstract class NEWEnemySorcererBase : EnemyBaseRefactored
 
         if (animator != null)
         {
-            foreach (var param in animator.parameters)
+            AnimatorControllerParameter[] parameters = animator.parameters;
+            for (int i = 0; i < parameters.Length; i++)
             {
-                if (param.name == "Move") hasMoveParam = true;
+                if (parameters[i].nameHash == MoveHash)
+                {
+                    hasMoveParam = true;
+                    break;
+                }
             }
         }
 
@@ -40,39 +48,65 @@ public abstract class NEWEnemySorcererBase : EnemyBaseRefactored
             agent.acceleration = 40f;
             agent.angularSpeed = 400f;
         }
+
+        attackCooldownTimer = data != null ? data.AttackCooldown : 0f;
+    }
+
+    public override void OnPause()
+    {
+        base.OnPause();
+        if (animator != null) animator.speed = 0f;
+    }
+
+    public override void OnResume()
+    {
+        base.OnResume();
+        if (animator != null) animator.speed = 1f;
     }
 
     protected override void Update()
     {
         base.Update();
+        if (isDead || isPaused || data == null) return;
 
-        if (player != null && !isStunned && agent != null)
+        float dt = Time.deltaTime;
+        if (!isChargingAttack)
         {
-            float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+            attackCooldownTimer += dt;
+        }
+        pathTimer -= dt;
 
-            if (distanceToPlayer < data.FleeDistance && !isChargingAttack)
-            {
-                FleeFromPlayer();
-                return;
-            }
+        if (player != null && !isStunned && agent != null && agent.enabled && agent.isOnNavMesh)
+        {
+            float sqrDistance = (player.position - transform.position).sqrMagnitude;
+            float fleeDistSqr = data.FleeDistance * data.FleeDistance;
+            float rangeAttackSqr = data.RangeAttack * data.RangeAttack;
 
-            if (distanceToPlayer > data.RangeAttack && !isChargingAttack)
+            if (!isChargingAttack)
             {
-                ApproachPlayer();
-                return;
-            }
+                if (sqrDistance < fleeDistSqr)
+                {
+                    FleeFromPlayer();
+                    return;
+                }
 
-            if (distanceToPlayer <= data.RangeAttack && Time.time >= lastAttackTime + data.AttackCooldown && !isChargingAttack)
-            {
-                StartAttackRoutine();
-                return;
-            }
+                if (sqrDistance > rangeAttackSqr)
+                {
+                    ApproachPlayer();
+                    return;
+                }
 
-            if (!isChargingAttack && distanceToPlayer >= data.FleeDistance && distanceToPlayer <= data.RangeAttack)
-            {
+                if (attackCooldownTimer >= data.AttackCooldown)
+                {
+                    agent.isStopped = true;
+                    if (animator != null && hasMoveParam) animator.SetBool(MoveHash, false);
+                    StartAttackRoutine();
+                    return;
+                }
+
                 agent.isStopped = true;
-                if (animator != null && hasMoveParam) animator.SetBool("Move", false);
-                LookAtPlayer();
+                if (animator != null && hasMoveParam) animator.SetBool(MoveHash, false);
+                LookAtPlayer(dt);
             }
         }
     }
@@ -82,17 +116,25 @@ public abstract class NEWEnemySorcererBase : EnemyBaseRefactored
         isFleeing = true;
         agent.isStopped = false;
 
-        Vector3 dirAwayFromPlayer = (transform.position - player.position).normalized;
-        
-        Vector3 fleePosition = transform.position + dirAwayFromPlayer * 10f;
-
-        if (Time.time >= pathTimer)
+        if (pathTimer <= 0f)
         {
+            Vector3 dirAwayFromPlayer = transform.position - player.position;
+            dirAwayFromPlayer.y = 0f;
+            if (dirAwayFromPlayer.sqrMagnitude < 0.0001f)
+            {
+                dirAwayFromPlayer = -transform.forward;
+            }
+            else
+            {
+                dirAwayFromPlayer.Normalize();
+            }
+
+            Vector3 fleePosition = transform.position + dirAwayFromPlayer * 10f;
             agent.SetDestination(fleePosition);
-            pathTimer = Time.time + 0.2f; 
+            pathTimer = 0.2f;
         }
 
-        if (animator != null && hasMoveParam) animator.SetBool("Move", true);
+        if (animator != null && hasMoveParam) animator.SetBool(MoveHash, true);
     }
 
     protected void ApproachPlayer()
@@ -100,31 +142,26 @@ public abstract class NEWEnemySorcererBase : EnemyBaseRefactored
         isFleeing = false;
         agent.isStopped = false;
 
-        if (Time.time >= pathTimer)
+        if (pathTimer <= 0f)
         {
             agent.SetDestination(player.position);
-            pathTimer = Time.time + 0.2f;
+            pathTimer = 0.2f;
         }
 
-        if (animator != null && hasMoveParam) animator.SetBool("Move", true);
+        if (animator != null && hasMoveParam) animator.SetBool(MoveHash, true);
     }
 
-    protected void LookAtPlayer()
+    protected void LookAtPlayer(float deltaTime)
     {
-        Vector3 dirToPlayer = (player.position - transform.position).normalized;
-        dirToPlayer.y = 0; 
-
-        if (dirToPlayer != Vector3.zero)
-        {
-            Quaternion targetRot = Quaternion.LookRotation(dirToPlayer);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.deltaTime * 10f);
-        }
+        RotateTowardsPlayer(deltaTime, 10f);
     }
 
     protected abstract void StartAttackRoutine();
 
     private void OnDrawGizmosSelected()
     {
+        if (data == null) return;
+
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, data.RangeAttack);
 
@@ -132,4 +169,3 @@ public abstract class NEWEnemySorcererBase : EnemyBaseRefactored
         Gizmos.DrawWireSphere(transform.position, data.FleeDistance);
     }
 }
-

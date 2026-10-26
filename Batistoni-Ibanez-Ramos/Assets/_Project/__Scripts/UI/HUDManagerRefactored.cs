@@ -35,17 +35,18 @@ namespace PatronesAplicados
         {
             if (EventManager.Instance != null)
             {
-                EventManager.Instance.StartListening<float, float>("PlayerHealthChanged", UpdateHealth);
-                EventManager.Instance.StartListening<int>("MoneyUpdated", UpdateMoney);
-                EventManager.Instance.StartListening<float, float, int>("ExperienceChanged", UpdateExperience);
-                EventManager.Instance.StartListening<float, float>("DashCooldownChanged", UpdateDashCooldown);
-                
-                EventManager.Instance.StartListening<string, float, float>("BossSpawned", ShowBossUI);
-                EventManager.Instance.StartListening<float, float>("BossHealthChanged", UpdateBossHealth);
-                EventManager.Instance.StartListening("BossDefeated", HideBossUI);
-                
-                EventManager.Instance.StartListening<string>("ShowInteractText", ShowInteractText);
-                EventManager.Instance.StartListening<int>("TimeUpdated", UpdateTimer);
+                EventManager.Instance.StartListening<float, float>(GameEventKeys.PlayerHealthChanged, UpdateHealth);
+                EventManager.Instance.StartListening<int>(GameEventKeys.MoneyUpdated, UpdateMoney);
+                EventManager.Instance.StartListening<float, float, int>(GameEventKeys.ExperienceChanged, UpdateExperience);
+                EventManager.Instance.StartListening<float, float>(GameEventKeys.DashCooldownChanged, UpdateDashCooldown);
+
+                EventManager.Instance.StartListening<string, float, float>(GameEventKeys.BossSpawned, ShowBossUI);
+                EventManager.Instance.StartListening<float, float>(GameEventKeys.BossHealthChanged, UpdateBossHealth);
+                EventManager.Instance.StartListening(GameEventKeys.BossDefeated, HideBossUI);
+
+                EventManager.Instance.StartListening<string>(GameEventKeys.ShowInteractText, ShowInteractText);
+                EventManager.Instance.StartListening(GameEventKeys.HideInteractText, ClearInteractText);
+                EventManager.Instance.StartListening<int>(GameEventKeys.TimeUpdated, UpdateTimer);
             }
         }
 
@@ -53,17 +54,18 @@ namespace PatronesAplicados
         {
             if (EventManager.Instance != null)
             {
-                EventManager.Instance.StopListening<float, float>("PlayerHealthChanged", UpdateHealth);
-                EventManager.Instance.StopListening<int>("MoneyUpdated", UpdateMoney);
-                EventManager.Instance.StopListening<float, float, int>("ExperienceChanged", UpdateExperience);
-                EventManager.Instance.StopListening<float, float>("DashCooldownChanged", UpdateDashCooldown);
-                
-                EventManager.Instance.StopListening<string, float, float>("BossSpawned", ShowBossUI);
-                EventManager.Instance.StopListening<float, float>("BossHealthChanged", UpdateBossHealth);
-                EventManager.Instance.StopListening("BossDefeated", HideBossUI);
-                
-                EventManager.Instance.StopListening<string>("ShowInteractText", ShowInteractText);
-                EventManager.Instance.StopListening<int>("TimeUpdated", UpdateTimer);
+                EventManager.Instance.StopListening<float, float>(GameEventKeys.PlayerHealthChanged, UpdateHealth);
+                EventManager.Instance.StopListening<int>(GameEventKeys.MoneyUpdated, UpdateMoney);
+                EventManager.Instance.StopListening<float, float, int>(GameEventKeys.ExperienceChanged, UpdateExperience);
+                EventManager.Instance.StopListening<float, float>(GameEventKeys.DashCooldownChanged, UpdateDashCooldown);
+
+                EventManager.Instance.StopListening<string, float, float>(GameEventKeys.BossSpawned, ShowBossUI);
+                EventManager.Instance.StopListening<float, float>(GameEventKeys.BossHealthChanged, UpdateBossHealth);
+                EventManager.Instance.StopListening(GameEventKeys.BossDefeated, HideBossUI);
+
+                EventManager.Instance.StopListening<string>(GameEventKeys.ShowInteractText, ShowInteractText);
+                EventManager.Instance.StopListening(GameEventKeys.HideInteractText, ClearInteractText);
+                EventManager.Instance.StopListening<int>(GameEventKeys.TimeUpdated, UpdateTimer);
             }
         }
 
@@ -71,39 +73,50 @@ namespace PatronesAplicados
         {
             if (interactText != null)
             {
-                interactText.text = mensaje ?? "";
+                interactText.text = mensaje ?? string.Empty;
+            }
+        }
+
+        private void ClearInteractText()
+        {
+            if (interactText != null)
+            {
+                interactText.text = string.Empty;
             }
         }
 
         private void UpdateHealth(float currentHealth, float maxHealth)
         {
-            if (hpFill != null) hpFill.fillAmount = currentHealth / maxHealth;
-            if (hpText != null) hpText.text = $"{Mathf.CeilToInt(currentHealth)}/{(int)maxHealth}";
+            if (hpFill != null && maxHealth > 0f) hpFill.fillAmount = currentHealth / maxHealth;
+            if (hpText != null) hpText.SetText("{0}/{1}", Mathf.CeilToInt(currentHealth), (int)maxHealth);
         }
 
         private void UpdateMoney(int amount)
         {
-            if (moneyText != null) moneyText.text = $"$ {amount}";
+            if (moneyText != null) moneyText.SetText("$ {0}", amount);
         }
 
         private void UpdateExperience(float currentXP, float targetXP, int currentLevel)
         {
-            if (xpFill != null) xpFill.fillAmount = currentXP / targetXP;
-            if (lvlText != null) lvlText.text = $"LVL {currentLevel}";
+            if (xpFill != null && targetXP > 0f) xpFill.fillAmount = currentXP / targetXP;
+            if (lvlText != null) lvlText.SetText("LVL {0}", currentLevel);
         }
 
         private void UpdateDashCooldown(float currentCooldown, float maxCooldown)
         {
-            if (dashFill != null) dashFill.fillAmount = 1f - (currentCooldown / maxCooldown);
+            if (dashFill != null && maxCooldown > 0f)
+            {
+                dashFill.fillAmount = 1f - (currentCooldown / maxCooldown);
+            }
         }
 
         private void UpdateTimer(int totalSeconds)
         {
             if (timerText != null)
             {
-                int minutes = Mathf.FloorToInt(totalSeconds / 60f);
-                int seconds = Mathf.FloorToInt(totalSeconds % 60f);
-                timerText.text = string.Format("{0:00}:{1:00}", minutes, seconds);
+                int minutes = totalSeconds / 60;
+                int seconds = totalSeconds % 60;
+                timerText.SetText("{0:00}:{1:00}", minutes, seconds);
             }
         }
 
@@ -116,7 +129,7 @@ namespace PatronesAplicados
 
         private void UpdateBossHealth(float currentHP, float maxHP)
         {
-            if (bossHpFill != null)
+            if (bossHpFill != null && maxHP > 0f)
             {
                 bossHpFill.fillAmount = currentHP / maxHP;
             }

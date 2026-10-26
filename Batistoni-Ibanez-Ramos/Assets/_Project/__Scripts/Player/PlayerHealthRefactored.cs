@@ -6,7 +6,7 @@ using UnityEngine.Rendering.Universal;
 
 namespace PatronesAplicados
 {
-    public class PlayerHealthRefactored : MonoBehaviour, IDamageable, IPausable
+    public class PlayerHealthRefactored : MonoBehaviour, IDamageable, IHealable, IPausable
     {
         [Header("Estadísticas de Salud")]
         public float maxHealth = 100f;

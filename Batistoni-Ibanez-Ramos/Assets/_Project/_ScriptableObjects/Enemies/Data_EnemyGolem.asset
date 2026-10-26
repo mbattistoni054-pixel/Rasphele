@@ -21,7 +21,7 @@ MonoBehaviour:
   goldReward: 50
   expReward: 0
   bullet: {fileID: 0}
-  bulletSpeed: 0
+  bulletSpeed: 50
   explosionRadius: 0
   explosionDelay: 0
   explosionVisualPrefab: {fileID: 0}

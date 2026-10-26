@@ -1,16 +1,15 @@
-using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace PatronesAplicados.RealImplementation
 {
-
     public class GalvanicCoreWeaponRefactored : WeaponBaseRealRefactored
     {
-        [Header("Ajustes del Ncleo Galvnico")]
+        [Header("Ajustes del Núcleo Galvánico")]
         public LayerMask enemyLayer;
         public float heightOffset = 2.5f;
 
-        [Header("Estadsticas nicas Base")]
+        [Header("Estadísticas Únicas Base")]
         public float damageMultiplierPerTick = 1.5f;
 
         [Header("Visuales del Rayo")]
@@ -27,9 +26,11 @@ namespace PatronesAplicados.RealImplementation
             public LineRenderer line;
         }
 
-        private List<ActiveBeam> activeBeams = new List<ActiveBeam>();
-        
-        private Queue<LineRenderer> lineRendererPool = new Queue<LineRenderer>();
+        private readonly List<ActiveBeam> _activeBeams = new List<ActiveBeam>(8);
+        private readonly Queue<LineRenderer> _lineRendererPool = new Queue<LineRenderer>();
+
+        private static readonly Collider[] HitBuffer = new Collider[64];
+        private static Material _fallbackBeamMaterial;
 
         protected override void Start()
         {
@@ -39,60 +40,53 @@ namespace PatronesAplicados.RealImplementation
 
         protected override void Update()
         {
-            if (data == null) return;
-
-            currentCooldownTimer += Time.deltaTime;
-            float actualCooldown = CurrentBaseCooldown * cachedGlobalFireRateMult;
+            if (data == null || isPaused) return;
 
             transform.localPosition = Vector3.up * heightOffset;
 
-            MaintainBeams();
+            MaintainBeams(Time.deltaTime);
             FindNewTargets();
         }
 
         protected override void Attack() { }
 
-        private void MaintainBeams()
+        private void MaintainBeams(float dt)
         {
             float range = GetFinalRange();
+            float rangeSqr = range * range;
+            Vector3 myPos = transform.position;
+            float tickRate = CurrentBaseCooldown * cachedGlobalFireRateMult;
 
-            for (int i = activeBeams.Count - 1; i >= 0; i--)
+            for (int i = _activeBeams.Count - 1; i >= 0; i--)
             {
-                ActiveBeam beam = activeBeams[i];
+                ActiveBeam beam = _activeBeams[i];
 
                 if (beam.target == null || beam.damageable == null || !beam.target.gameObject.activeInHierarchy ||
-                    Vector3.Distance(transform.position, beam.target.position) > range)
+                    (beam.target.position - myPos).sqrMagnitude > rangeSqr)
                 {
                     DestroyBeam(beam);
-                    activeBeams.RemoveAt(i);
+                    _activeBeams.RemoveAt(i);
                     continue;
                 }
 
                 if (beam.line != null)
                 {
-                    beam.line.SetPosition(0, transform.position);
-                    beam.line.SetPosition(1, beam.target.position + Vector3.up * 1f);
+                    beam.line.SetPosition(0, myPos);
+                    beam.line.SetPosition(1, beam.target.position + Vector3.up);
                 }
 
-                beam.damageTickTimer += Time.deltaTime;
-                float tickRate = CurrentBaseCooldown;
-
+                beam.damageTickTimer += dt;
                 if (beam.damageTickTimer >= tickRate)
                 {
                     beam.damageTickTimer -= tickRate;
                     DealDamage(beam);
                 }
 
-                beam.rampUpTimer += Time.deltaTime;
+                beam.rampUpTimer += dt;
                 if (beam.rampUpTimer >= CurrentRampUpInterval)
                 {
                     beam.rampUpTimer -= CurrentRampUpInterval;
-                    beam.currentDamage *= damageMultiplierPerTick;
-
-                    if (beam.currentDamage > CurrentMaxDamageCap)
-                    {
-                        beam.currentDamage = CurrentMaxDamageCap;
-                    }
+                    beam.currentDamage = Mathf.Min(CurrentMaxDamageCap, beam.currentDamage * damageMultiplierPerTick);
                 }
             }
         }
@@ -108,39 +102,31 @@ namespace PatronesAplicados.RealImplementation
 
         private void FindNewTargets()
         {
-            if (activeBeams.Count >= CurrentMultipleShots) return;
+            if (_activeBeams.Count >= CurrentMultipleShots) return;
 
-            Collider[] enemiesInRange = Physics.OverlapSphere(transform.position, GetFinalRange(), enemyLayer);
-            float shortestDistance = Mathf.Infinity;
+            Vector3 myPos = transform.position;
+            int count = Physics.OverlapSphereNonAlloc(myPos, GetFinalRange(), HitBuffer, enemyLayer);
+
+            float shortestSqrDistance = Mathf.Infinity;
             Transform nearestEnemy = null;
             IDamageable nearestDamageable = null;
 
-            foreach (Collider col in enemiesInRange)
+            for (int i = 0; i < count; i++)
             {
-                Transform enemyTransform = col.transform;
-                bool alreadyTargeted = false;
+                Collider col = HitBuffer[i];
+                if (col == null || !col.gameObject.activeInHierarchy) continue;
 
-                foreach (ActiveBeam beam in activeBeams)
+                if (!DamageableRegistry.TryGet(col, out IDamageable dmg, out Transform enemyRoot)) continue;
+                if (enemyRoot == null || !enemyRoot.gameObject.activeInHierarchy) continue;
+
+                if (IsTargetAlreadyInBeam(enemyRoot)) continue;
+
+                float sqrDistance = (enemyRoot.position - myPos).sqrMagnitude;
+                if (sqrDistance < shortestSqrDistance)
                 {
-                    if (beam.target == enemyTransform)
-                    {
-                        alreadyTargeted = true;
-                        break;
-                    }
-                }
-
-                if (alreadyTargeted) continue;
-
-                float distance = Vector3.Distance(transform.position, enemyTransform.position);
-                if (distance < shortestDistance)
-                {
-                    IDamageable dmg = col.GetComponent<IDamageable>();
-                    if (dmg != null)
-                    {
-                        shortestDistance = distance;
-                        nearestEnemy = enemyTransform;
-                        nearestDamageable = dmg;
-                    }
+                    shortestSqrDistance = sqrDistance;
+                    nearestEnemy = enemyRoot;
+                    nearestDamageable = dmg;
                 }
             }
 
@@ -150,19 +136,28 @@ namespace PatronesAplicados.RealImplementation
             }
         }
 
+        private bool IsTargetAlreadyInBeam(Transform candidate)
+        {
+            for (int i = 0; i < _activeBeams.Count; i++)
+            {
+                if (_activeBeams[i].target == candidate) return true;
+            }
+            return false;
+        }
+
         private void CreateBeam(Transform target, IDamageable damageable)
         {
-            ActiveBeam newBeam = new ActiveBeam();
-            newBeam.target = target;
-            newBeam.damageable = damageable;
-            newBeam.currentDamage = GetFinalDamage();
-            newBeam.rampUpTimer = 0f;
-            newBeam.damageTickTimer = 0f;
+            ActiveBeam newBeam = new ActiveBeam
+            {
+                target = target,
+                damageable = damageable,
+                currentDamage = GetFinalDamage(),
+                rampUpTimer = 0f,
+                damageTickTimer = 0f,
+                line = GetLineRendererFromPool()
+            };
 
-            LineRenderer lr = GetLineRendererFromPool();
-            newBeam.line = lr;
-            
-            activeBeams.Add(newBeam);
+            _activeBeams.Add(newBeam);
         }
 
         private void DestroyBeam(ActiveBeam beam)
@@ -175,36 +170,48 @@ namespace PatronesAplicados.RealImplementation
 
         private LineRenderer GetLineRendererFromPool()
         {
-            if (lineRendererPool.Count > 0)
+            while (_lineRendererPool.Count > 0)
             {
-                LineRenderer lr = lineRendererPool.Dequeue();
-                lr.gameObject.SetActive(true);
-                return lr;
+                LineRenderer lr = _lineRendererPool.Dequeue();
+                if (lr != null)
+                {
+                    lr.gameObject.SetActive(true);
+                    return lr;
+                }
+            }
+
+            GameObject lineObj = new GameObject("TeslaBeam_Pooled");
+            lineObj.transform.SetParent(transform);
+            LineRenderer newLr = lineObj.AddComponent<LineRenderer>();
+
+            newLr.positionCount = 2;
+            newLr.startWidth = beamWidth;
+            newLr.endWidth = beamWidth;
+
+            if (beamMaterial != null)
+            {
+                newLr.sharedMaterial = beamMaterial;
             }
             else
             {
-                GameObject lineObj = new GameObject("TeslaBeam_Pooled");
-                lineObj.transform.SetParent(transform);
-                LineRenderer lr = lineObj.AddComponent<LineRenderer>();
-                
-                lr.positionCount = 2;
-                lr.startWidth = beamWidth;
-                lr.endWidth = beamWidth;
-
-                if (beamMaterial != null) lr.material = beamMaterial;
-                else lr.material = new Material(Shader.Find("Sprites/Default"));
-
-                lr.startColor = Color.cyan;
-                lr.endColor = Color.blue;
-
-                return lr;
+                if (_fallbackBeamMaterial == null)
+                {
+                    _fallbackBeamMaterial = new Material(Shader.Find("Sprites/Default"));
+                }
+                newLr.sharedMaterial = _fallbackBeamMaterial;
             }
+
+            newLr.startColor = Color.cyan;
+            newLr.endColor = Color.blue;
+
+            return newLr;
         }
 
         private void ReturnLineRendererToPool(LineRenderer lr)
         {
+            if (lr == null) return;
             lr.gameObject.SetActive(false);
-            lineRendererPool.Enqueue(lr);
+            _lineRendererPool.Enqueue(lr);
         }
 
         public override void ResetWeaponStats()

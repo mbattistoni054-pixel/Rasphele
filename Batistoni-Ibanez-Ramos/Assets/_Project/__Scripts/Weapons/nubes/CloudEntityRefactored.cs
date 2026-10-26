@@ -1,81 +1,102 @@
+using System.Collections.Generic;
 using UnityEngine;
-using System.Collections;
 
 namespace PatronesAplicados.RealImplementation
 {
-    public class CloudEntityRefactored : MonoBehaviour
+    public class CloudEntityRefactored : MonoBehaviour, IPausable
     {
-        private float damage;
-        private float radius;
-        private WeaponData.ImpactEffects effects;
-        private float lightningChance;
-        private int weaponID;
-        private DamageType damageType;
-        private LayerMask enemyMask;
+        private float _damage;
+        private float _radius;
+        private float _duration;
+        private WeaponData.ImpactEffects _effects;
+        private float _lightningChance;
+        private int _weaponID;
+        private DamageType _damageType;
+        private LayerMask _enemyMask;
 
-        [Header("Telegrafo (Crculo Visual)")]
+        [Header("Telégrafo (Círculo Visual)")]
         public Transform aoeVisual;
 
-        [Header("Efecto del Rayo")] 
+        [Header("Efecto del Rayo")]
         public GameObject lightningVisualPrefab;
 
-        private float rainTimer = 0f;
-        private float lightningTimer = 0f;
-        private Coroutine lifeTimerCoroutine;
+        private float _rainTimer;
+        private float _lightningTimer;
+        private float _lifeTimer;
+        private bool _isReturned;
+        private bool _isPaused;
+
+        private static readonly Collider[] HitBuffer = new Collider[64];
+        private static readonly HashSet<IDamageable> DamagedTargets = new HashSet<IDamageable>();
+        private static int _cachedGroundMask = -1;
+
+        private void OnEnable()
+        {
+            _rainTimer = 0f;
+            _lightningTimer = 0f;
+            _lifeTimer = 0f;
+            _isReturned = false;
+            _isPaused = PauseManager.IsPaused;
+            PauseManager.Register(this);
+        }
+
+        private void OnDisable()
+        {
+            PauseManager.Unregister(this);
+        }
 
         public void Setup(float weaponDamage, float cloudRadius, float duration, WeaponData.ImpactEffects weaponEffects, float electricChance, int wID, DamageType dType, LayerMask mask)
         {
-            damage = weaponDamage;
-            radius = cloudRadius;
-            effects = weaponEffects;
-            lightningChance = electricChance;
-            weaponID = wID;
-            damageType = dType;
-            enemyMask = mask;
-            
-            rainTimer = 0f;
-            lightningTimer = 0f;
+            _damage = weaponDamage;
+            _radius = cloudRadius;
+            _duration = duration;
+            _effects = weaponEffects;
+            _lightningChance = electricChance;
+            _weaponID = wID;
+            _damageType = dType;
+            _enemyMask = mask;
+
+            _rainTimer = 0f;
+            _lightningTimer = 0f;
+            _lifeTimer = 0f;
+            _isReturned = false;
 
             if (aoeVisual != null)
             {
                 aoeVisual.gameObject.SetActive(true);
-                aoeVisual.localScale = new Vector3(radius * 2f, 0.05f, radius * 2f);
+                aoeVisual.localScale = new Vector3(_radius * 2f, 0.05f, _radius * 2f);
             }
 
             UpdateAoEVisual();
-
-            if (lifeTimerCoroutine != null) StopCoroutine(lifeTimerCoroutine);
-            lifeTimerCoroutine = StartCoroutine(ReturnToPoolAfterTime(duration));
         }
 
-        private IEnumerator ReturnToPoolAfterTime(float time)
+        private void Update()
         {
-            yield return new WaitForSeconds(time);
-            
-            if (aoeVisual != null) aoeVisual.gameObject.SetActive(false);
-            
-            if (ProjectilePoolManager.Instance != null)
-                ProjectilePoolManager.Instance.ReturnProjectile(gameObject);
-            else
-                Destroy(gameObject);
-        }
+            if (_isReturned || _isPaused) return;
 
-        void Update()
-        {
-            rainTimer += Time.deltaTime;
-            if (rainTimer >= 0.2f)
+            float dt = Time.deltaTime;
+
+            _lifeTimer += dt;
+            if (_lifeTimer >= _duration)
             {
-                rainTimer -= 0.2f;
+                ReturnToPool();
+                return;
+            }
+
+            _rainTimer += dt;
+            if (_rainTimer >= 0.2f)
+            {
+                _rainTimer -= 0.2f;
                 RainDamage();
             }
 
-            if (lightningChance > 0)
+            if (_lightningChance > 0f)
             {
-                lightningTimer += Time.deltaTime;
-                if (lightningTimer >= 1f)
+                _lightningTimer += dt;
+                if (_lightningTimer >= 1f)
                 {
-                    lightningTimer -= 1f;
-                    if (Random.Range(0f, 100f) <= lightningChance)
+                    _lightningTimer -= 1f;
+                    if (Random.Range(0f, 100f) <= _lightningChance)
                     {
                         CastLightning();
                     }
@@ -87,18 +108,21 @@ namespace PatronesAplicados.RealImplementation
         {
             if (aoeVisual == null) return;
 
-            int mascaraSueloFija = LayerMask.GetMask("Ground");
+            if (_cachedGroundMask == -1)
+            {
+                _cachedGroundMask = LayerMask.GetMask("Ground");
+            }
+
             Vector3 rayOrigin = transform.position + Vector3.up * 2f;
 
-            if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, 100f, mascaraSueloFija, QueryTriggerInteraction.Ignore))
+            if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, 100f, _cachedGroundMask, QueryTriggerInteraction.Ignore))
             {
                 aoeVisual.position = hit.point + (Vector3.up * 0.05f);
                 aoeVisual.rotation = Quaternion.FromToRotation(Vector3.up, hit.normal);
             }
             else
             {
-                Vector3 fallbackPos = new Vector3(transform.position.x, 0.05f, transform.position.z);
-                aoeVisual.position = fallbackPos;
+                aoeVisual.position = new Vector3(transform.position.x, 0.05f, transform.position.z);
                 aoeVisual.rotation = Quaternion.identity;
             }
         }
@@ -107,15 +131,19 @@ namespace PatronesAplicados.RealImplementation
         {
             Vector3 groundPosition = (aoeVisual != null) ? aoeVisual.position : transform.position - (Vector3.up * 4f);
 
-            Collider[] hits = Physics.OverlapSphere(groundPosition, radius, enemyMask);
-            foreach (Collider hit in hits)
+            DamagedTargets.Clear();
+            int hitCount = Physics.OverlapSphereNonAlloc(groundPosition, _radius, HitBuffer, _enemyMask);
+
+            for (int i = 0; i < hitCount; i++)
             {
-                IDamageable enemy = hit.GetComponent<IDamageable>();
-                if (enemy != null)
+                Collider hit = HitBuffer[i];
+                if (hit == null) continue;
+
+                if (DamageableRegistry.TryGet(hit, out IDamageable enemy, out _) && DamagedTargets.Add(enemy))
                 {
-                    bool isCrit = Random.Range(0f, 100f) <= effects.critChance;
-                    enemy.TakeDamage(damage, isCrit, damageType);
-                    enemy.ApplyEffects(effects, weaponID);
+                    bool isCrit = Random.Range(0f, 100f) <= _effects.critChance;
+                    enemy.TakeDamage(_damage, isCrit, _damageType);
+                    enemy.ApplyEffects(_effects, _weaponID);
                 }
             }
         }
@@ -123,27 +151,63 @@ namespace PatronesAplicados.RealImplementation
         private void CastLightning()
         {
             Vector3 groundPosition = (aoeVisual != null) ? aoeVisual.position : transform.position - (Vector3.up * 4f);
-            float lightningRadius = radius * 1.5f;
+            float lightningRadius = _radius * 1.5f;
 
             if (lightningVisualPrefab != null)
             {
-                GameObject rayoObj = Instantiate(lightningVisualPrefab, groundPosition, Quaternion.identity);
-                Destroy(rayoObj, 1f);
+                if (VfxPoolManager.Instance != null)
+                {
+                    VfxPoolManager.Instance.GetVfx(lightningVisualPrefab, groundPosition, Quaternion.identity, 1f);
+                }
+                else
+                {
+                    GameObject rayoObj = Instantiate(lightningVisualPrefab, groundPosition, Quaternion.identity);
+                    Destroy(rayoObj, 1f);
+                }
             }
 
-            Collider[] hits = Physics.OverlapSphere(groundPosition, lightningRadius, enemyMask);
-            foreach (Collider hit in hits)
+            WeaponData.ImpactEffects lightningEffects = new WeaponData.ImpactEffects
             {
-                IDamageable enemy = hit.GetComponent<IDamageable>();
-                if (enemy != null)
-                {
-                    enemy.TakeDamage(damage * 2f, false, DamageType.Electrico);
+                stunChance = 100f
+            };
 
-                    WeaponData.ImpactEffects lightningEffects = new WeaponData.ImpactEffects();
-                    lightningEffects.stunChance = 100f;
-                    enemy.ApplyEffects(lightningEffects, weaponID + 1000);
+            DamagedTargets.Clear();
+            int hitCount = Physics.OverlapSphereNonAlloc(groundPosition, lightningRadius, HitBuffer, _enemyMask);
+
+            for (int i = 0; i < hitCount; i++)
+            {
+                Collider hit = HitBuffer[i];
+                if (hit == null) continue;
+
+                if (DamageableRegistry.TryGet(hit, out IDamageable enemy, out _) && DamagedTargets.Add(enemy))
+                {
+                    enemy.TakeDamage(_damage * 2f, false, DamageType.Electrico);
+                    enemy.ApplyEffects(lightningEffects, _weaponID + 1000);
                 }
             }
         }
+
+        private void ReturnToPool()
+        {
+            if (_isReturned) return;
+            _isReturned = true;
+
+            if (aoeVisual != null)
+            {
+                aoeVisual.gameObject.SetActive(false);
+            }
+
+            if (ProjectilePoolManager.Instance != null)
+            {
+                ProjectilePoolManager.Instance.ReturnProjectile(gameObject);
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
+        }
+
+        public void OnPause() => _isPaused = true;
+        public void OnResume() => _isPaused = false;
     }
 }

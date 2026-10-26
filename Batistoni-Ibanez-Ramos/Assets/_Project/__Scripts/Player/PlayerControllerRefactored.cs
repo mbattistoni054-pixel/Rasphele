@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using PatronesAplicados.RealImplementation;
 
 namespace PatronesAplicados
 {
@@ -30,12 +31,13 @@ namespace PatronesAplicados
         [SerializeField] private GameObject optionsMenu;
         [SerializeField] private GameObject controlsMenu;
 
-        private Rigidbody _rb;
         private PlayerModel _model;
         private PlayerView _view;
         private PlayerControls _controls;
         private PlayerMovement _movement;
         private PlayerHealthRefactored _health;
+        private Rigidbody _rb;
+        private MenuPause _menuPause;
 
         private Dictionary<PlayerState, IPlayerState> _states;
         private IPlayerState _activeState;
@@ -44,6 +46,8 @@ namespace PatronesAplicados
         private Vector3 _savedVelocity;
         private Vector3 _savedAngularVelocity;
         private bool _wasKinematicBeforePause;
+
+        private readonly List<Behaviour> _pausedCameraBehaviours = new List<Behaviour>(4);
 
         public Transform CameraTransform => cam;
 
@@ -55,6 +59,11 @@ namespace PatronesAplicados
 
             _view = GetComponent<PlayerView>();
             _health = GetComponent<PlayerHealthRefactored>();
+
+            if (CanvasPause != null)
+            {
+                _menuPause = CanvasPause.GetComponentInChildren<MenuPause>(true);
+            }
 
             _model = new PlayerModel(config);
             _controls = new PlayerControls(moveAction, jumpAction, slideAction, dashAction, walkToggleAction, togglePause, config.inputBufferTime);
@@ -99,6 +108,7 @@ namespace PatronesAplicados
         private void OnEnable()
         {
             _controls?.EnableKeys();
+            _isPaused = PauseManager.IsPaused;
             PauseManager.Register(this);
         }
 
@@ -108,14 +118,22 @@ namespace PatronesAplicados
             PauseManager.Unregister(this);
         }
 
+        private void OnDestroy()
+        {
+            PauseManager.Unregister(this);
+        }
+
         private void Update()
         {
-            if (_controls.WasPausePressed())
+            bool pausePressed = _controls.WasPausePressed() ||
+                                (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame);
+
+            if (pausePressed)
             {
                 TogglePause();
             }
 
-            if (_isPaused) return;
+            if (_isPaused || PauseManager.IsPaused) return;
 
             float dt = Time.deltaTime;
 
@@ -136,7 +154,7 @@ namespace PatronesAplicados
 
         private void FixedUpdate()
         {
-            if (_isPaused) return;
+            if (_isPaused || PauseManager.IsPaused) return;
 
             float fdt = Time.fixedDeltaTime;
 
@@ -216,32 +234,66 @@ namespace PatronesAplicados
             }
         }
 
-        private void TogglePause()
+        public void TogglePause()
         {
             if (CanvasPause == null) return;
+            if (MenuPause.LastToggleFrame == Time.frameCount) return;
 
-            bool willActivate = !CanvasPause.gameObject.activeSelf;
-            if (!willActivate && ((controlsMenu != null && controlsMenu.activeSelf) || (optionsMenu != null && optionsMenu.activeSelf)))
+            MenuPause.LastToggleFrame = Time.frameCount;
+
+            if (_menuPause == null)
             {
-                return;
+                _menuPause = CanvasPause.GetComponentInChildren<MenuPause>(true);
             }
 
-            CanvasPause.gameObject.SetActive(willActivate);
+            bool isPauseOpen = CanvasPause.gameObject.activeInHierarchy;
 
-            if (EventManager.Instance != null)
+            if (isPauseOpen)
             {
-                EventManager.Instance.TriggerEvent(willActivate ? GameEventKeys.PauseRequested : GameEventKeys.ResumeRequested);
+                if (_menuPause != null)
+                {
+                    _menuPause.HandleEscapePressed();
+                }
+                else
+                {
+                    CanvasPause.gameObject.SetActive(false);
+                    PauseManager.RequestResume();
+                }
+            }
+            else
+            {
+                CanvasPause.gameObject.SetActive(true);
+
+                if (_menuPause == null)
+                {
+                    _menuPause = CanvasPause.GetComponentInChildren<MenuPause>(true);
+                }
+
+                if (_menuPause != null)
+                {
+                    _menuPause.RestoreMainPausePanel();
+                    _menuPause.RequestPauseOnce();
+                }
+                else
+                {
+                    PauseManager.RequestPause();
+                }
             }
         }
 
         public void ApplyKnockback(Vector3 force, float stunDuration = 0.4f)
         {
-            _model.KnockbackTimer = stunDuration;
-            _model.JumpCooldown = stunDuration;
-            TransitionToState(PlayerState.Airborne);
+            float sanitizedDuration = Mathf.Max(0f, stunDuration);
 
-            _movement.SetVelocity(Vector3.zero);
-            _movement.ApplyForce(force, ForceMode.Impulse);
+            _model.KnockbackTimer = Mathf.Max(_model.KnockbackTimer, sanitizedDuration);
+            _model.JumpCooldown = Mathf.Max(_model.JumpCooldown, sanitizedDuration);
+
+            if (force.sqrMagnitude > 0.0001f)
+            {
+                TransitionToState(PlayerState.Airborne);
+                _movement.SetVelocity(Vector3.zero);
+                _movement.ApplyForce(force, ForceMode.Impulse);
+            }
         }
 
         public void ApplyRoot(float duration)
@@ -256,6 +308,7 @@ namespace PatronesAplicados
             _isPaused = true;
 
             _view?.SetPaused(true);
+            SetCameraScriptsPaused(true);
 
             if (_rb != null)
             {
@@ -277,6 +330,7 @@ namespace PatronesAplicados
             _isPaused = false;
 
             _view?.SetPaused(false);
+            SetCameraScriptsPaused(false);
 
             if (_rb != null)
             {
@@ -289,5 +343,38 @@ namespace PatronesAplicados
             }
         }
 
+        private void SetCameraScriptsPaused(bool paused)
+        {
+            if (cam == null) return;
+
+            if (paused)
+            {
+                _pausedCameraBehaviours.Clear();
+                MonoBehaviour[] scripts = cam.GetComponentsInChildren<MonoBehaviour>();
+                for (int i = 0; i < scripts.Length; i++)
+                {
+                    MonoBehaviour mb = scripts[i];
+                    if (mb == null || !mb.enabled) continue;
+
+                    string typeName = mb.GetType().Name;
+                    if (typeName.Contains("UniversalAdditionalCameraData") || typeName.Contains("Audio"))
+                        continue;
+
+                    mb.enabled = false;
+                    _pausedCameraBehaviours.Add(mb);
+                }
+            }
+            else
+            {
+                for (int i = 0; i < _pausedCameraBehaviours.Count; i++)
+                {
+                    if (_pausedCameraBehaviours[i] != null)
+                    {
+                        _pausedCameraBehaviours[i].enabled = true;
+                    }
+                }
+                _pausedCameraBehaviours.Clear();
+            }
+        }
     }
 }
