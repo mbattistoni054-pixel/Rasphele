@@ -92,7 +92,7 @@ public class NEWEnemyMagicSorcerer : NEWEnemySorcererBase
         isChargingAttack = true;
         attackCooldownTimer = 0f;
 
-        if (animator != null) animator.SetTrigger(CastHash);
+        TriggerAttackAnimation();
 
         if (firePoint == null || player == null || data == null)
         {

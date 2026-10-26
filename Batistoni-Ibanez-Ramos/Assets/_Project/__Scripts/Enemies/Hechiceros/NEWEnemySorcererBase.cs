@@ -6,6 +6,9 @@ public abstract class NEWEnemySorcererBase : EnemyBaseRefactored
     [Header("Animación")]
     public Animator animator;
     protected bool hasMoveParam;
+    protected bool hasSpeedParam;
+    protected bool hasCastParam;
+    protected bool hasAttackParam;
 
     protected float attackCooldownTimer;
     protected bool isChargingAttack;
@@ -13,7 +16,9 @@ public abstract class NEWEnemySorcererBase : EnemyBaseRefactored
     protected float pathTimer;
 
     protected static readonly int MoveHash = Animator.StringToHash("Move");
+    protected static readonly int SpeedHash = Animator.StringToHash("Speed");
     protected static readonly int CastHash = Animator.StringToHash("Cast");
+    protected static readonly int AttackHash = Animator.StringToHash("Attack");
 
     public override void ResetStats()
     {
@@ -30,18 +35,7 @@ public abstract class NEWEnemySorcererBase : EnemyBaseRefactored
         base.Start();
         if (animator == null) animator = GetComponent<Animator>();
 
-        if (animator != null)
-        {
-            AnimatorControllerParameter[] parameters = animator.parameters;
-            for (int i = 0; i < parameters.Length; i++)
-            {
-                if (parameters[i].nameHash == MoveHash)
-                {
-                    hasMoveParam = true;
-                    break;
-                }
-            }
-        }
+        CacheAnimatorParameters();
 
         if (agent != null)
         {
@@ -50,6 +44,61 @@ public abstract class NEWEnemySorcererBase : EnemyBaseRefactored
         }
 
         attackCooldownTimer = data != null ? data.AttackCooldown : 0f;
+    }
+
+    private void CacheAnimatorParameters()
+    {
+        hasMoveParam = false;
+        hasSpeedParam = false;
+        hasCastParam = false;
+        hasAttackParam = false;
+
+        if (animator == null) return;
+
+        AnimatorControllerParameter[] parameters = animator.parameters;
+        for (int i = 0; i < parameters.Length; i++)
+        {
+            int hash = parameters[i].nameHash;
+            AnimatorControllerParameterType type = parameters[i].type;
+
+            if (hash == MoveHash && type == AnimatorControllerParameterType.Bool)
+                hasMoveParam = true;
+            else if (hash == SpeedHash && type == AnimatorControllerParameterType.Float)
+                hasSpeedParam = true;
+            else if (hash == CastHash && type == AnimatorControllerParameterType.Trigger)
+                hasCastParam = true;
+            else if (hash == AttackHash && type == AnimatorControllerParameterType.Trigger)
+                hasAttackParam = true;
+        }
+    }
+
+    protected void SetMovingAnimation(bool isMoving)
+    {
+        if (animator == null) return;
+
+        if (hasMoveParam)
+        {
+            animator.SetBool(MoveHash, isMoving);
+        }
+
+        if (hasSpeedParam)
+        {
+            animator.SetFloat(SpeedHash, isMoving ? currentSpeed : 0f);
+        }
+    }
+
+    protected void TriggerAttackAnimation()
+    {
+        if (animator == null) return;
+
+        if (hasCastParam)
+        {
+            animator.SetTrigger(CastHash);
+        }
+        else if (hasAttackParam)
+        {
+            animator.SetTrigger(AttackHash);
+        }
     }
 
     public override void OnPause()
@@ -99,13 +148,13 @@ public abstract class NEWEnemySorcererBase : EnemyBaseRefactored
                 if (attackCooldownTimer >= data.AttackCooldown)
                 {
                     agent.isStopped = true;
-                    if (animator != null && hasMoveParam) animator.SetBool(MoveHash, false);
+                    SetMovingAnimation(false);
                     StartAttackRoutine();
                     return;
                 }
 
                 agent.isStopped = true;
-                if (animator != null && hasMoveParam) animator.SetBool(MoveHash, false);
+                SetMovingAnimation(false);
                 LookAtPlayer(dt);
             }
         }
@@ -134,7 +183,7 @@ public abstract class NEWEnemySorcererBase : EnemyBaseRefactored
             pathTimer = 0.2f;
         }
 
-        if (animator != null && hasMoveParam) animator.SetBool(MoveHash, true);
+        SetMovingAnimation(true);
     }
 
     protected void ApproachPlayer()
@@ -148,7 +197,7 @@ public abstract class NEWEnemySorcererBase : EnemyBaseRefactored
             pathTimer = 0.2f;
         }
 
-        if (animator != null && hasMoveParam) animator.SetBool(MoveHash, true);
+        SetMovingAnimation(true);
     }
 
     protected void LookAtPlayer(float deltaTime)

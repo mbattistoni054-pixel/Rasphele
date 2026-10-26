@@ -18,7 +18,7 @@ MonoBehaviour:
   attackCooldown: 10
   rangeAttack: 40
   fleeDistance: 20
-  goldReward: 0
+  goldReward: 10
   expReward: 40
   bullet: {fileID: 0}
   bulletSpeed: 0
@@ -34,7 +34,10 @@ MonoBehaviour:
   lockedTime: 0
   laserDuration: 0
   beamMaterial: {fileID: 0}
-  fireLinePrefab: {fileID: 0}
+  fireLinePrefab: {fileID: 6763164848866311026, guid: 1a8f93f648d69f14bb5158f9f886c632, type: 3}
+  fireLineDuration: 5
+  fireLineWarningTime: 1
+  fireLineLength: 50
   orbPrefab: {fileID: 0}
   orbsPerBurst: 0
   timeBetweenOrbs: 0

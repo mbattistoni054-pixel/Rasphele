@@ -7,13 +7,7 @@ namespace PatronesAplicados
     {
         private static readonly Vector3 _popupOffset = new Vector3(0f, 2.5f, 0f);
 
-        public static void SpawnDamagePopup(
-            GameObject popupPrefab,
-            Vector3 enemyPosition,
-            float finalDamage,
-            DamageType type,
-            bool isCrit,
-            bool isBleed)
+        public static void SpawnDamagePopup(GameObject popupPrefab, Vector3 enemyPosition, float finalDamage, DamageType type, bool isCrit, bool isBleed)
         {
             if (popupPrefab == null) return;
 
@@ -37,13 +31,21 @@ namespace PatronesAplicados
         {
             if (xpOrbPrefab != null)
             {
+                NEWExperienceOrb orbScript = null;
+
                 if (ProjectilePoolManager.Instance != null)
                 {
-                    ProjectilePoolManager.Instance.GetProjectile(xpOrbPrefab, deathPosition, Quaternion.identity);
+                    orbScript = ProjectilePoolManager.Instance.GetProjectile<NEWExperienceOrb>(xpOrbPrefab, deathPosition, Quaternion.identity);
                 }
                 else
                 {
-                    Object.Instantiate(xpOrbPrefab, deathPosition, Quaternion.identity);
+                    GameObject orbObj = Object.Instantiate(xpOrbPrefab, deathPosition, Quaternion.identity);
+                    orbObj.TryGetComponent(out orbScript);
+                }
+
+                if (orbScript != null && data != null)
+                {
+                    orbScript.SetXpAmount(data.ExpReward);
                 }
             }
 

@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77068a9ac790c5945a5ead59ff57177d, type: 3}
   m_Name: Data_EnemySorcererMagic
   m_EditorClassIdentifier: 
-  maxHealth: 0
-  baseSpeed: 0
-  attackDamage: 0
-  attackCooldown: 0
-  rangeAttack: 0
-  fleeDistance: 0
-  goldReward: 0
+  maxHealth: 50
+  baseSpeed: 25
+  attackDamage: 20
+  attackCooldown: 10
+  rangeAttack: 40
+  fleeDistance: 20
+  goldReward: 10
   expReward: 40
   bullet: {fileID: 0}
   bulletSpeed: 40
@@ -30,10 +30,10 @@ MonoBehaviour:
   knockbackHorizontal: 0
   knockbackUpward: 0
   slamVisualPrefab: {fileID: 0}
-  trackingTime: 0
-  lockedTime: 0
-  laserDuration: 0
-  beamMaterial: {fileID: 0}
+  trackingTime: 2
+  lockedTime: 1
+  laserDuration: 3
+  beamMaterial: {fileID: 2100000, guid: 6f40a55d7b6a753448c0da4dcb51b4e2, type: 2}
   fireLinePrefab: {fileID: 0}
   orbPrefab: {fileID: 0}
   orbsPerBurst: 0

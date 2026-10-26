@@ -9,16 +9,23 @@ public class NEWExperienceOrb : MonoBehaviour
     public float magnetRadius = 5f;
     public float baseMoveSpeed = 10f;
 
+    private float _defaultXpAmount;
     private float _currentMoveSpeed;
     private Transform _player;
     private bool _isAttracted;
     private bool _isCollected;
+
+    private void Awake()
+    {
+        _defaultXpAmount = xpAmount;
+    }
 
     private void OnEnable()
     {
         _isAttracted = false;
         _isCollected = false;
         _currentMoveSpeed = baseMoveSpeed;
+        xpAmount = _defaultXpAmount;
 
         if (GameManagerRefactored.Instance != null && GameManagerRefactored.Instance.Player != null)
         {

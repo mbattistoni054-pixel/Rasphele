@@ -45,6 +45,7 @@ GameObject:
   - component: {fileID: 5939707178695592598}
   - component: {fileID: 716200630992402111}
   - component: {fileID: 6317251116508110323}
+  - component: {fileID: -5197728577194544881}
   m_Layer: 7
   m_Name: BossPlant
   m_TagString: Untagged
@@ -193,3 +194,40 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &-5197728577194544881
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9211679119524723407}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1888e514c9f86c44962146123774e8a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  data: {fileID: 11400000, guid: b8b2e16f0e3ca104fa29589604ce0708, type: 2}
+  poolKey: 
+  maxHealth: 0
+  xpOrbPrefab: {fileID: 4151671228204215311, guid: f0f5c3e19b95e644d8886b80bbdb3cbc, type: 3}
+  damagePopupPrefab: {fileID: 3592148569616233406, guid: 61ebab5bd050aba4583e7948ea50b804, type: 3}
+  flashMaterial: {fileID: 0}
+  enemyVisual: {fileID: 0}
+  bossDisplayName: Planta Mutante
+  spawnHeightOffset: 0
+  attackDamage: 30
+  attackCooldown: 3
+  orbPrefab: {fileID: 7476912289024568721, guid: 294d963ca581936419cdc00c3d52d7e9, type: 3}
+  firePoint: {fileID: 5177454110042539609}
+  orbsPerBurst: 6
+  timeBetweenOrbs: 0.15
+  rootTrapPrefab: {fileID: 4680616909745959054, guid: 36f185b1ac913544bafa452e1bff0355, type: 3}
+  orbsPerBurstPhase2: 12
+  rootsPhase2: 3
+  delayBetweenRootsPhase2: 1
+  meleeRange: 5
+  meleeDamage: 40
+  knockbackHorizontal: 25
+  knockbackUpward: 5
+  meleeHitDelay: 0.5
+  animator: {fileID: 0}
