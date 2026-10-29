@@ -21,12 +21,14 @@ namespace PatronesAplicados
         private bool _hasShield;
         private float _timeSinceLastDamage;
         private bool _isPaused;
+        private bool _isDead;
 
         private Volume _volume;
         private Vignette _vignette;
 
         private void OnEnable()
         {
+            _isDead = false;
             _isPaused = PauseManager.IsPaused;
             PauseManager.Register(this);
         }
@@ -163,12 +165,14 @@ namespace PatronesAplicados
 
         public void TakeDamage(float amount, bool isCrit = false, DamageType type = DamageType.Fisico, bool isBleed = false)
         {
+            if (_isDead || _isPaused || PauseManager.IsPaused || amount <= 0f) return;
+
             _timeSinceLastDamage = 0f;
 
             if (_hasShield)
             {
                 _hasShield = false;
-                Debug.Log("¡Escudo de Panal destruido! Golpe bloqueado.");
+                Debug.Log("¡Escudo de Panal generado destruido! Golpe bloqueado.");
                 ShowDamagePopup(0f);
                 return;
             }
@@ -197,7 +201,7 @@ namespace PatronesAplicados
 
         public void Heal(float amount)
         {
-            if (amount <= 0f || currentHealth >= maxHealth) return;
+            if (_isDead || amount <= 0f || currentHealth >= maxHealth) return;
 
             currentHealth = Mathf.Min(maxHealth, currentHealth + amount);
             UpdateHealthFeedbackEffects();
@@ -222,6 +226,9 @@ namespace PatronesAplicados
 
         private void Die()
         {
+            if (_isDead) return;
+            _isDead = true;
+
             if (EventManager.Instance != null)
             {
                 EventManager.Instance.TriggerEvent(GameEventKeys.PlayerDeath);

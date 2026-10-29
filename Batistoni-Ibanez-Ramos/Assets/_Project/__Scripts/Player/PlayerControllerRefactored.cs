@@ -43,6 +43,7 @@ namespace PatronesAplicados
         private IPlayerState _activeState;
 
         private bool _isPaused;
+        private float _rootTimer;
         private Vector3 _savedVelocity;
         private Vector3 _savedAngularVelocity;
         private bool _wasKinematicBeforePause;
@@ -50,6 +51,7 @@ namespace PatronesAplicados
         private readonly List<Behaviour> _pausedCameraBehaviours = new List<Behaviour>(4);
 
         public Transform CameraTransform => cam;
+        public PlayerHealthRefactored Health => _health;
 
         private void Awake()
         {
@@ -139,12 +141,25 @@ namespace PatronesAplicados
 
             if (_model.JumpCooldown > 0f) _model.JumpCooldown -= dt;
 
-            _controls.ListenKeys(dt);
+            if (_rootTimer > 0f)
+            {
+                _rootTimer -= dt;
+                _controls.jumpBuffer = 0f;
+                _controls.dashBuffer = 0f;
+                _controls.slideBuffer = 0f;
+                _model.MoveDirection = Vector3.zero;
+                _model.IsMoving = false;
+            }
+            else
+            {
+                _controls.ListenKeys(dt);
+            }
+
             UpdateDashCooldown(dt);
             UpdateMovementRegen(dt);
             UpdateEnvironmentTransitions(dt);
 
-            if (_model.KnockbackTimer <= 0f)
+            if (_rootTimer <= 0f && _model.KnockbackTimer <= 0f)
             {
                 _activeState?.HandleInput(dt);
             }
@@ -157,6 +172,22 @@ namespace PatronesAplicados
             if (_isPaused || PauseManager.IsPaused) return;
 
             float fdt = Time.fixedDeltaTime;
+
+            if (_rootTimer > 0f)
+            {
+                if (_model.KnockbackTimer > 0f)
+                {
+                    _model.KnockbackTimer -= fdt;
+                }
+
+                Vector3 vel = _movement.GetVelocity();
+                float nextY = vel.y < 0f
+                    ? vel.y + (Physics.gravity.y * (config.fallMultiplier - 1f) * fdt)
+                    : vel.y;
+
+                _movement.SetVelocity(new Vector3(0f, nextY, 0f));
+                return;
+            }
 
             if (_model.KnockbackTimer > 0f)
             {
@@ -294,12 +325,43 @@ namespace PatronesAplicados
                 _movement.SetVelocity(Vector3.zero);
                 _movement.ApplyForce(force, ForceMode.Impulse);
             }
+            else
+            {
+                ApplyRoot(sanitizedDuration);
+            }
         }
 
         public void ApplyRoot(float duration)
         {
-            _model.KnockbackTimer = Mathf.Max(_model.KnockbackTimer, duration);
-            _movement.SetVelocity(new Vector3(0f, _movement.GetVelocity().y, 0f));
+            float sanitizedDuration = Mathf.Max(0f, duration);
+            if (sanitizedDuration <= 0f) return;
+
+            _rootTimer = Mathf.Max(_rootTimer, sanitizedDuration);
+            _model.KnockbackTimer = Mathf.Max(_model.KnockbackTimer, sanitizedDuration);
+
+            _controls.jumpBuffer = 0f;
+            _controls.dashBuffer = 0f;
+            _controls.slideBuffer = 0f;
+
+            _model.MoveDirection = Vector3.zero;
+            _model.IsMoving = false;
+
+            if (_model.CurrentState == PlayerState.Sliding || _model.CurrentState == PlayerState.Dashing)
+            {
+                TransitionToState(_model.IsGrounded ? PlayerState.Walking : PlayerState.Airborne);
+            }
+
+            Vector3 currentVel = _movement.GetVelocity();
+            _movement.SetVelocity(new Vector3(0f, Mathf.Min(0f, currentVel.y), 0f));
+        }
+
+        public void TakeDamage(float amount)
+        {
+            if (_health == null) _health = GetComponent<PlayerHealthRefactored>();
+            if (_health != null)
+            {
+                _health.TakeDamage(amount);
+            }
         }
 
         public void OnPause()

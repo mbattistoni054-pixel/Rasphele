@@ -6,37 +6,12 @@ namespace PatronesAplicados
 {
     public class BossPlantRefactored : EnemyBaseRefactored
     {
-        [Header("Ajustes de Spawn")]
+        [Header("Ajustes de Escena (Todo lo demás se configura en EnemyData)")]
         public string bossDisplayName = "Planta Mutante";
         public float spawnHeightOffset = 0f;
-
-        [Header("Estadísticas del Jefe (Fallback si no hay EnemyData)")]
-        public float attackDamage = 30f;
-        public float attackCooldown = 3f;
-
-        [Header("Ataque A (70%): Ráfaga de Orbes")]
-        public GameObject orbPrefab;
+        [Tooltip("Punto de salida de los orbes en el modelo 3D del jefe")]
         public Transform firePoint;
-        public int orbsPerBurst = 6;
-        public float timeBetweenOrbs = 0.15f;
-
-        [Header("Ataque B (30%): Trampa de Raíces")]
-        public GameObject rootTrapPrefab;
-
-        [Header("Fase 2 (Menos del 50% Vida)")]
-        public int orbsPerBurstPhase2 = 12;
-        public int rootsPhase2 = 3;
-        public float delayBetweenRootsPhase2 = 1f;
-        private bool _isPhase2;
-
-        [Header("Ataque C (Defensivo): Golpe Cuerpo a Cuerpo")]
-        public float meleeRange = 5f;
-        public float meleeDamage = 40f;
-        public float knockbackHorizontal = 25f;
-        public float knockbackUpward = 5f;
-        public float meleeHitDelay = 0.5f;
-
-        [Header("Animaciones (Opcional)")]
+        [Tooltip("Animator del jefe en la escena")]
         public Animator animator;
 
         private static readonly int AttackHash = Animator.StringToHash("Attack");
@@ -45,6 +20,7 @@ namespace PatronesAplicados
 
         protected override bool UsesNavigation => false;
 
+        private bool _isPhase2;
         private float _attackTimer;
         private bool _isAttacking;
         private bool _heightOffsetApplied;
@@ -52,27 +28,10 @@ namespace PatronesAplicados
         protected override void Awake()
         {
             base.Awake();
-            SyncConfigFromEnemyData();
-        }
-
-        private void SyncConfigFromEnemyData()
-        {
-            if (data == null) return;
-
-            if (data.AttackDamage > 0f) attackDamage = data.AttackDamage;
-            if (data.AttackCooldown > 0f) attackCooldown = data.AttackCooldown;
-            if (data.OrbPrefab != null) orbPrefab = data.OrbPrefab;
-            if (data.OrbsPerBurst > 0) orbsPerBurst = data.OrbsPerBurst;
-            if (data.TimeBetweenOrbs > 0f) timeBetweenOrbs = data.TimeBetweenOrbs;
-            if (data.RootTrapPrefab != null) rootTrapPrefab = data.RootTrapPrefab;
-            if (data.OrbsPerBurstPhase2 > 0) orbsPerBurstPhase2 = data.OrbsPerBurstPhase2;
-            if (data.RootsPhase2 > 0) rootsPhase2 = data.RootsPhase2;
-            if (data.DelayBetweenRootsPhase2 > 0f) delayBetweenRootsPhase2 = data.DelayBetweenRootsPhase2;
-            if (data.MeleeRange > 0f) meleeRange = data.MeleeRange;
-            if (data.MeleeDamage > 0f) meleeDamage = data.MeleeDamage;
-            if (data.BossKnockbackHorizontal > 0f) knockbackHorizontal = data.BossKnockbackHorizontal;
-            if (data.BossKnockbackUpward > 0f) knockbackUpward = data.BossKnockbackUpward;
-            if (data.MeleeHitDelay > 0f) meleeHitDelay = data.MeleeHitDelay;
+            if (data == null)
+            {
+                Debug.LogWarning($"[BossPlantRefactored] '{name}' no tiene asignado un EnemyData en el campo 'Data'.", this);
+            }
         }
 
         protected override void Start()
@@ -93,7 +52,6 @@ namespace PatronesAplicados
         public override void ResetStats()
         {
             base.ResetStats();
-            SyncConfigFromEnemyData();
 
             _isPhase2 = false;
             _isAttacking = false;
@@ -113,16 +71,18 @@ namespace PatronesAplicados
         protected override void Update()
         {
             base.Update();
-            if (isDead || isPaused || player == null || isStunned || _isAttacking) return;
+            if (isDead || isPaused || data == null || player == null || isStunned || _isAttacking) return;
 
             RotateTowardsPlayer(Time.deltaTime, 3f);
 
             _attackTimer += Time.deltaTime;
-            if (_attackTimer >= attackCooldown)
+            if (_attackTimer >= data.AttackCooldown)
             {
                 _attackTimer = 0f;
 
                 float sqrDistance = (player.position - transform.position).sqrMagnitude;
+                float meleeRange = data.MeleeRange;
+
                 if (sqrDistance <= meleeRange * meleeRange)
                 {
                     StartCoroutine(MeleeAttackRoutine());
@@ -134,7 +94,7 @@ namespace PatronesAplicados
             }
         }
 
-        public override void TakeDamage(float amount, bool isCrit, DamageType type, bool isBleed = false)
+        public override void TakeDamage(float amount, bool isCrit = false, DamageType type = DamageType.Fisico, bool isBleed = false)
         {
             if (isDead) return;
 
@@ -145,14 +105,17 @@ namespace PatronesAplicados
 
             base.TakeDamage(amount, isCrit, type, isBleed);
 
-            if (!isDead && !_isPhase2 && currentHealth <= maxHealth * 0.5f)
+            if (!isDead)
             {
-                _isPhase2 = true;
-            }
+                if (!_isPhase2 && currentHealth <= maxHealth * 0.5f)
+                {
+                    _isPhase2 = true;
+                }
 
-            if (EventManager.Instance != null)
-            {
-                EventManager.Instance.TriggerEvent(GameEventKeys.BossHealthChanged, currentHealth, maxHealth);
+                if (EventManager.Instance != null)
+                {
+                    EventManager.Instance.TriggerEvent(GameEventKeys.BossHealthChanged, currentHealth, maxHealth);
+                }
             }
         }
 
@@ -168,10 +131,10 @@ namespace PatronesAplicados
             if (animator != null) animator.speed = 1f;
         }
 
-        private IEnumerator WaitForSecondsPausable(float duration)
+        private IEnumerator WaitPausableSeconds(float seconds)
         {
             float elapsed = 0f;
-            while (elapsed < duration)
+            while (elapsed < seconds)
             {
                 if (!isPaused && !PauseManager.IsPaused)
                 {
@@ -187,15 +150,19 @@ namespace PatronesAplicados
 
             if (animator != null) animator.SetTrigger(AttackHash);
 
-            yield return WaitForSecondsPausable(meleeHitDelay);
+            yield return StartCoroutine(WaitPausableSeconds(data.MeleeHitDelay));
 
-            float hitRadius = meleeRange + 1f;
+            float hitRadius = data.MeleeRange + 1f;
             if (!isDead && !isStunned && player != null &&
                 (player.position - transform.position).sqrMagnitude <= hitRadius * hitRadius)
             {
-                float finalMeleeDmg = meleeDamage * damageMultiplier;
+                float finalMeleeDmg = data.MeleeDamage * damageMultiplier;
 
-                if (player.TryGetComponent(out PlayerHealthRefactored hpRefactored))
+                if (player.TryGetComponent(out IDamageable damageable))
+                {
+                    damageable.TakeDamage(finalMeleeDmg);
+                }
+                else if (player.TryGetComponent(out PlayerHealthRefactored hpRefactored))
                 {
                     hpRefactored.TakeDamage(finalMeleeDmg);
                 }
@@ -203,15 +170,19 @@ namespace PatronesAplicados
                 Vector3 pushDir = player.position - transform.position;
                 pushDir.y = 0f;
                 pushDir.Normalize();
-                Vector3 finalKnockback = (pushDir * knockbackHorizontal) + (Vector3.up * knockbackUpward);
+                Vector3 finalKnockback = (pushDir * data.BossKnockbackHorizontal) + (Vector3.up * data.BossKnockbackUpward);
 
-                if (player.TryGetComponent(out PlayerControllerRefactored pcRefactored))
+                if (player.TryGetComponent(out IKnockbackable knockbackable))
                 {
-                    pcRefactored.ApplyKnockback(finalKnockback);
+                    knockbackable.ApplyKnockback(finalKnockback, 0.4f);
+                }
+                else if (player.TryGetComponent(out PlayerControllerRefactored pcRefactored))
+                {
+                    pcRefactored.ApplyKnockback(finalKnockback, 0.4f);
                 }
             }
 
-            yield return WaitForSecondsPausable(1f);
+            yield return StartCoroutine(WaitPausableSeconds(1f));
             _isAttacking = false;
         }
 
@@ -234,14 +205,15 @@ namespace PatronesAplicados
 
         private IEnumerator AttackA_Burst()
         {
-            if (orbPrefab == null) yield break;
+            if (data == null || data.OrbPrefab == null) yield break;
             if (animator != null) animator.SetTrigger(ShootHash);
 
-            int orbsToShoot = _isPhase2 ? orbsPerBurstPhase2 : orbsPerBurst;
-            float finalDamage = attackDamage * damageMultiplier;
+            int orbsToShoot = _isPhase2 ? data.OrbsPerBurstPhase2 : data.OrbsPerBurst;
+            float finalDamage = data.AttackDamage * damageMultiplier;
 
             for (int i = 0; i < orbsToShoot; i++)
             {
+                while (isPaused || PauseManager.IsPaused) yield return null;
                 if (isDead || isStunned || player == null) break;
 
                 Vector3 spawnOrigin = firePoint != null ? firePoint.position : transform.position + Vector3.up * 1.5f;
@@ -251,7 +223,7 @@ namespace PatronesAplicados
 
                 if (ProjectilePoolManager.Instance != null)
                 {
-                    NEWBossOrb orbScript = ProjectilePoolManager.Instance.GetProjectile<NEWBossOrb>(orbPrefab, spawnOrigin, rot);
+                    NEWBossOrb orbScript = ProjectilePoolManager.Instance.GetProjectile<NEWBossOrb>(data.OrbPrefab, spawnOrigin, rot);
                     if (orbScript != null)
                     {
                         orbScript.Setup(finalDamage);
@@ -259,33 +231,34 @@ namespace PatronesAplicados
                 }
                 else
                 {
-                    GameObject orbObj = Instantiate(orbPrefab, spawnOrigin, rot);
+                    GameObject orbObj = Instantiate(data.OrbPrefab, spawnOrigin, rot);
                     if (orbObj.TryGetComponent(out NEWBossOrb orbScript))
                     {
                         orbScript.Setup(finalDamage);
                     }
                 }
 
-                yield return WaitForSecondsPausable(timeBetweenOrbs);
+                yield return StartCoroutine(WaitPausableSeconds(data.TimeBetweenOrbs));
             }
         }
 
         private IEnumerator AttackB_Roots_Routine()
         {
-            if (rootTrapPrefab == null) yield break;
+            if (data == null || data.RootTrapPrefab == null) yield break;
 
-            int rootsToSpawn = _isPhase2 ? rootsPhase2 : 1;
-            float finalDamage = attackDamage * damageMultiplier;
+            int rootsToSpawn = _isPhase2 ? Mathf.Max(1, data.RootsPhase2) : 1;
+            float finalDamage = data.AttackDamage * damageMultiplier;
 
             for (int i = 0; i < rootsToSpawn; i++)
             {
+                while (isPaused || PauseManager.IsPaused) yield return null;
                 if (isDead || isStunned || player == null) break;
 
                 if (animator != null) animator.SetTrigger(CastHash);
 
                 if (ProjectilePoolManager.Instance != null)
                 {
-                    NEWBossRootTrap trapScript = ProjectilePoolManager.Instance.GetProjectile<NEWBossRootTrap>(rootTrapPrefab, player.position, Quaternion.identity);
+                    NEWBossRootTrap trapScript = ProjectilePoolManager.Instance.GetProjectile<NEWBossRootTrap>(data.RootTrapPrefab, player.position, Quaternion.identity);
                     if (trapScript != null)
                     {
                         trapScript.Setup(player, finalDamage);
@@ -293,7 +266,7 @@ namespace PatronesAplicados
                 }
                 else
                 {
-                    GameObject trapObj = Instantiate(rootTrapPrefab, player.position, Quaternion.identity);
+                    GameObject trapObj = Instantiate(data.RootTrapPrefab, player.position, Quaternion.identity);
                     if (trapObj.TryGetComponent(out NEWBossRootTrap trapScript))
                     {
                         trapScript.Setup(player, finalDamage);
@@ -302,11 +275,11 @@ namespace PatronesAplicados
 
                 if (i < rootsToSpawn - 1)
                 {
-                    yield return WaitForSecondsPausable(delayBetweenRootsPhase2);
+                    yield return StartCoroutine(WaitPausableSeconds(data.DelayBetweenRootsPhase2));
                 }
             }
 
-            yield return WaitForSecondsPausable(1.5f);
+            yield return StartCoroutine(WaitPausableSeconds(1.5f));
         }
 
         protected override void Die()
@@ -325,11 +298,13 @@ namespace PatronesAplicados
 
         private void OnDrawGizmosSelected()
         {
+            if (data == null) return;
+
             Gizmos.color = new Color(1f, 0f, 0f, 0.3f);
-            Gizmos.DrawSphere(transform.position, meleeRange);
+            Gizmos.DrawSphere(transform.position, data.MeleeRange);
 
             Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(transform.position, meleeRange);
+            Gizmos.DrawWireSphere(transform.position, data.MeleeRange);
         }
     }
 }

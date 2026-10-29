@@ -6,6 +6,8 @@ namespace PatronesAplicados.RealImplementation
     {
         [Header("Ajustes del Hongo")]
         public float spawnRadius = 8f;
+        [Tooltip("Radio base de daño y curación de la nube de esporas (se suma a las mejoras de área).")]
+        public float baseSporeRadius = 4.5f;
         public LayerMask enemyLayer;
 
         private static int _cachedGroundMask = -1;
@@ -25,15 +27,19 @@ namespace PatronesAplicados.RealImplementation
 
             int mushroomsToSpawn = Mathf.Max(1, CurrentMultipleShots);
             float damagePerMushroom = GetFinalDamage();
-            float sporeRadius = CurrentExplosiveRadius;
-            float duration = CurrentDuration;
+
+            float baseRadiusFromData = data.baseRange > 0f ? data.baseRange : baseSporeRadius;
+            float rangeBonus = Mathf.Max(0f, GetFinalRange() - data.baseRange);
+            float sporeRadius = Mathf.Max(baseSporeRadius, baseRadiusFromData) + CurrentExplosiveRadius + rangeBonus;
+
+            float duration = CurrentDuration > 0.1f ? CurrentDuration : 5f;
 
             for (int i = 0; i < mushroomsToSpawn; i++)
             {
                 Vector2 randomCircle = Random.insideUnitCircle * spawnRadius;
                 Vector3 spawnPos = transform.position + new Vector3(randomCircle.x, 0f, randomCircle.y);
 
-                if (Physics.Raycast(spawnPos + Vector3.up * 5f, Vector3.down, out RaycastHit hit, 10f, _cachedGroundMask, QueryTriggerInteraction.Ignore))
+                if (Physics.Raycast(spawnPos + Vector3.up * 5f, Vector3.down, out RaycastHit hit, 15f, _cachedGroundMask, QueryTriggerInteraction.Ignore))
                 {
                     spawnPos = hit.point;
                 }
@@ -42,10 +48,7 @@ namespace PatronesAplicados.RealImplementation
 
                 if (ProjectilePoolManager.Instance != null)
                 {
-                    mush = ProjectilePoolManager.Instance.GetProjectile<MushroomEntityRefactored>(
-                        data.projectilePrefab,
-                        spawnPos,
-                        Quaternion.identity);
+                    mush = ProjectilePoolManager.Instance.GetProjectile<MushroomEntityRefactored>(data.projectilePrefab, spawnPos, Quaternion.identity);
                 }
                 else
                 {

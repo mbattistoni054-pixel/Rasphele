@@ -2,7 +2,7 @@ using UnityEngine;
 using PatronesAplicados;
 using PatronesAplicados.RealImplementation;
 
-public class NEWBossOrb : MonoBehaviour
+public class NEWBossOrb : MonoBehaviour, IPausable
 {
     public float speed = 18f;
     public float lifeTime = 4f;
@@ -18,6 +18,7 @@ public class NEWBossOrb : MonoBehaviour
     private float _damage;
     private float _timer;
     private bool _hasExploded;
+    private bool _isPaused;
 
     public void Setup(float dmg)
     {
@@ -30,11 +31,18 @@ public class NEWBossOrb : MonoBehaviour
     {
         _timer = 0f;
         _hasExploded = false;
+        _isPaused = PauseManager.IsPaused;
+        PauseManager.Register(this);
+    }
+
+    private void OnDisable()
+    {
+        PauseManager.Unregister(this);
     }
 
     private void Update()
     {
-        if (_hasExploded || PauseManager.IsPaused) return;
+        if (_hasExploded || _isPaused) return;
 
         transform.position += transform.forward * (speed * Time.deltaTime);
 
@@ -47,24 +55,23 @@ public class NEWBossOrb : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (_hasExploded) return;
+        if (_hasExploded || _isPaused || PauseManager.IsPaused) return;
 
         if (other.CompareTag("Player"))
         {
-            ApplyDamageToPlayer(other.gameObject, _damage);
+            if (other.TryGetComponent(out IDamageable damageable))
+            {
+                damageable.TakeDamage(_damage);
+            }
+            else if (other.TryGetComponent(out PlayerHealthRefactored refHealth))
+            {
+                refHealth.TakeDamage(_damage);
+            }
             Explode();
         }
         else if (((1 << other.gameObject.layer) & obstacleMask) != 0)
         {
             Explode();
-        }
-    }
-
-    private static void ApplyDamageToPlayer(GameObject playerObj, float dmg)
-    {
-        if (playerObj.TryGetComponent(out PlayerHealthRefactored refHealth))
-        {
-            refHealth.TakeDamage(dmg);
         }
     }
 
@@ -95,4 +102,7 @@ public class NEWBossOrb : MonoBehaviour
             Destroy(gameObject);
         }
     }
+
+    public void OnPause() => _isPaused = true;
+    public void OnResume() => _isPaused = false;
 }

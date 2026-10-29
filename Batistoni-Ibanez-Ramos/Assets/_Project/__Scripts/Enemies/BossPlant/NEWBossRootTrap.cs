@@ -12,19 +12,22 @@ public class NEWBossRootTrap : MonoBehaviour, IPausable
 
     [Header("Área y Efectos")]
     public float trapRadius = 4f;
+    [Tooltip("Daño de respaldo por si el EnemyData tiene AttackDamage en 0")]
+    public float fallbackDamage = 25f;
     public Transform warningVisual;
     public Transform rootVisual;
 
     private Transform _playerTarget;
     private float _damage;
     private bool _isPaused;
+    private bool _hasTriggeredHitOnPlayer;
 
     private Renderer _warningRenderer;
     private Color _originalWarningColor = new Color(1f, 0.5f, 0f, 0.5f);
     private MaterialPropertyBlock _propBlock;
     private bool _isVisualInitialized;
 
-    private readonly Collider[] _hitBuffer = new Collider[16];
+    private readonly Collider[] _hitBuffer = new Collider[64];
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static readonly int ColorId = Shader.PropertyToID("_Color");
 
@@ -59,7 +62,8 @@ public class NEWBossRootTrap : MonoBehaviour, IPausable
         InitializeVisualCache();
 
         _playerTarget = target;
-        _damage = dmg;
+        _damage = dmg > 0f ? dmg : fallbackDamage;
+        _hasTriggeredHitOnPlayer = false;
 
         if (warningVisual != null)
         {
@@ -98,7 +102,7 @@ public class NEWBossRootTrap : MonoBehaviour, IPausable
         float elapsed = 0f;
         while (elapsed < seconds)
         {
-            if (!_isPaused)
+            if (!_isPaused && !PauseManager.IsPaused)
             {
                 elapsed += Time.deltaTime;
             }
@@ -111,7 +115,7 @@ public class NEWBossRootTrap : MonoBehaviour, IPausable
         float timer = 0f;
         while (timer < followTime)
         {
-            if (!_isPaused)
+            if (!_isPaused && !PauseManager.IsPaused)
             {
                 if (_playerTarget != null)
                 {
@@ -130,29 +134,20 @@ public class NEWBossRootTrap : MonoBehaviour, IPausable
         if (warningVisual != null) warningVisual.gameObject.SetActive(false);
         if (rootVisual != null) rootVisual.gameObject.SetActive(true);
 
-        int hitCount = Physics.OverlapSphereNonAlloc(transform.position, trapRadius, _hitBuffer);
-        for (int i = 0; i < hitCount; i++)
+        float activeElapsed = 0f;
+        while (activeElapsed < rootDuration)
         {
-            Collider hit = _hitBuffer[i];
-            if (hit != null && hit.CompareTag("Player"))
+            if (!_isPaused && !PauseManager.IsPaused)
             {
-                if (hit.TryGetComponent(out IDamageable damageable))
+                if (!_hasTriggeredHitOnPlayer)
                 {
-                    damageable.TakeDamage(_damage);
+                    float remainingRootTime = Mathf.Max(0.5f, rootDuration - activeElapsed);
+                    TryDamageAndRootPlayer(remainingRootTime);
                 }
-
-                if (hit.TryGetComponent(out IRootable rootable))
-                {
-                    rootable.ApplyRoot(rootDuration);
-                }
-                else if (hit.TryGetComponent(out IKnockbackable knockbackable))
-                {
-                    knockbackable.ApplyKnockback(Vector3.zero, rootDuration);
-                }
+                activeElapsed += Time.deltaTime;
             }
+            yield return null;
         }
-
-        yield return StartCoroutine(WaitPausableSeconds(rootDuration));
 
         if (rootVisual != null) rootVisual.gameObject.SetActive(false);
 
@@ -163,6 +158,90 @@ public class NEWBossRootTrap : MonoBehaviour, IPausable
         else
         {
             Destroy(gameObject);
+        }
+    }
+
+    private void TryDamageAndRootPlayer(float stunTime)
+    {
+        if (_playerTarget == null && GameManagerRefactored.Instance != null)
+        {
+            _playerTarget = GameManagerRefactored.Instance.Player;
+        }
+
+        Transform foundPlayer = null;
+
+        if (_playerTarget != null)
+        {
+            Vector3 planarDiff = _playerTarget.position - transform.position;
+            planarDiff.y = 0f;
+            float effectiveRadius = trapRadius + 0.5f;
+
+            if (planarDiff.sqrMagnitude <= effectiveRadius * effectiveRadius)
+            {
+                foundPlayer = _playerTarget;
+            }
+        }
+
+        if (foundPlayer == null)
+        {
+            int hitCount = Physics.OverlapSphereNonAlloc(transform.position, trapRadius, _hitBuffer, Physics.AllLayers, QueryTriggerInteraction.Collide);
+            for (int i = 0; i < hitCount; i++)
+            {
+                Collider hit = _hitBuffer[i];
+                if (hit == null) continue;
+
+                if (hit.CompareTag("Player"))
+                {
+                    foundPlayer = hit.transform;
+                    break;
+                }
+
+                PlayerControllerRefactored pc = hit.GetComponentInParent<PlayerControllerRefactored>();
+                if (pc != null)
+                {
+                    foundPlayer = pc.transform;
+                    break;
+                }
+            }
+        }
+
+        if (foundPlayer == null) return;
+
+        _hasTriggeredHitOnPlayer = true;
+
+        PlayerHealthRefactored hp = foundPlayer.GetComponentInParent<PlayerHealthRefactored>()
+                                    ?? foundPlayer.GetComponentInChildren<PlayerHealthRefactored>();
+        if (hp != null)
+        {
+            hp.TakeDamage(_damage);
+        }
+        else
+        {
+            IDamageable damageable = foundPlayer.GetComponentInParent<IDamageable>()
+                                     ?? foundPlayer.GetComponentInChildren<IDamageable>();
+            damageable?.TakeDamage(_damage);
+        }
+
+        PlayerControllerRefactored playerCtrl = foundPlayer.GetComponentInParent<PlayerControllerRefactored>() ?? foundPlayer.GetComponentInChildren<PlayerControllerRefactored>();
+        if (playerCtrl != null)
+        {
+            playerCtrl.ApplyRoot(stunTime);
+            return;
+        }
+
+        IRootable rootable = foundPlayer.GetComponentInParent<IRootable>()
+                             ?? foundPlayer.GetComponentInChildren<IRootable>();
+        if (rootable != null)
+        {
+            rootable.ApplyRoot(stunTime);
+            return;
+        }
+
+        IKnockbackable knockbackable = foundPlayer.GetComponentInParent<IKnockbackable>()
+                                       ?? foundPlayer.GetComponentInChildren<IKnockbackable>();
+        if (knockbackable != null)
+        {
+            knockbackable.ApplyKnockback(Vector3.zero, stunTime);
         }
     }
 

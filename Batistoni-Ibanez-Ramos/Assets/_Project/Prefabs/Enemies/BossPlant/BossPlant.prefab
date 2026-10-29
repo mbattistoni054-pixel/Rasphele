@@ -208,7 +208,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   data: {fileID: 11400000, guid: b8b2e16f0e3ca104fa29589604ce0708, type: 2}
   poolKey: 
-  maxHealth: 0
+  maxHealth: 60
   xpOrbPrefab: {fileID: 4151671228204215311, guid: f0f5c3e19b95e644d8886b80bbdb3cbc, type: 3}
   damagePopupPrefab: {fileID: 3592148569616233406, guid: 61ebab5bd050aba4583e7948ea50b804, type: 3}
   flashMaterial: {fileID: 0}
@@ -225,7 +225,7 @@ MonoBehaviour:
   orbsPerBurstPhase2: 12
   rootsPhase2: 3
   delayBetweenRootsPhase2: 1
-  meleeRange: 5
+  meleeRange: 15
   meleeDamage: 40
   knockbackHorizontal: 25
   knockbackUpward: 5

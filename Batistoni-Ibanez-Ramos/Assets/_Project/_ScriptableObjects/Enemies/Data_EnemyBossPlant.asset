@@ -35,6 +35,9 @@ MonoBehaviour:
   laserDuration: 0
   beamMaterial: {fileID: 0}
   fireLinePrefab: {fileID: 0}
+  fireLineDuration: 10
+  fireLineWarningTime: 1
+  fireLineLength: 50
   orbPrefab: {fileID: 7476912289024568721, guid: 294d963ca581936419cdc00c3d52d7e9, type: 3}
   orbsPerBurst: 6
   timeBetweenOrbs: 0.15
@@ -42,7 +45,7 @@ MonoBehaviour:
   orbsPerBurstPhase2: 12
   rootsPhase2: 3
   delayBetweenRootsPhase2: 1
-  meleeRange: 5
+  meleeRange: 15
   meleeDamage: 40
   bossKnockbackHorizontal: 25
   bossKnockbackUpward: 5

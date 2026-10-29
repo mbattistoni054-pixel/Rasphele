@@ -5,7 +5,7 @@ namespace PatronesAplicados.RealImplementation
 {
     public class HomingProjectileRefactored : MonoBehaviour, IProjectile, IPausable
     {
-        public float speed = 15f;
+        private float speed = 15f;
         public float maxLifeTime = 5f;
         public float bounceSearchRadius = 15f;
 

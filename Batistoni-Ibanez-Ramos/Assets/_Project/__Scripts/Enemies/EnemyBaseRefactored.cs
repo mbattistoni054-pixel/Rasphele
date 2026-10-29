@@ -6,7 +6,7 @@ using PatronesAplicados.RealImplementation;
 
 namespace PatronesAplicados
 {
-    public abstract class EnemyBaseRefactored : MonoBehaviour, IDamageable, IObservable, IPausable
+    public abstract class EnemyBaseRefactored : MonoBehaviour, IDamageable, IEffectReceivable, IObservable, IPausable
     {
         public const string ActionTakeDamage = "TakeDamage";
         public const string ActionDie = "Die";
@@ -19,8 +19,7 @@ namespace PatronesAplicados
         [Header("Object Pool")]
         public string poolKey;
 
-        [Header("Estadísticas Base")]
-        public float maxHealth;
+        [HideInInspector] public float maxHealth;
 
         [Header("Multiplicador de Dificultad")]
         protected float damageMultiplier = 1f;
@@ -54,6 +53,8 @@ namespace PatronesAplicados
         private readonly EnemyFlashController _flashController = new EnemyFlashController();
 
         private Action<float, bool, DamageType, bool> _cachedDamageCallback;
+        private Animator _cachedAnimator;
+        private Vector3 _savedAgentVelocity;
         private bool _isInitialized;
 
         protected virtual void Awake()
@@ -68,7 +69,17 @@ namespace PatronesAplicados
                 DamageableRegistry.Register(enemyCollider, this, transform);
             }
 
+            isPaused = PauseManager.IsPaused;
             PauseManager.Register(this);
+            if (isPaused)
+            {
+                OnPause();
+            }
+        }
+
+        protected virtual void OnDisable()
+        {
+            PauseManager.Unregister(this);
         }
 
         private void InitializeComponents()
@@ -82,6 +93,7 @@ namespace PatronesAplicados
             agent = GetComponent<NavMeshAgent>();
             rb = GetComponent<Rigidbody>();
             enemyCollider = GetComponent<Collider>();
+            _cachedAnimator = GetComponentInChildren<Animator>();
 
             if (enemyCollider != null)
             {
@@ -125,14 +137,10 @@ namespace PatronesAplicados
             }
         }
 
-        protected virtual void OnDisable()
-        {
-            PauseManager.Unregister(this);
-        }
-
         protected virtual void OnDestroy()
         {
             PauseManager.Unregister(this);
+
             if (enemyCollider != null)
             {
                 DamageableRegistry.Unregister(enemyCollider);
@@ -213,7 +221,7 @@ namespace PatronesAplicados
             }
         }
 
-        public virtual void TakeDamage(float amount, bool isCrit, DamageType type, bool isBleed = false)
+        public virtual void TakeDamage(float amount, bool isCrit = false, DamageType type = DamageType.Fisico, bool isBleed = false)
         {
             if (isDead) return;
 
@@ -269,9 +277,16 @@ namespace PatronesAplicados
         public virtual void OnPause()
         {
             isPaused = true;
-            if (UsesNavigation && agent != null && agent.enabled && agent.isOnNavMesh)
+            if (agent != null && agent.enabled && agent.isOnNavMesh)
             {
+                _savedAgentVelocity = agent.velocity;
+                agent.velocity = Vector3.zero;
                 agent.isStopped = true;
+            }
+            if (_cachedAnimator == null) _cachedAnimator = GetComponentInChildren<Animator>();
+            if (_cachedAnimator != null)
+            {
+                _cachedAnimator.speed = 0f;
             }
         }
 
@@ -281,6 +296,12 @@ namespace PatronesAplicados
             if (UsesNavigation && !isDead && !isStunned && agent != null && agent.enabled && agent.isOnNavMesh)
             {
                 agent.isStopped = false;
+                agent.velocity = _savedAgentVelocity;
+            }
+            if (_cachedAnimator == null) _cachedAnimator = GetComponentInChildren<Animator>();
+            if (_cachedAnimator != null)
+            {
+                _cachedAnimator.speed = 1f;
             }
         }
 
