@@ -340586,7 +340586,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1086346224349335833, guid: 28db9b9a91c0c7d41b528e901842294e, type: 3}
       propertyPath: waves.Array.data[0].availableEnemies.Array.data[0].spawnCost
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1086346224349335833, guid: 28db9b9a91c0c7d41b528e901842294e, type: 3}
       propertyPath: waves.Array.data[0].availableEnemies.Array.data[1].spawnCost
@@ -341106,7 +341106,7 @@ PrefabInstance:
       objectReference: {fileID: 5710106883042996946, guid: 5ef56158b643de041a8bf5226abb3cdb, type: 3}
     - target: {fileID: 1086346224349335833, guid: 28db9b9a91c0c7d41b528e901842294e, type: 3}
       propertyPath: waves.Array.data[0].availableEnemies.Array.data[0].spawnProbability
-      value: 100
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1086346224349335833, guid: 28db9b9a91c0c7d41b528e901842294e, type: 3}
       propertyPath: waves.Array.data[0].availableEnemies.Array.data[1].spawnProbability
