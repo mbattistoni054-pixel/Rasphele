@@ -39,6 +39,7 @@ public class WeaponData : ScriptableObject
     public float baseCooldown = 1f;
     public float baseRange = 15f;
     public float baseDuration = 0f;
+    public float baseProjectileSpeed = 20f;
 
     [Header("Mejoras de Disparo")]
     public int multipleShots = 1;

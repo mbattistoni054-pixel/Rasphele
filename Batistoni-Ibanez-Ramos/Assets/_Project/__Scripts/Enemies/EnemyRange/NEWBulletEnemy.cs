@@ -1,66 +1,95 @@
-using PatronesAplicados.RealImplementation;
 using UnityEngine;
+using PatronesAplicados;
+using PatronesAplicados.RealImplementation;
 
 public class NEWBulletEnemy : MonoBehaviour
 {
-    Transform player;
+    private Transform _player;
     public float damage;
     public float offset;
-    [SerializeField] int speed = 80;
-    
-    private float lifeTimer;
-    private float maxLifeTime = 4f;
+    [SerializeField] private float speed = 80f;
+
+    private float _lifeTimer;
+    [SerializeField] private float maxLifeTime = 4f;
+    private bool _isReturned;
 
     private void OnEnable()
     {
-        lifeTimer = 0f;
-        GameObject p = GameObject.FindGameObjectWithTag("Player");
+        _lifeTimer = 0f;
+        _isReturned = false;
 
-        if (p != null)
+        _player = GameManagerRefactored.Instance != null ? GameManagerRefactored.Instance.Player : null;
+        if (_player == null)
         {
-            player = p.transform;
-            Vector3 direction = (new Vector3(player.position.x, player.position.y + offset, player.position.z) - transform.position).normalized;
+            GameObject p = GameObject.FindGameObjectWithTag("Player");
+            if (p != null) _player = p.transform;
+        }
+
+        AimAtTarget();
+    }
+
+    public void Setup(float bulletDamage, Transform targetPlayer = null)
+    {
+        damage = bulletDamage;
+        if (targetPlayer != null)
+        {
+            _player = targetPlayer;
+        }
+        AimAtTarget();
+    }
+
+    private void AimAtTarget()
+    {
+        if (_player == null) return;
+
+        Vector3 targetPoint = new Vector3(_player.position.x, _player.position.y + offset, _player.position.z);
+        Vector3 direction = (targetPoint - transform.position).normalized;
+        if (direction != Vector3.zero)
+        {
             transform.up = direction;
         }
     }
 
     private void Update()
     {
-        transform.position += transform.up * speed * Time.deltaTime;
+        if (_isReturned || PauseManager.IsPaused) return;
 
-        lifeTimer += Time.deltaTime;
-        if (lifeTimer >= maxLifeTime)
+        transform.position += transform.up * (speed * Time.deltaTime);
+
+        _lifeTimer += Time.deltaTime;
+        if (_lifeTimer >= maxLifeTime)
         {
-            if (ProjectilePoolManager.Instance != null)
-                ProjectilePoolManager.Instance.ReturnProjectile(gameObject);
-            else
-                Destroy(gameObject);
+            ReturnToPool();
         }
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.CompareTag("Player"))
+        if (_isReturned) return;
+
+        if (other.CompareTag("Player"))
         {
-            var pHealthRef = other.gameObject.GetComponent<PatronesAplicados.PlayerHealthRefactored>();
-            if (pHealthRef != null)
+            if (other.TryGetComponent(out PlayerHealthRefactored pHealthRef))
             {
                 pHealthRef.TakeDamage(damage);
             }
-            else
-            {
-                PlayerHealth pHealth = other.gameObject.GetComponent<PlayerHealth>();
-                if (pHealth != null)
-                {
-                    pHealth.TakeDamage(damage);
-                }
-            }
-            
-            if (ProjectilePoolManager.Instance != null)
-                ProjectilePoolManager.Instance.ReturnProjectile(gameObject);
-            else
-                Destroy(gameObject);
+
+            ReturnToPool();
+        }
+    }
+
+    private void ReturnToPool()
+    {
+        if (_isReturned) return;
+        _isReturned = true;
+
+        if (ProjectilePoolManager.Instance != null)
+        {
+            ProjectilePoolManager.Instance.ReturnProjectile(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
         }
     }
 }
-

@@ -2,7 +2,6 @@ using UnityEngine;
 
 public class MenuAudioManager : MonoBehaviour
 {
-    // Asegúrate de que este script sea un Singleton para acceder fácil desde otros lados
     public static MenuAudioManager Instance;
 
     [Header("Audio Sources")]
@@ -16,11 +15,10 @@ public class MenuAudioManager : MonoBehaviour
 
     private void Awake()
     {
-        // Configuración del Singleton
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject); // Opcional: mantiene la música si cambias de escena
+            DontDestroyOnLoad(gameObject); 
         }
         else
         {
@@ -31,7 +29,6 @@ public class MenuAudioManager : MonoBehaviour
 
     private void Start()
     {
-        // Configurar y reproducir la música de fondo al iniciar
         if (backgroundMusic != null && musicSource != null)
         {
             musicSource.clip = backgroundMusic;
@@ -40,7 +37,6 @@ public class MenuAudioManager : MonoBehaviour
         }
     }
 
-    // Función para reproducir el sonido cuando el cursor pasa por encima del botón
     public void PlayHoverSound()
     {
         if (sfxSource != null && hoverSound != null)
@@ -49,7 +45,6 @@ public class MenuAudioManager : MonoBehaviour
         }
     }
 
-    // Función para reproducir el sonido cuando se hace clic en el botón
     public void PlayClickSound()
     {
         if (sfxSource != null && clickSound != null)

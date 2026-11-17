@@ -1,0 +1,442 @@
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.InputSystem;
+using PatronesAplicados.RealImplementation;
+
+namespace PatronesAplicados
+{
+    [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider), typeof(PlayerView))]
+    public class PlayerControllerRefactored : MonoBehaviour, IKnockbackable, IRootable, IPausable
+    {
+        [Header("Configuración (Modelo SO)")]
+        [SerializeField] private PlayerConfigSO config;
+
+        [Header("Estado Actual (Solo Lectura)")]
+        public PlayerState currentState = PlayerState.Walking;
+
+        [Header("Referencias")]
+        public Transform cam;
+        public Transform groundCheck;
+
+        [Header("Input System")]
+        public InputActionReference moveAction;
+        public InputActionReference jumpAction;
+        public InputActionReference slideAction;
+        public InputActionReference dashAction;
+        public InputActionReference walkToggleAction;
+        public InputActionReference togglePause;
+
+        [Header("Canvas & Menús")]
+        [SerializeField] private Canvas CanvasPause;
+        [SerializeField] private GameObject optionsMenu;
+        [SerializeField] private GameObject controlsMenu;
+
+        private PlayerModel _model;
+        private PlayerView _view;
+        private PlayerControls _controls;
+        private PlayerMovement _movement;
+        private PlayerHealthRefactored _health;
+        private Rigidbody _rb;
+        private MenuPause _menuPause;
+
+        private Dictionary<PlayerState, IPlayerState> _states;
+        private IPlayerState _activeState;
+
+        private bool _isPaused;
+        private float _rootTimer;
+        private Vector3 _savedVelocity;
+        private Vector3 _savedAngularVelocity;
+        private bool _wasKinematicBeforePause;
+
+        private readonly List<Behaviour> _pausedCameraBehaviours = new List<Behaviour>(4);
+
+        public Transform CameraTransform => cam;
+        public PlayerHealthRefactored Health => _health;
+
+        private void Awake()
+        {
+            _rb = GetComponent<Rigidbody>();
+            CapsuleCollider col = GetComponent<CapsuleCollider>();
+            _rb.freezeRotation = true;
+
+            _view = GetComponent<PlayerView>();
+            _health = GetComponent<PlayerHealthRefactored>();
+
+            if (CanvasPause != null)
+            {
+                _menuPause = CanvasPause.GetComponentInChildren<MenuPause>(true);
+            }
+
+            _model = new PlayerModel(config);
+            _controls = new PlayerControls(moveAction, jumpAction, slideAction, dashAction, walkToggleAction, togglePause, config.inputBufferTime);
+            _movement = new PlayerMovement(_rb, col, transform, groundCheck, config);
+
+            _view.Initialize(_model);
+
+            InitializeStateMachine();
+
+            if (GameManagerRefactored.Instance != null)
+            {
+                GameManagerRefactored.Instance.RegisterPlayer(transform);
+            }
+        }
+
+        private void InitializeStateMachine()
+        {
+            _states = new Dictionary<PlayerState, IPlayerState>(5)
+            {
+                { PlayerState.Walking, new WalkingState(this, _model, _movement, _controls) },
+                { PlayerState.Airborne, new AirborneState(this, _model, _movement, _controls) },
+                { PlayerState.Sliding, new SlidingState(this, _model, _movement, _controls) },
+                { PlayerState.WallRiding, new WallRidingState(this, _model, _movement, _controls) },
+                { PlayerState.Dashing, new DashingState(this, _model, _movement, _controls) }
+            };
+
+            _activeState = _states[PlayerState.Walking];
+            _activeState.Enter();
+        }
+
+        public void TransitionToState(PlayerState nextStateType)
+        {
+            if (_model.CurrentState == nextStateType && _activeState != null) return;
+
+            _activeState?.Exit();
+            _model.CurrentState = nextStateType;
+            currentState = nextStateType;
+            _activeState = _states[nextStateType];
+            _activeState.Enter();
+        }
+
+        private void OnEnable()
+        {
+            _controls?.EnableKeys();
+            _isPaused = PauseManager.IsPaused;
+            PauseManager.Register(this);
+        }
+
+        private void OnDisable()
+        {
+            _controls?.DisableKeys();
+            PauseManager.Unregister(this);
+        }
+
+        private void OnDestroy()
+        {
+            PauseManager.Unregister(this);
+        }
+
+        private void Update()
+        {
+            bool pausePressed = _controls.WasPausePressed() ||
+                                (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame);
+
+            if (pausePressed)
+            {
+                TogglePause();
+            }
+
+            if (_isPaused || PauseManager.IsPaused) return;
+
+            float dt = Time.deltaTime;
+
+            if (_model.JumpCooldown > 0f) _model.JumpCooldown -= dt;
+
+            if (_rootTimer > 0f)
+            {
+                _rootTimer -= dt;
+                _controls.jumpBuffer = 0f;
+                _controls.dashBuffer = 0f;
+                _controls.slideBuffer = 0f;
+                _model.MoveDirection = Vector3.zero;
+                _model.IsMoving = false;
+            }
+            else
+            {
+                _controls.ListenKeys(dt);
+            }
+
+            UpdateDashCooldown(dt);
+            UpdateMovementRegen(dt);
+            UpdateEnvironmentTransitions(dt);
+
+            if (_rootTimer <= 0f && _model.KnockbackTimer <= 0f)
+            {
+                _activeState?.HandleInput(dt);
+            }
+
+            _view.TickView(dt);
+        }
+
+        private void FixedUpdate()
+        {
+            if (_isPaused || PauseManager.IsPaused) return;
+
+            float fdt = Time.fixedDeltaTime;
+
+            if (_rootTimer > 0f)
+            {
+                if (_model.KnockbackTimer > 0f)
+                {
+                    _model.KnockbackTimer -= fdt;
+                }
+
+                Vector3 vel = _movement.GetVelocity();
+                float nextY = vel.y < 0f
+                    ? vel.y + (Physics.gravity.y * (config.fallMultiplier - 1f) * fdt)
+                    : vel.y;
+
+                _movement.SetVelocity(new Vector3(0f, nextY, 0f));
+                return;
+            }
+
+            if (_model.KnockbackTimer > 0f)
+            {
+                _model.KnockbackTimer -= fdt;
+                Vector3 vel = _movement.GetVelocity();
+                if (vel.y < 0f)
+                {
+                    _movement.SetVelocity(vel + Vector3.up * (Physics.gravity.y * (config.fallMultiplier - 1f) * fdt));
+                }
+                return;
+            }
+
+            _activeState?.UpdatePhysics(fdt);
+        }
+
+        private void UpdateDashCooldown(float dt)
+        {
+            int maxDashesAllowed = 1 + (PlayerStatsRefactored.Instance != null ? PlayerStatsRefactored.Instance.itemExtraDashes : 0);
+            if (_model.CurrentDashesAvailable < maxDashesAllowed)
+            {
+                float nextTimer = _model.DashCooldownTimer - dt;
+                if (nextTimer <= 0f)
+                {
+                    _model.CurrentDashesAvailable++;
+                    nextTimer = (_model.CurrentDashesAvailable < maxDashesAllowed) ? config.dashCooldown : 0f;
+                }
+                _model.SetDashCooldown(nextTimer);
+            }
+            else
+            {
+                _model.SetDashCooldown(0f);
+            }
+        }
+
+        private void UpdateMovementRegen(float dt)
+        {
+            if (_health == null || PlayerStatsRefactored.Instance == null || PlayerStatsRefactored.Instance.itemRegenMoving <= 0f)
+                return;
+
+            if (_movement.GetHorizontalSpeed() > 0.5f && _model.IsMoving && _model.IsGrounded)
+            {
+                _model.RegenTimer += dt;
+                if (_model.RegenTimer >= 1f)
+                {
+                    _model.RegenTimer = 0f;
+                    _health.Heal(PlayerStatsRefactored.Instance.itemRegenMoving);
+                }
+            }
+        }
+
+        private void UpdateEnvironmentTransitions(float dt)
+        {
+            _model.IsGrounded = _movement.CheckGrounded(_model.JumpCooldown);
+
+            if (_model.IsGrounded) _model.CoyoteTimer = config.coyoteTime;
+            else _model.CoyoteTimer -= dt;
+
+            if (_model.IsGrounded && _model.CurrentState == PlayerState.Airborne && _movement.GetVelocity().y <= 0f && _model.JumpCooldown <= 0f)
+            {
+                _model.AdditionalJumpsLeft = PlayerStatsRefactored.Instance != null ? PlayerStatsRefactored.Instance.itemExtraJumps : 0;
+                TransitionToState(PlayerState.Walking);
+            }
+            else if (!_model.IsGrounded && _model.CurrentState == PlayerState.Walking && _model.CoyoteTimer <= 0f)
+            {
+                TransitionToState(PlayerState.Airborne);
+            }
+
+            if (_model.CurrentState == PlayerState.Airborne && _model.JumpCooldown <= 0f)
+            {
+                if (_movement.CheckWallForward(out RaycastHit wallHit))
+                {
+                    _model.LastWallHit = wallHit;
+                    TransitionToState(PlayerState.WallRiding);
+                }
+            }
+        }
+
+        public void TogglePause()
+        {
+            if (CanvasPause == null) return;
+            if (MenuPause.LastToggleFrame == Time.frameCount) return;
+
+            MenuPause.LastToggleFrame = Time.frameCount;
+
+            if (_menuPause == null)
+            {
+                _menuPause = CanvasPause.GetComponentInChildren<MenuPause>(true);
+            }
+
+            bool isPauseOpen = CanvasPause.gameObject.activeInHierarchy;
+
+            if (isPauseOpen)
+            {
+                if (_menuPause != null)
+                {
+                    _menuPause.HandleEscapePressed();
+                }
+                else
+                {
+                    CanvasPause.gameObject.SetActive(false);
+                    PauseManager.RequestResume();
+                }
+            }
+            else
+            {
+                CanvasPause.gameObject.SetActive(true);
+
+                if (_menuPause == null)
+                {
+                    _menuPause = CanvasPause.GetComponentInChildren<MenuPause>(true);
+                }
+
+                if (_menuPause != null)
+                {
+                    _menuPause.RestoreMainPausePanel();
+                    _menuPause.RequestPauseOnce();
+                }
+                else
+                {
+                    PauseManager.RequestPause();
+                }
+            }
+        }
+
+        public void ApplyKnockback(Vector3 force, float stunDuration = 0.4f)
+        {
+            float sanitizedDuration = Mathf.Max(0f, stunDuration);
+
+            _model.KnockbackTimer = Mathf.Max(_model.KnockbackTimer, sanitizedDuration);
+            _model.JumpCooldown = Mathf.Max(_model.JumpCooldown, sanitizedDuration);
+
+            if (force.sqrMagnitude > 0.0001f)
+            {
+                TransitionToState(PlayerState.Airborne);
+                _movement.SetVelocity(Vector3.zero);
+                _movement.ApplyForce(force, ForceMode.Impulse);
+            }
+            else
+            {
+                ApplyRoot(sanitizedDuration);
+            }
+        }
+
+        public void ApplyRoot(float duration)
+        {
+            float sanitizedDuration = Mathf.Max(0f, duration);
+            if (sanitizedDuration <= 0f) return;
+
+            _rootTimer = Mathf.Max(_rootTimer, sanitizedDuration);
+            _model.KnockbackTimer = Mathf.Max(_model.KnockbackTimer, sanitizedDuration);
+
+            _controls.jumpBuffer = 0f;
+            _controls.dashBuffer = 0f;
+            _controls.slideBuffer = 0f;
+
+            _model.MoveDirection = Vector3.zero;
+            _model.IsMoving = false;
+
+            if (_model.CurrentState == PlayerState.Sliding || _model.CurrentState == PlayerState.Dashing)
+            {
+                TransitionToState(_model.IsGrounded ? PlayerState.Walking : PlayerState.Airborne);
+            }
+
+            Vector3 currentVel = _movement.GetVelocity();
+            _movement.SetVelocity(new Vector3(0f, Mathf.Min(0f, currentVel.y), 0f));
+        }
+
+        public void TakeDamage(float amount)
+        {
+            if (_health == null) _health = GetComponent<PlayerHealthRefactored>();
+            if (_health != null)
+            {
+                _health.TakeDamage(amount);
+            }
+        }
+
+        public void OnPause()
+        {
+            if (_isPaused) return;
+            _isPaused = true;
+
+            _view?.SetPaused(true);
+            SetCameraScriptsPaused(true);
+
+            if (_rb != null)
+            {
+                _wasKinematicBeforePause = _rb.isKinematic;
+                if (!_rb.isKinematic)
+                {
+                    _savedVelocity = _rb.linearVelocity;
+                    _savedAngularVelocity = _rb.angularVelocity;
+                    _rb.linearVelocity = Vector3.zero;
+                    _rb.angularVelocity = Vector3.zero;
+                    _rb.isKinematic = true;
+                }
+            }
+        }
+
+        public void OnResume()
+        {
+            if (!_isPaused) return;
+            _isPaused = false;
+
+            _view?.SetPaused(false);
+            SetCameraScriptsPaused(false);
+
+            if (_rb != null)
+            {
+                _rb.isKinematic = _wasKinematicBeforePause;
+                if (!_rb.isKinematic)
+                {
+                    _rb.linearVelocity = _savedVelocity;
+                    _rb.angularVelocity = _savedAngularVelocity;
+                }
+            }
+        }
+
+        private void SetCameraScriptsPaused(bool paused)
+        {
+            if (cam == null) return;
+
+            if (paused)
+            {
+                _pausedCameraBehaviours.Clear();
+                MonoBehaviour[] scripts = cam.GetComponentsInChildren<MonoBehaviour>();
+                for (int i = 0; i < scripts.Length; i++)
+                {
+                    MonoBehaviour mb = scripts[i];
+                    if (mb == null || !mb.enabled) continue;
+
+                    string typeName = mb.GetType().Name;
+                    if (typeName.Contains("UniversalAdditionalCameraData") || typeName.Contains("Audio"))
+                        continue;
+
+                    mb.enabled = false;
+                    _pausedCameraBehaviours.Add(mb);
+                }
+            }
+            else
+            {
+                for (int i = 0; i < _pausedCameraBehaviours.Count; i++)
+                {
+                    if (_pausedCameraBehaviours[i] != null)
+                    {
+                        _pausedCameraBehaviours[i].enabled = true;
+                    }
+                }
+                _pausedCameraBehaviours.Clear();
+            }
+        }
+    }
+}

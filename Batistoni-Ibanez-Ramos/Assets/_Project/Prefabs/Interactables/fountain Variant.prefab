@@ -62,9 +62,6 @@ PrefabInstance:
       addedObject: {fileID: 129661239731006289}
     - targetCorrespondingSourceObject: {fileID: 1362612735618395599, guid: f248f39659cf356418d302511cdce0bc, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1889767762669693466}
-    - targetCorrespondingSourceObject: {fileID: 1362612735618395599, guid: f248f39659cf356418d302511cdce0bc, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 1796871700891267785}
   m_SourcePrefab: {fileID: 100100000, guid: f248f39659cf356418d302511cdce0bc, type: 3}
 --- !u!1 &9082067413612741448 stripped
@@ -93,22 +90,6 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 4.95
   m_Center: {x: 0.00000011920929, y: 1.0052955, z: 0}
---- !u!114 &1889767762669693466
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9082067413612741448}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a674d58aebc150447ac3b71aeb95b49f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  maxUses: 3
-  waterVisual: {fileID: 0}
-  pressE_Text: {fileID: 0}
-  floatingCostText: {fileID: 0}
 --- !u!208 &1796871700891267785
 NavMeshObstacle:
   m_ObjectHideFlags: 0

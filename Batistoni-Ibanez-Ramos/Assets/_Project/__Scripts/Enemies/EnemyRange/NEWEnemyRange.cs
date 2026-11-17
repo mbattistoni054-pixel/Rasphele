@@ -1,24 +1,30 @@
+using UnityEngine;
 using PatronesAplicados;
 using PatronesAplicados.RealImplementation;
-using UnityEngine;
 
 public class NEWEnemyRange : EnemyBaseRefactored
 {
-    [Header("Estadsticas de Ataque")]
+    private float _cooldownTimer;
+    private float _pathTimer;
+    private float _attackLockTimer;
+    private bool _onAttack;
 
-    private float lastAttackTime;
-    bool onAttack;
+    [SerializeField] private Animator animator;
+    [SerializeField] private Transform firePoint;
 
-    [SerializeField] Animator animator;
-    [SerializeField] Transform firePoint;
+    private bool _hasMoveParam;
 
-    private bool hasMoveParam = false;
-    private float pathTimer = 0f;
+    private static readonly int MoveHash = Animator.StringToHash("Move");
+    private static readonly int ShootHash = Animator.StringToHash("Shoot");
 
     public override void ResetStats()
     {
         base.ResetStats();
-        onAttack = false;
+        _onAttack = false;
+        _pathTimer = 0f;
+        _attackLockTimer = 0f;
+        _cooldownTimer = data != null ? data.AttackCooldown : 0f;
+        if (animator != null) animator.speed = isPaused ? 0f : 1f;
     }
 
     protected override void Start()
@@ -28,100 +34,125 @@ public class NEWEnemyRange : EnemyBaseRefactored
 
         if (animator != null)
         {
-            foreach (var param in animator.parameters)
+            AnimatorControllerParameter[] parameters = animator.parameters;
+            for (int i = 0; i < parameters.Length; i++)
             {
-                if (param.name == "Move") hasMoveParam = true;
+                if (parameters[i].nameHash == MoveHash)
+                {
+                    _hasMoveParam = true;
+                    break;
+                }
             }
         }
 
-        if (agent != null)
+        if (agent != null && data != null)
         {
             agent.stoppingDistance = data.RangeAttack;
-            agent.acceleration = 60f;     
-            agent.angularSpeed = 600f;     
+            agent.acceleration = 60f;
+            agent.angularSpeed = 600f;
+            _cooldownTimer = data.AttackCooldown;
         }
+    }
+
+    public override void OnPause()
+    {
+        base.OnPause();
+        if (animator != null) animator.speed = 0f;
+    }
+
+    public override void OnResume()
+    {
+        base.OnResume();
+        if (animator != null) animator.speed = 1f;
     }
 
     protected override void Update()
     {
         base.Update();
+        if (isDead || isPaused || data == null) return;
 
-        if (player != null && !isStunned && agent != null)
+        float dt = Time.deltaTime;
+        _cooldownTimer += dt;
+        _pathTimer -= dt;
+
+        if (_onAttack)
         {
-            float distance = Vector3.Distance(player.position, transform.position);
+            _attackLockTimer -= dt;
+            if (_attackLockTimer <= 0f)
+            {
+                _onAttack = false;
+            }
+        }
 
-            if (!onAttack && distance > data.RangeAttack)
+        if (player != null && !isStunned && agent != null && agent.enabled && agent.isOnNavMesh)
+        {
+            float sqrDistance = (player.position - transform.position).sqrMagnitude;
+            float rangeAttackSqr = data.RangeAttack * data.RangeAttack;
+
+            if (!_onAttack && sqrDistance > rangeAttackSqr)
             {
                 agent.isStopped = false;
 
-                if (Time.time >= pathTimer)
+                if (_pathTimer <= 0f)
                 {
                     agent.SetDestination(player.position);
-                    pathTimer = Time.time + 0.2f;
+                    _pathTimer = 0.2f;
                 }
 
-                if (animator != null && hasMoveParam) animator.SetBool("Move", true);
+                if (animator != null && _hasMoveParam) animator.SetBool(MoveHash, true);
             }
             else
             {
                 agent.isStopped = true;
 
-                if (animator != null && hasMoveParam) animator.SetBool("Move", false);
+                if (animator != null && _hasMoveParam) animator.SetBool(MoveHash, false);
             }
 
-            if (distance <= data.RangeAttack || onAttack)
+            if (sqrDistance <= rangeAttackSqr || _onAttack)
             {
-                Vector3 directionToPlayer = (player.position - transform.position).normalized;
-                directionToPlayer.y = 0; 
-
-                if (directionToPlayer != Vector3.zero)
-                {
-                    Quaternion targetRotation = Quaternion.LookRotation(directionToPlayer);
-                    transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 15f);
-                }
+                RotateTowardsPlayer(dt, 15f);
             }
 
-            if (distance <= data.RangeAttack && Time.time >= lastAttackTime + data.AttackCooldown)
+            if (sqrDistance <= rangeAttackSqr && _cooldownTimer >= data.AttackCooldown)
             {
-                onAttack = true;
-                lastAttackTime = Time.time;
-                if (animator != null) animator.SetTrigger("Shoot");
-
-                Invoke(nameof(AttackEnd), 1f);
+                _onAttack = true;
+                _attackLockTimer = 1f;
+                _cooldownTimer = 0f;
+                if (animator != null) animator.SetTrigger(ShootHash);
             }
         }
     }
 
     public void Shoot()
     {
-        if (data.Bullet == null || firePoint == null) return;
-        
-        GameObject obj;
+        if (isDead || isPaused || isStunned || data == null || data.Bullet == null || firePoint == null) return;
+
+        float finalDamage = data.AttackDamage * damageMultiplier;
+
         if (ProjectilePoolManager.Instance != null)
         {
-            obj = ProjectilePoolManager.Instance.GetProjectile(data.Bullet, firePoint.position, firePoint.rotation);
+            NEWBulletEnemy pooledBullet = ProjectilePoolManager.Instance.GetProjectile<NEWBulletEnemy>(
+                data.Bullet,
+                firePoint.position,
+                firePoint.rotation);
+
+            if (pooledBullet != null)
+            {
+                pooledBullet.Setup(finalDamage, player);
+            }
         }
         else
         {
-            obj = Instantiate(data.Bullet, firePoint.position, firePoint.rotation);
-        }
-        
-        NEWBulletEnemy newBullet = obj.GetComponent<NEWBulletEnemy>();
-        if (newBullet != null)
-        {
-            newBullet.damage = data.AttackDamage * damageMultiplier;
-        }
-        else
-        {
-            BulletEnemy oldBullet = obj.GetComponent<BulletEnemy>();
-            if (oldBullet != null) oldBullet.damageMultiplier = damageMultiplier;
-            if (oldBullet != null) oldBullet.data = data;
+            GameObject obj = Instantiate(data.Bullet, firePoint.position, firePoint.rotation);
+            if (obj.TryGetComponent(out NEWBulletEnemy newBullet))
+            {
+                newBullet.Setup(finalDamage, player);
+            }
         }
     }
 
     public void AttackEnd()
     {
-        onAttack = false;
+        _onAttack = false;
     }
 }
-

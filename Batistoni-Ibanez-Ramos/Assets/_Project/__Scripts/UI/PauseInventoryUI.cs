@@ -1,7 +1,7 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using System.Collections.Generic;
 using PatronesAplicados;
 using PatronesAplicados.RealImplementation;
 
@@ -25,123 +25,138 @@ public class PauseInventoryUI : MonoBehaviour
     [Header("Configuración de Armas (Arriba)")]
     public PauseWeaponPanel[] weaponPanels;
 
+    private readonly List<UpgradeData> _fireUpgradesBuffer = new List<UpgradeData>(8);
+    private readonly List<UpgradeData> _impactUpgradesBuffer = new List<UpgradeData>(8);
+
     private void OnEnable()
     {
         RefreshItems();
         RefreshWeapons();
     }
 
-    private void RefreshItems()
+    private Transform GetPlayerTransform()
     {
-        // Limpiamos los iconos viejos para que no se dupliquen al pausar varias veces
-        foreach (Transform child in itemsContainer)
+        if (GameManagerRefactored.Instance != null && GameManagerRefactored.Instance.Player != null)
         {
-            Destroy(child.gameObject);
+            return GameManagerRefactored.Instance.Player;
         }
 
-        // Buscamos el inventario del jugador
         GameObject player = GameObject.FindGameObjectWithTag("Player");
+        return player != null ? player.transform : null;
+    }
+
+    private void RefreshItems()
+    {
+        if (itemsContainer == null || itemPrefab == null) return;
+
+        for (int i = itemsContainer.childCount - 1; i >= 0; i--)
+        {
+            Destroy(itemsContainer.GetChild(i).gameObject);
+        }
+
+        Transform player = GetPlayerTransform();
         if (player == null) return;
 
-        PlayerInventory inv = player.GetComponent<PlayerInventory>();
-        if (inv == null) return;
+        if (!player.TryGetComponent(out PlayerInventory inv) || inv.collectedItems == null) return;
 
-        // 3. Por cada objeto en su diccionario 'collectedItems', creamos un icono
         foreach (var kvp in inv.collectedItems)
         {
             ItemData itemData = kvp.Key;
+            if (itemData == null) continue;
             int cantidad = kvp.Value;
 
-            // Clonamos el Prefab adentro del GridLayout
             GameObject iconObj = Instantiate(itemPrefab, itemsContainer);
 
-            // Asignamos la foto
-            Image img = iconObj.GetComponent<Image>();
-            if (img != null) img.sprite = itemData.icon;
+            if (iconObj.TryGetComponent(out Image img))
+            {
+                img.sprite = itemData.icon;
+            }
 
-            // Asignamos el texto de cantidad ("x3")
             TextMeshProUGUI cantText = iconObj.GetComponentInChildren<TextMeshProUGUI>();
             if (cantText != null) cantText.text = "x" + cantidad;
 
-            // ¡MAGIA! Le agregamos el Tooltip por código y le pasamos la descripción
             AddTooltip(iconObj, itemData.itemName, itemData.description);
         }
     }
 
     private void RefreshWeapons()
     {
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (weaponPanels == null) return;
+
+        Transform player = GetPlayerTransform();
         if (player == null) return;
 
         WeaponBaseRealRefactored[] playerWeapons = player.GetComponentsInChildren<WeaponBaseRealRefactored>();
 
         for (int i = 0; i < weaponPanels.Length; i++)
         {
-            // Si el jugador tiene un arma para este hueco (0, 1 o 2)
-            if (i < playerWeapons.Length)
+            if (weaponPanels[i].panelObject == null) continue;
+
+            if (i < playerWeapons.Length && playerWeapons[i] != null && playerWeapons[i].data != null)
             {
                 weaponPanels[i].panelObject.SetActive(true);
                 WeaponBaseRealRefactored weapon = playerWeapons[i];
-                int captureIndex = i; // Necesario para el callback del evento
+                int captureIndex = i;
 
-
-                for (int j = 0; j < weapon.data.maxFiringUpgrades; j++)
+                if (weaponPanels[captureIndex].bgFire != null)
                 {
-                    weaponPanels[captureIndex].bgFire[j].gameObject.SetActive(true);
-                }
-                for (int j = 0; j < weapon.data.maxImpactUpgrades; j++)
-                {
-                    weaponPanels[captureIndex].bgImpact[j].gameObject.SetActive(true);
-                }
-
-                print(weapon.data.maxFiringUpgrades);
-                print(weapon.data.maxImpactUpgrades);   
-
-                // Configurar Icono del Arma y su Tooltip (Estadísticas dinámicas)
-                weaponPanels[captureIndex].weaponIcon.sprite = weapon.data.weaponIcon;
-
-                // Calculamos el daño final (Base + Buffs Globales)
-                float finalDamage = weapon.CurrentBaseDamage;
-                if (EventManager.Instance != null)
-                {
-                    EventManager.Instance.TriggerEvent<System.Action<PlayerStatsRefactored>>("RequestCurrentStats", (stats) => 
+                    for (int j = 0; j < weaponPanels[captureIndex].bgFire.Length; j++)
                     {
-                        if (stats != null) finalDamage *= stats.globalDamageMultiplier;
-                    });
+                        if (weaponPanels[captureIndex].bgFire[j] != null)
+                            weaponPanels[captureIndex].bgFire[j].gameObject.SetActive(j < weapon.data.maxFiringUpgrades);
+                    }
                 }
 
-                string statsText = $"Daño: {finalDamage}\nTipo: {weapon.CurrentDamageType}\nProb. Crítico: {weapon.CurrentEffects.critChance}%";
-                AddTooltip(weaponPanels[captureIndex].weaponIcon.gameObject, weapon.data.weaponName, statsText);
-
-                // Configurar los iconos de las mejoras
-                if (EventManager.Instance != null)
+                if (weaponPanels[captureIndex].bgImpact != null)
                 {
-                    EventManager.Instance.TriggerEvent<WeaponBaseRealRefactored, System.Action<WeaponUpgradeProfile>>("RequestUpgradeProfile", weapon, (profile) => 
+                    for (int j = 0; j < weaponPanels[captureIndex].bgImpact.Length; j++)
                     {
-                        if (profile != null)
+                        if (weaponPanels[captureIndex].bgImpact[j] != null)
+                            weaponPanels[captureIndex].bgImpact[j].gameObject.SetActive(j < weapon.data.maxImpactUpgrades);
+                    }
+                }
+
+                if (weaponPanels[captureIndex].weaponIcon != null)
+                {
+                    weaponPanels[captureIndex].weaponIcon.sprite = weapon.data.weaponIcon;
+
+                    float finalDamage = weapon.CurrentBaseDamage;
+                    if (EventManager.Instance != null)
+                    {
+                        EventManager.Instance.TriggerEvent<System.Action<PlayerStatsRefactored>>(GameEventKeys.RequestCurrentStats, stats =>
                         {
-                            // Extraemos los datos de las mejoras para saber sus nombres y descripciones
-                            List<UpgradeData> fireUpgrades = new List<UpgradeData>();
-                            List<UpgradeData> impactUpgrades = new List<UpgradeData>();
+                            if (stats != null) finalDamage *= stats.globalDamageMultiplier;
+                        });
+                    }
+
+                    string statsText = $"Daño: {finalDamage}\nTipo: {weapon.CurrentDamageType}\nProb. Crítico: {weapon.CurrentEffects.critChance}%";
+                    AddTooltip(weaponPanels[captureIndex].weaponIcon.gameObject, weapon.data.weaponName, statsText);
+                }
+
+                if (EventManager.Instance != null)
+                {
+                    EventManager.Instance.TriggerEvent<WeaponBaseRealRefactored, System.Action<WeaponUpgradeProfile>>(GameEventKeys.RequestUpgradeProfile, weapon, profile =>
+                    {
+                        if (profile != null && profile.levels != null)
+                        {
+                            _fireUpgradesBuffer.Clear();
+                            _impactUpgradesBuffer.Clear();
 
                             foreach (var kvp in profile.levels)
                             {
-                                if (kvp.Key.category == UpgradeCategory.Firing) fireUpgrades.Add(kvp.Key);
-                                else if (kvp.Key.category == UpgradeCategory.Impact) impactUpgrades.Add(kvp.Key);
+                                if (kvp.Key == null) continue;
+                                if (kvp.Key.category == UpgradeCategory.Firing) _fireUpgradesBuffer.Add(kvp.Key);
+                                else if (kvp.Key.category == UpgradeCategory.Impact) _impactUpgradesBuffer.Add(kvp.Key);
                             }
 
-                            // Llenamos Huecos de Disparo (Azules)
-                            FillUpgradeSlots(weaponPanels[captureIndex].fireSlots, profile.firingIcons, fireUpgrades, profile);
-
-                            // Llenamos Huecos de Impacto (Rojos)
-                            FillUpgradeSlots(weaponPanels[captureIndex].impactSlots, profile.impactIcons, impactUpgrades, profile);
+                            FillUpgradeSlots(weaponPanels[captureIndex].fireSlots, profile.firingIcons, _fireUpgradesBuffer, profile);
+                            FillUpgradeSlots(weaponPanels[captureIndex].impactSlots, profile.impactIcons, _impactUpgradesBuffer, profile);
                         }
                     });
                 }
             }
             else
             {
-                // Si no tiene 2da o 3ra arma, apagamos ese panel
                 weaponPanels[i].panelObject.SetActive(false);
             }
         }
@@ -149,25 +164,28 @@ public class PauseInventoryUI : MonoBehaviour
 
     private void FillUpgradeSlots(Image[] slots, List<Sprite> icons, List<UpgradeData> upgradesData, WeaponUpgradeProfile profile)
     {
+        if (slots == null) return;
+
         for (int f = 0; f < slots.Length; f++)
         {
-            if (f < icons.Count)
+            if (slots[f] == null) continue;
+
+            if (icons != null && f < icons.Count && f < upgradesData.Count)
             {
-                slots[f].gameObject.SetActive(true); 
+                slots[f].gameObject.SetActive(true);
                 slots[f].sprite = icons[f];
                 slots[f].color = Color.white;
 
-                // Le pasamos el nombre de la mejora y su descripción actual según el nivel
                 UpgradeData data = upgradesData[f];
                 int currentLevel = profile.levels[data];
 
                 string desc = "Mejora al máximo";
-                if (currentLevel - 1 >= 0 && currentLevel - 1 < data.levelDescriptions.Length)
+                if (data.levelDescriptions != null && currentLevel - 1 >= 0 && currentLevel - 1 < data.levelDescriptions.Length)
                 {
                     desc = data.levelDescriptions[currentLevel - 1];
                 }
 
-                AddTooltip(slots[f].gameObject, data.baseName + $" (Lvl {currentLevel})", desc);
+                AddTooltip(slots[f].gameObject, $"{data.baseName} (Lvl {currentLevel})", desc);
             }
             else
             {
@@ -178,8 +196,11 @@ public class PauseInventoryUI : MonoBehaviour
 
     private void AddTooltip(GameObject obj, string title, string description)
     {
-        TooltipTrigger tt = obj.GetComponent<TooltipTrigger>();
-        if (tt == null) tt = obj.AddComponent<TooltipTrigger>();
+        if (obj == null) return;
+        if (!obj.TryGetComponent(out TooltipTrigger tt))
+        {
+            tt = obj.AddComponent<TooltipTrigger>();
+        }
 
         tt.SetupTooltip(title, description);
     }

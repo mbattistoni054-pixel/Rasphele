@@ -1,69 +1,88 @@
 using UnityEngine;
+using PatronesAplicados;
 using PatronesAplicados.RealImplementation;
 
 public class NEWExperienceOrb : MonoBehaviour
 {
     [Header("Ajustes de la Gema")]
     public float xpAmount = 20f;
-    public float magnetRadius = 5f;   // Distancia a la que empieza a ser atrada
-    public float baseMoveSpeed = 10f; // Velocidad base
-    private float currentMoveSpeed;
+    public float magnetRadius = 5f;
+    public float baseMoveSpeed = 10f;
 
-    private Transform player;
-    private bool isAttracted = false;
+    private float _defaultXpAmount;
+    private float _currentMoveSpeed;
+    private Transform _player;
+    private bool _isAttracted;
+    private bool _isCollected;
+
+    private void Awake()
+    {
+        _defaultXpAmount = xpAmount;
+    }
 
     private void OnEnable()
     {
-        isAttracted = false;
-        currentMoveSpeed = baseMoveSpeed;
-        
-        GameObject p = GameObject.FindGameObjectWithTag("Player");
-        if (p != null) player = p.transform;
+        _isAttracted = false;
+        _isCollected = false;
+        _currentMoveSpeed = baseMoveSpeed;
+        xpAmount = _defaultXpAmount;
+
+        if (GameManagerRefactored.Instance != null && GameManagerRefactored.Instance.Player != null)
+        {
+            _player = GameManagerRefactored.Instance.Player;
+        }
+        else
+        {
+            GameObject p = GameObject.FindGameObjectWithTag("Player");
+            if (p != null) _player = p.transform;
+        }
     }
 
-    void Update()
+    public void SetXpAmount(float amount)
     {
-        if (player == null) return;
-
-        // Si el jugador est cerca, la gema empieza a ser atrada
-        if (!isAttracted && Vector3.Distance(transform.position, player.position) <= magnetRadius)
+        if (amount > 0f)
         {
-            isAttracted = true;
+            xpAmount = amount;
+        }
+    }
+
+    private void Update()
+    {
+        if (PauseManager.IsPaused || _isCollected || _player == null) return;
+
+        if (!_isAttracted)
+        {
+            float sqrDist = (_player.position - transform.position).sqrMagnitude;
+            if (sqrDist <= magnetRadius * magnetRadius)
+            {
+                _isAttracted = true;
+            }
         }
 
-        // Si est siendo atrada, vuela hacia el jugador
-        if (isAttracted)
+        if (_isAttracted)
         {
-            transform.position = Vector3.MoveTowards(transform.position, player.position, currentMoveSpeed * Time.deltaTime);
+            transform.position = Vector3.MoveTowards(transform.position, _player.position, _currentMoveSpeed * Time.deltaTime);
         }
     }
 
     public void ForceAttract(Transform targetPlayer)
     {
-        player = targetPlayer;
-        isAttracted = true;
-        currentMoveSpeed = baseMoveSpeed * 2f; // Que vuelen ms rpido cuando se usa el imn
+        _player = targetPlayer;
+        _isAttracted = true;
+        _currentMoveSpeed = baseMoveSpeed * 2f;
     }
 
-    // Cuando la gema choca fsicamente con el jugador
     private void OnTriggerEnter(Collider other)
     {
+        if (_isCollected) return;
+
         if (other.CompareTag("Player"))
         {
-            PatronesAplicados.PlayerExperienceRefactored newXp = other.GetComponent<PatronesAplicados.PlayerExperienceRefactored>();
-            if (newXp != null)
+            if (other.TryGetComponent(out PlayerExperienceRefactored newXp))
             {
+                _isCollected = true;
                 newXp.AddExperience(xpAmount);
                 ReturnToPool();
-            }
-            else
-            {
-                PlayerExperience xpScript = other.GetComponent<PlayerExperience>();
-                if (xpScript != null)
-                {
-                    xpScript.AddExperience(xpAmount);
-                    ReturnToPool();
-                }
             }
         }
     }
@@ -76,7 +95,7 @@ public class NEWExperienceOrb : MonoBehaviour
         }
         else
         {
-            Destroy(gameObject); // Respaldo por si se rompe el pool
+            Destroy(gameObject);
         }
     }
 }

@@ -9,7 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2815433183581021479}
-  - component: {fileID: 2015036271257566778}
   m_Layer: 0
   m_Name: ShurikenEmpty
   m_TagString: Untagged
@@ -33,21 +32,6 @@ Transform:
   - {fileID: 1621950278917866093}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2015036271257566778
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5868414706774911068}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 06da3f3e07c81d24cb61c6ee4356e75f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  currentState: 0
-  visualTransform: {fileID: 1621950278917866093}
-  rotationSpeed: {x: 0, y: 0, z: 1000}
 --- !u!1001 &81098449539365008
 PrefabInstance:
   m_ObjectHideFlags: 0

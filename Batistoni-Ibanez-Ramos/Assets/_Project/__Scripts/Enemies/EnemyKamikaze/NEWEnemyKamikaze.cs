@@ -1,23 +1,35 @@
+using UnityEngine;
 using PatronesAplicados;
 using PatronesAplicados.RealImplementation;
-using System.Collections;
-using Unity.VisualScripting;
-using UnityEngine;
 
 public class NEWEnemyKamikaze : EnemyBaseRefactored
 {
+    private bool _isTriggered;
+    private float _explosionTimer;
+    private int _lastBlinkPhase = -1;
 
-    private bool isTriggered = false;
-    private Renderer rend;
-    [SerializeField] Animator animator;
+    private Renderer _rend;
+    [SerializeField] private Animator animator;
 
-    private bool hasMoveParam = false;
-    private float pathTimer = 0f; 
+    private bool _hasMoveParam;
+    private float _pathTimer;
+
+    private MaterialPropertyBlock _propBlock;
+    private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+    private static readonly int ColorId = Shader.PropertyToID("_Color");
+    private static readonly int MoveHash = Animator.StringToHash("Move");
+
+    private readonly Collider[] _explosionHitsBuffer = new Collider[16];
 
     public override void ResetStats()
     {
         base.ResetStats();
-        isTriggered = false;
+        _isTriggered = false;
+        _explosionTimer = 0f;
+        _lastBlinkPhase = -1;
+        _pathTimer = 0f;
+        ClearBlinkColor();
+        if (animator != null) animator.speed = isPaused ? 0f : 1f;
     }
 
     protected override void Start()
@@ -27,131 +39,186 @@ public class NEWEnemyKamikaze : EnemyBaseRefactored
 
         if (animator != null)
         {
-            foreach (var param in animator.parameters)
+            AnimatorControllerParameter[] parameters = animator.parameters;
+            for (int i = 0; i < parameters.Length; i++)
             {
-                if (param.name == "Move") hasMoveParam = true;
+                if (parameters[i].nameHash == MoveHash)
+                {
+                    _hasMoveParam = true;
+                    break;
+                }
             }
         }
 
-        rend = GetComponentInChildren<Renderer>();
+        _rend = GetComponentInChildren<Renderer>();
+        if (_propBlock == null) _propBlock = new MaterialPropertyBlock();
 
-        if (agent != null)
+        if (agent != null && data != null)
         {
-            agent.stoppingDistance = data.RangeAttack - 0.5f;
-            agent.acceleration = 60f;      
+            agent.stoppingDistance = Mathf.Max(0.5f, data.RangeAttack - 0.5f);
+            agent.acceleration = 60f;
             agent.angularSpeed = 600f;
         }
+    }
+
+    public override void OnPause()
+    {
+        base.OnPause();
+        if (animator != null) animator.speed = 0f;
+    }
+
+    public override void OnResume()
+    {
+        base.OnResume();
+        if (animator != null) animator.speed = 1f;
     }
 
     protected override void Update()
     {
         base.Update();
+        if (isDead || isPaused || data == null) return;
 
-        if (player != null && !isStunned && agent != null)
+        float dt = Time.deltaTime;
+        _pathTimer -= dt;
+
+        if (_isTriggered)
         {
-            float distance = Vector3.Distance(player.position, transform.position);
-            if (!isTriggered)
+            TickKamikazeCountdown(dt);
+            if (isDead) return;
+        }
+
+        if (player != null && !isStunned && agent != null && agent.enabled && agent.isOnNavMesh)
+        {
+            float sqrDistance = (player.position - transform.position).sqrMagnitude;
+            float rangeAttackSqr = data.RangeAttack * data.RangeAttack;
+
+            if (!_isTriggered)
             {
-                if (distance > data.RangeAttack)
+                if (sqrDistance > rangeAttackSqr)
                 {
                     agent.isStopped = false;
 
-                    if (Time.time >= pathTimer)
+                    if (_pathTimer <= 0f)
                     {
                         agent.SetDestination(player.position);
-                        pathTimer = Time.time + 0.2f;
+                        _pathTimer = 0.2f;
                     }
 
-                    if (animator != null && hasMoveParam) animator.SetBool("Move", true);
+                    if (animator != null && _hasMoveParam) animator.SetBool(MoveHash, true);
                 }
                 else
                 {
-                    if (animator != null && hasMoveParam) animator.SetBool("Move", false);
-                    StartCoroutine(KamikazeRoutine());
-
+                    StartKamikazeCountdown();
                 }
             }
 
-            if (distance <= data.RangeAttack || isTriggered)
+            if (sqrDistance <= rangeAttackSqr || _isTriggered)
             {
-                Vector3 directionToPlayer = (player.position - transform.position).normalized;
-                directionToPlayer.y = 0;
-
-                if (directionToPlayer != Vector3.zero)
-                {
-                    Quaternion targetRotation = Quaternion.LookRotation(directionToPlayer);
-                    transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 30f);
-                }
+                RotateTowardsPlayer(dt, 30f);
             }
         }
     }
 
-    private IEnumerator KamikazeRoutine()
+    private void StartKamikazeCountdown()
     {
-        isTriggered = true;
+        _isTriggered = true;
+        _explosionTimer = data.ExplosionDelay;
+        _lastBlinkPhase = -1;
 
-        if (agent != null) agent.isStopped = true;
-        if (animator != null && hasMoveParam) animator.SetBool("Move", false);
+        if (agent != null && agent.enabled && agent.isOnNavMesh) agent.isStopped = true;
+        if (animator != null && _hasMoveParam) animator.SetBool(MoveHash, false);
+    }
 
-        float timer = data.ExplosionDelay;
+    private void TickKamikazeCountdown(float deltaTime)
+    {
+        _explosionTimer -= deltaTime;
 
-        while (timer > 0)
+        if (_explosionTimer <= 0f)
         {
-            if (rend != null)
-            {
-                rend.material.color = (Mathf.FloorToInt(timer * 8) % 2 == 0) ? Color.red : Color.yellow;
-            }
-            yield return new WaitForSeconds(0.125f);
-            timer -= 0.125f;
+            Explode();
+            return;
         }
 
-        Explode();
+        int currentPhase = Mathf.FloorToInt(_explosionTimer * 8f) % 2;
+        if (currentPhase != _lastBlinkPhase)
+        {
+            _lastBlinkPhase = currentPhase;
+            SetBlinkColor(currentPhase == 0 ? Color.red : Color.yellow);
+        }
+    }
+
+    private void SetBlinkColor(Color c)
+    {
+        if (_rend == null) return;
+        if (_propBlock == null) _propBlock = new MaterialPropertyBlock();
+
+        _rend.GetPropertyBlock(_propBlock);
+        _propBlock.SetColor(BaseColorId, c);
+        _propBlock.SetColor(ColorId, c);
+        _rend.SetPropertyBlock(_propBlock);
+    }
+
+    private void ClearBlinkColor()
+    {
+        if (_rend == null) return;
+        if (_propBlock == null) _propBlock = new MaterialPropertyBlock();
+
+        _propBlock.Clear();
+        _rend.SetPropertyBlock(_propBlock);
     }
 
     private void Explode()
     {
+        if (isDead) return;
+        isDead = true;
+
+        StopAllCoroutines();
+        ClearBlinkColor();
+
+        if (enemyCollider != null) enemyCollider.enabled = false;
+        if (agent != null && agent.enabled && agent.isOnNavMesh) agent.isStopped = true;
+
         if (data.ExplosionVisualPrefab != null)
         {
-            GameObject visual;
-            if (ProjectilePoolManager.Instance != null)
+            GameObject visual = VfxPoolManager.Instance != null
+                ? VfxPoolManager.Instance.GetVfx(data.ExplosionVisualPrefab, transform.position, Quaternion.identity, 1.5f)
+                : Instantiate(data.ExplosionVisualPrefab, transform.position, Quaternion.identity);
+
+            if (visual != null)
             {
-                visual = ProjectilePoolManager.Instance.GetProjectile(data.ExplosionVisualPrefab, transform.position, Quaternion.identity);
+                float visualScale = data.ExplosionRadius * 2f;
+                visual.transform.localScale = new Vector3(visualScale, visualScale, visualScale);
             }
-            else
-            {
-                visual = Instantiate(data.ExplosionVisualPrefab, transform.position, Quaternion.identity);
-            }
-            
-            float visualScale = data.ExplosionRadius * 2f;
-            visual.transform.localScale = new Vector3(visualScale, visualScale, visualScale);
         }
 
-        Collider[] hitObjects = Physics.OverlapSphere(transform.position, data.ExplosionRadius);
-        foreach (Collider hit in hitObjects)
+        int hitCount = Physics.OverlapSphereNonAlloc(transform.position, data.ExplosionRadius, _explosionHitsBuffer);
+        for (int i = 0; i < hitCount; i++)
         {
-            if (hit.CompareTag("Player"))
+            Collider hit = _explosionHitsBuffer[i];
+            if (hit != null && hit.CompareTag("Player"))
             {
-                var refHealth = hit.GetComponent<PatronesAplicados.PlayerHealthRefactored>();
-                if (refHealth != null) refHealth.TakeDamage(data.AttackDamage * damageMultiplier);
-                else {
-                    PlayerHealth pHealth = hit.GetComponent<PlayerHealth>();
-                    if (pHealth != null) pHealth.TakeDamage(data.AttackDamage * damageMultiplier);
+                if (hit.TryGetComponent(out PlayerHealthRefactored refHealth))
+                {
+                    refHealth.TakeDamage(data.AttackDamage * damageMultiplier);
                 }
             }
         }
 
-        Destroy(gameObject);
+        if (EventManager.Instance != null)
+        {
+            EventManager.Instance.TriggerEvent(GameEventKeys.EnemyDied);
+        }
+
+        ReturnEnemy();
     }
 
     private void OnDrawGizmosSelected()
     {
+        if (data == null) return;
+
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, data.RangeAttack);
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, data.ExplosionRadius);
     }
 }
-
-
-
-

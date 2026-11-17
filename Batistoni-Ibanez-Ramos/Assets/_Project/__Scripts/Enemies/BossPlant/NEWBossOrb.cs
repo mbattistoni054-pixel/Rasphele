@@ -1,7 +1,8 @@
-using PatronesAplicados.RealImplementation;
 using UnityEngine;
+using PatronesAplicados;
+using PatronesAplicados.RealImplementation;
 
-public class NEWBossOrb : MonoBehaviour
+public class NEWBossOrb : MonoBehaviour, IPausable
 {
     public float speed = 18f;
     public float lifeTime = 4f;
@@ -12,26 +13,41 @@ public class NEWBossOrb : MonoBehaviour
 
     [Header("Efectos")]
     public GameObject impactVisualPrefab;
+    public float impactVisualDuration = 0.5f;
 
-    private float damage;
-    private float timer;
+    private float _damage;
+    private float _timer;
+    private bool _hasExploded;
+    private bool _isPaused;
 
     public void Setup(float dmg)
     {
-        damage = dmg;
+        _damage = dmg;
+        _timer = 0f;
+        _hasExploded = false;
     }
 
     private void OnEnable()
     {
-        timer = 0f;
+        _timer = 0f;
+        _hasExploded = false;
+        _isPaused = PauseManager.IsPaused;
+        PauseManager.Register(this);
     }
 
-    void Update()
+    private void OnDisable()
     {
-        transform.position += transform.forward * speed * Time.deltaTime;
+        PauseManager.Unregister(this);
+    }
 
-        timer += Time.deltaTime;
-        if (timer >= lifeTime)
+    private void Update()
+    {
+        if (_hasExploded || _isPaused) return;
+
+        transform.position += transform.forward * (speed * Time.deltaTime);
+
+        _timer += Time.deltaTime;
+        if (_timer >= lifeTime)
         {
             Explode();
         }
@@ -39,15 +55,18 @@ public class NEWBossOrb : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        if (_hasExploded || _isPaused || PauseManager.IsPaused) return;
+
         if (other.CompareTag("Player"))
         {
-            var refHealth = other.GetComponent<PatronesAplicados.PlayerHealthRefactored>();
-                if (refHealth != null) refHealth.TakeDamage(damage);
-                else {
-                    PlayerHealth hp = other.GetComponent<PlayerHealth>();
-                    if (hp != null) hp.TakeDamage(damage);
-                }
-
+            if (other.TryGetComponent(out IDamageable damageable))
+            {
+                damageable.TakeDamage(_damage);
+            }
+            else if (other.TryGetComponent(out PlayerHealthRefactored refHealth))
+            {
+                refHealth.TakeDamage(_damage);
+            }
             Explode();
         }
         else if (((1 << other.gameObject.layer) & obstacleMask) != 0)
@@ -58,18 +77,22 @@ public class NEWBossOrb : MonoBehaviour
 
     private void Explode()
     {
+        if (_hasExploded) return;
+        _hasExploded = true;
+
         if (impactVisualPrefab != null)
         {
-            if (ProjectilePoolManager.Instance != null)
+            if (VfxPoolManager.Instance != null)
             {
-                ProjectilePoolManager.Instance.GetProjectile(impactVisualPrefab, transform.position, Quaternion.identity);
+                VfxPoolManager.Instance.GetVfx(impactVisualPrefab, transform.position, Quaternion.identity, impactVisualDuration);
             }
             else
             {
-                Instantiate(impactVisualPrefab, transform.position, Quaternion.identity);
+                GameObject vfx = Instantiate(impactVisualPrefab, transform.position, Quaternion.identity);
+                Destroy(vfx, impactVisualDuration);
             }
         }
-        
+
         if (ProjectilePoolManager.Instance != null)
         {
             ProjectilePoolManager.Instance.ReturnProjectile(gameObject);
@@ -79,6 +102,7 @@ public class NEWBossOrb : MonoBehaviour
             Destroy(gameObject);
         }
     }
+
+    public void OnPause() => _isPaused = true;
+    public void OnResume() => _isPaused = false;
 }
-
-

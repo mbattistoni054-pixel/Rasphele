@@ -13,7 +13,6 @@ public class WeaponChest : MonoBehaviour
 
     void Update()
     {
-        // Si el jugador está cerca y presiona la tecla E
         if (isPlayerNear && Keyboard.current != null)
         {
             if (Keyboard.current.eKey.wasPressedThisFrame)
@@ -28,7 +27,7 @@ public class WeaponChest : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             isPlayerNear = true;
-            playerTransform = other.transform; // Guardamos quién es el jugador
+            playerTransform = other.transform; 
 
         }
     }
@@ -47,8 +46,6 @@ public class WeaponChest : MonoBehaviour
     {
         if (weaponPrefabToGive != null && playerTransform != null)
         {
-            // Creamos el arma exactamente en la posición del jugador, y le decimos
-            // que su nuevo "padre" (parent) es el jugador. Así lo seguirá a donde vaya.
             Instantiate(weaponPrefabToGive, playerTransform.position, Quaternion.identity, playerTransform);
 
             Debug.Log($"¡Cofre abierto! Obtuviste: {weaponPrefabToGive.name}");
@@ -58,8 +55,6 @@ public class WeaponChest : MonoBehaviour
             Debug.LogWarning("El cofre no tiene un arma asignada en el Inspector.");
         }
 
-
-        // Destruimos el cofre 
-        Destroy(gameObject);
+        gameObject.SetActive(false);
     }
 }

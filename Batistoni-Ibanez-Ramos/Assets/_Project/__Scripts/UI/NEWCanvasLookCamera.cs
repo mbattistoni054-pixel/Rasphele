@@ -4,44 +4,68 @@ using PatronesAplicados;
 
 public class NEWCanvasLookCamera : MonoBehaviour
 {
-    public TextMeshProUGUI useText; 
+    public const string ShowInteractTextEvent = "ShowInteractText";
+
+    public TextMeshProUGUI useText;
+
+    private Transform _cachedCameraTransform;
+    private bool _isSubscribed;
+
+    private void Awake()
+    {
+        CacheMainCamera();
+    }
 
     private void OnEnable()
     {
-        if (EventManager.Instance != null)
+        CacheMainCamera();
+        TrySubscribe();
+    }
+
+    private void Start()
+    {
+        TrySubscribe();
+
+        if (useText != null)
         {
-            EventManager.Instance.StartListening<string>("ShowInteractText", ShowText);
+            useText.text = string.Empty;
         }
     }
 
     private void OnDisable()
     {
-        if (EventManager.Instance != null)
+        if (_isSubscribed && EventManager.Instance != null)
         {
-            EventManager.Instance.StopListening<string>("ShowInteractText", ShowText);
+            EventManager.Instance.StopListening<string>(ShowInteractTextEvent, ShowText);
+        }
+        _isSubscribed = false;
+    }
+
+    private void LateUpdate()
+    {
+        if (_cachedCameraTransform == null)
+        {
+            CacheMainCamera();
+            if (_cachedCameraTransform == null) return;
+        }
+
+        transform.rotation = _cachedCameraTransform.rotation;
+    }
+
+    private void CacheMainCamera()
+    {
+        if (_cachedCameraTransform == null && Camera.main != null)
+        {
+            _cachedCameraTransform = Camera.main.transform;
         }
     }
 
-    private void Start()
+    private void TrySubscribe()
     {
-        // Si el EventManager tarda en cargar, nos aseguramos de suscribirnos ac tambin
-        if (EventManager.Instance != null)
-        {
-            EventManager.Instance.StartListening<string>("ShowInteractText", ShowText);
-        }
+        if (_isSubscribed || EventManager.Instance == null) return;
 
-        if (useText != null)
-        {
-            useText.text = "";
-        }
-    }
-
-    void Update()
-    {
-        if (Camera.main != null)
-        {
-            transform.rotation = Camera.main.transform.rotation;
-        }
+        EventManager.Instance.StartListening<string>(ShowInteractTextEvent, ShowText);
+        _isSubscribed = true;
     }
 
     private void ShowText(string text)

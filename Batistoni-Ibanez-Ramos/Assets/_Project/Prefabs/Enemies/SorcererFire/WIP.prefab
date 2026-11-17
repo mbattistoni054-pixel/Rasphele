@@ -62,7 +62,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: f7fcb1cb3098f284da95df9f8b258b3b, type: 3}
       propertyPath: m_Name
-      value: Sloth
+      value: WIP
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: f7fcb1cb3098f284da95df9f8b258b3b, type: 3}
       propertyPath: m_Layer
@@ -91,7 +91,10 @@ PrefabInstance:
       addedObject: {fileID: 5596885846988760405}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f7fcb1cb3098f284da95df9f8b258b3b, type: 3}
       insertIndex: -1
-      addedObject: {fileID: -6909789053815728797}
+      addedObject: {fileID: 6525142094624447978}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f7fcb1cb3098f284da95df9f8b258b3b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1254490254673969702}
   m_SourcePrefab: {fileID: 100100000, guid: f7fcb1cb3098f284da95df9f8b258b3b, type: 3}
 --- !u!1 &2804109342156569821 stripped
 GameObject:
@@ -170,7 +173,7 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
---- !u!114 &-6909789053815728797
+--- !u!114 &6525142094624447978
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -179,13 +182,37 @@ MonoBehaviour:
   m_GameObject: {fileID: 2804109342156569821}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5f9b78553e06e614a9f3581386e03039, type: 3}
+  m_Script: {fileID: 11500000, guid: 42f5e135924ccd849a1f4afd6fc7a674, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   data: {fileID: 11400000, guid: 07d4273f6828a8b4683748fd806b0701, type: 2}
+  poolKey: 
   maxHealth: 0
-  baseSpeed: 0
-  xpOrbPrefab: {fileID: 0}
-  damagePopupPrefab: {fileID: 0}
-  flashMaterial: {fileID: 0}
-  animator: {fileID: 0}
+  xpOrbPrefab: {fileID: 4151671228204215311, guid: f0f5c3e19b95e644d8886b80bbdb3cbc, type: 3}
+  damagePopupPrefab: {fileID: 3592148569616233406, guid: 61ebab5bd050aba4583e7948ea50b804, type: 3}
+  flashMaterial: {fileID: 2100000, guid: 6f40a55d7b6a753448c0da4dcb51b4e2, type: 2}
+  enemyVisual: {fileID: 1254490254673969702}
+  animator: {fileID: 8881607466535959581}
+--- !u!114 &1254490254673969702
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2804109342156569821}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10f64510efbe801429ed51e599a82d3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  enemyBase: {fileID: 6525142094624447978}
+  enemyCollider: {fileID: -6184461660994118042}
+  enemyAnimator: {fileID: 8881607466535959581}
+  spawnSpeed: 2
+  hitSpeed: 4
+  renderers: []
+--- !u!95 &8881607466535959581 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: f7fcb1cb3098f284da95df9f8b258b3b, type: 3}
+  m_PrefabInstance: {fileID: 3038622733665927564}
+  m_PrefabAsset: {fileID: 0}

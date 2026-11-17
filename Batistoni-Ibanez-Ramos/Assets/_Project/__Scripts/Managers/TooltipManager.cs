@@ -50,8 +50,6 @@ public class TooltipManager : MonoBehaviour
                 null,
                 out Vector2 localPoint);
 
-            // Sumamos 15 píxeles a la derecha y 15 hacia abajo. 
-            // Así la flecha del ratón nunca choca físicamente con el panel negro.
             localPoint += new Vector2(15f, -15f);
 
             panelRect.localPosition = localPoint;
@@ -68,7 +66,6 @@ public class TooltipManager : MonoBehaviour
         if (titleText != null) titleText.text = title;
         if (descriptionText != null) descriptionText.text = description;
 
-        // Forzamos a los Layout Groups a recalcular su tamaño AL INSTANTE en este mismo milisegundo
         if (panelRect != null)
         {
             LayoutRebuilder.ForceRebuildLayoutImmediate(panelRect);

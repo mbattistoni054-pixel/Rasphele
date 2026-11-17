@@ -1,0 +1,414 @@
+# Auditoría de Código, Refactorización y Optimización — Rasphele (Actualizado)
+
+Este documento refleja el estado **actual** del proyecto tras la auditoría de código realizada el 25/10/2026.
+Los ítems completados fueron removidos. Solo quedan los **pendientes** y los **nuevos hallazgos**.
+
+---
+
+## RESUMEN DE LO COMPLETADO ?
+
+Lo siguiente **ya fue implementado** y no requiere acción adicional:
+
+| # | Ítem Completado | Evidencia |
+|---|---|---|
+| 1.1 | Falla del Spawner: contadores desincronizados | `activeEnemyCount` eliminado. `EnemyBaseRefactored` usa `EnemyFeedbackService` que dispara `EnemyDied`. Scripts viejos (`EnemyBase.cs`, `EnemySpawner.cs`) eliminados del proyecto. |
+| 1.2 | Proyectiles teledirigidos al desaparecer objetivo | `HomingProjectileRefactored.cs` línea 73: `if (_target == null \|\| !_target.gameObject.activeInHierarchy)` — corregido. |
+| 1.3 | Jefe no hace daño al jugador | `NEWBossOrb.cs` usa `PlayerHealthRefactored`. `NEWBossRootTrap.cs` usa `PlayerHealthRefactored` + `PlayerControllerRefactored.ApplyKnockback()`. |
+| 1.4 | `EnemySpawnInfo`/`WavePhase` dependían del script viejo | Extraídos y declarados dentro de `EnemySpawnerRefactored.cs` como clases independientes. Script viejo eliminado. |
+| 2.1.1 | `EnemyBaseRefactored` era clase dios (SRP) | DoT/estados extraídos a `EnemyStatusEffectHandler`. Flash extraído a `EnemyFlashController`. Recompensas/popups extraídos a `EnemyFeedbackService`. |
+| 2.1.3 | Spawner con demasiadas responsabilidades (SRP) | Separado en `EnemySpawnerRefactored`, `EnemyWaveLogic` y `NavMeshSpawnLocator`. |
+| 3.1.1 | Object Pool para `DamagePopup` | Implementado vía `VfxPoolManager.SpawnDamagePopup()`. `DamagePopup.ReturnOrDestroy()` usa `VfxPoolManager`. |
+| 3.1.2 | Cachear `Camera.main` en popups | `DamagePopup.cs` cachea en `mainCamTransform`. Solo hace fallback a `Camera.main` cuando es null. |
+| 3.1.3 | GC Alloc en bucles de DoT | `EnemyStatusEffectHandler` usa `_keysBuffer` (lista reutilizable) en vez de crear listas nuevas por frame. |
+| 3.1.4 | Object Pool para balas/trampas del jefe | `BossPlantRefactored` usa `ProjectilePoolManager` para orbes y trampas. `NEWBossOrb` y `NEWBossRootTrap` retornan al pool. |
+| 3.1.5 | Object Pool para VFX (humo spawner, explosiones) | `VfxPoolManager` implementado. `EnemySpawnerRefactored` usa `VfxPoolManager.GetVfx()` para humo. `NEWEnemyKamikaze` usa `VfxPoolManager` para explosiones. `PooledExplosionVisual` implementado. |
+| 3.1.6 | `OverlapSphereNonAlloc` | Migrado en: `HomingProjectileRefactored`, `OrbWeaponRefactored`, `NEWEnemyGolem`, `NEWEnemyKamikaze`, `NEWBossRootTrap`. |
+| 4.x | Eliminación de scripts viejos | Todos los scripts legacy eliminados (EnemyBase, EnemySpawner, BossPlant, BossOrb, etc.). Solo quedan las versiones refactorizadas/NEW. |
+| 2.1.2 | `MenuMejorasRefactored` monolito de UI (SRP parcial) | Dividido parcialmente en `UpgradeCenterCardsPanelUI`, `UpgradeLeftInventoryPanelUI`, `UpgradeRightStatsPanelUI` + `UpgradeMenuSessionLogic`. |
+
+---
+
+## GRUPO 1: PENDIENTES FUNCIONALES (Bugs y Comportamiento Incorrecto)
+
+> [!CAUTION]
+> Estos ítems provocan comportamiento incorrecto en gameplay y deben corregirse.
+
+### 1.1 ? Orbes de Experiencia Desconectados del ScriptableObject
+* **Estado**: SIN CORREGIR.
+* **Problema**: En `NEWExperienceOrb.cs`, el campo `xpAmount = 20f` sigue hardcodeado. El orbe **nunca recibe** el valor de `EnemyData.ExpReward`.
+* **Evidencia**: `EnemyFeedbackService.SpawnDeathRewards()` llama a `ProjectilePoolManager.GetProjectile(xpOrbPrefab, ...)` sin pasar el valor de experiencia. `ExpReward` solo se expone en `EnemyData.cs` pero no se usa en ningún otro script.
+* **Solución requerida**:
+  1. En `NEWExperienceOrb`, agregar un método `public void SetXpAmount(float amount)`.
+  2. En `EnemyFeedbackService.SpawnDeathRewards()`, tras obtener el orbe del pool, llamar `SetXpAmount(data.ExpReward)`.
+  3. Configurar valores reales de `expReward` en los assets `Data_Enemy*.asset` (actualmente están en `0`).
+
+### 1.2 ? `NEWBulletEnemy` y `NEWEnemyFireLine` Usan `Destroy()` sin Pool
+* **Estado**: PARCIALMENTE CORREGIDO.
+* **Problema**: `NEWEnemyRange` y `NEWEnemyFireSorcerer` ya usan `ProjectilePoolManager` para **instanciar** sus proyectiles, pero los proyectiles mismos (`NEWBulletEnemy.cs` línea 92, `NEWEnemyFireLine.cs` línea 67) terminan su vida con `Destroy(gameObject)` en vez de retornar al pool.
+* **Solución**: En ambos scripts, reemplazar `Destroy(gameObject)` por `ProjectilePoolManager.Instance.ReturnProjectile(gameObject)` con fallback a `Destroy`.
+
+---
+
+## GRUPO 2: ARQUITECTURA Y DISEÑO (SOLID — Pendientes)
+
+> [!IMPORTANT]
+> Ítems que degradan mantenibilidad y dificultan la expansión del juego.
+
+### 2.1 ? Principio Abierto/Cerrado: Efectos de Estado Hardcodeados (OCP)
+* **Estado**: PARCIALMENTE MEJORADO pero NO resuelto.
+* `EnemyStatusEffectHandler` sigue usando diccionarios separados para cada efecto (`_activeBurns`, `_activeBleeds`, `_activePoisons`) con métodos específicos por tipo.
+* Agregar un nuevo efecto (ej. *Electrocutado*, *Corrosión*) **todavía requiere modificar** la clase handler.
+* **Solución**: Diseñar una interfaz `IStatusEffect` con implementaciones polimórficas. El handler almacenaría una `List<IStatusEffect>` genérica.
+
+### 2.2 ? `DamagePopup` Colores Hardcodeados (OCP)
+* **Estado**: SIN CORREGIR.
+* `DamagePopup.Setup()` sigue usando un `switch(type)` con colores cableados en código para cada `DamageType`.
+* **Solución**: Usar un `DamageVisualConfigSO` (ScriptableObject) con paleta de colores configurable por tipo.
+
+### 2.3 ? Herencia del Jefe Viola LSP
+* **Estado**: SIN CORREGIR.
+* `BossPlantRefactored` hereda de `EnemyBaseRefactored` pero anula la navegación, tiene estados de fase únicos y eventos exclusivos.
+* **Solución a futuro**: Considerar composición en lugar de herencia para el jefe, o extraer una clase base más ligera compartida.
+
+### 2.4 ? Sobrecarga de `IDamageable` (ISP)
+* **Estado**: SIN CORREGIR.
+* La interfaz `IDamageable` sigue exigiendo `TakeDamage()` **y** `ApplyEffects()`. Un barril destructible se ve forzado a implementar efectos de estado.
+* **Solución**: Dividir en `IDamageable` (solo daño/muerte) e `IEffectReceivable` (estados alterados).
+
+### 2.5 ? Ausencia de Interfaces de Jugador (`IKnockbackable`, `IRootable`)
+* **Estado**: SIN IMPLEMENTAR.
+* Las trampas del jefe (`NEWBossRootTrap`, `NEWBossOrb`) buscan directamente `PlayerControllerRefactored` y `PlayerHealthRefactored` por tipo concreto. Si se cambia el controlador, fallan silenciosamente.
+* **Solución**: Crear interfaces `IKnockbackable` / `IRootable` que el controlador del jugador implemente.
+
+### 2.6 ? Manejo de Pausa con `Time.timeScale` (DIP)
+* **Estado**: SIN CORREGIR.
+* `GameManagerRefactored` sigue usando `Time.timeScale = 0f` para pausar (líneas 109, 133) y `Time.timeScale = 1f` para despausar (líneas 119, 153). `MenuPause.cs` también modifica `Time.timeScale`.
+* Riesgo: Congela partículas VFX, animaciones de UI, tweens, y puede generar bugs de despausa si múltiples paneles abren/cierran.
+* **Solución**: Implementar `IPausable` + `PauseManager` que registre entidades pausables sin alterar la escala global del motor.
+
+---
+
+## GRUPO 3: OPTIMIZACIÓN Y RENDIMIENTO (Pendientes)
+
+### Subgrupo 3.1: Alto Impacto
+
+> [!TIP]
+> Optimizaciones que resuelven caídas de FPS y picos de GC.
+
+#### 3.1.1 ? `Physics.OverlapSphere` Sin Buffer en Armas
+* **Estado**: PARCIALMENTE CORREGIDO.
+* **YA migrado** a `NonAlloc`: `HomingProjectileRefactored`, `OrbWeaponRefactored`, `NEWEnemyGolem`, `NEWEnemyKamikaze`, `NEWBossRootTrap`.
+* **SIN migrar**: `ShurikenWeaponRefactored.cs` (línea 121), `GalvanicCoreWeaponRefactored.cs` (línea 113), `CloudEntityRefactored.cs` (líneas 110, 134), `MushroomEntityRefactored.cs` (líneas 81, 95), `MeteorProjectileRefactored.cs` (línea 119).
+* **Solución**: Agregar un `static Collider[] buffer` en cada script y usar `OverlapSphereNonAlloc`.
+
+---
+
+### Subgrupo 3.2: Medio y Bajo Impacto
+
+#### 3.2.1 ? Reemplazo de `Vector3.Distance` por `sqrMagnitude`
+* **Estado**: PARCIALMENTE CORREGIDO.
+* **YA migrado**: `HomingProjectileRefactored`, `OrbWeaponRefactored`, `PlayerMovement`.
+* **SIN migrar** (14 usos restantes): `NEWExperienceOrb` (línea 28), `NEWEnemyRange` (línea 61), `NEWEnemySorcererBase` (línea 51), `NEWEnemyGolem` (línea 58), `NEWCopiaMeleeEnemy` (línea 54), `NEWEnemyKamikaze` (línea 64), `BossPlantRefactored` (líneas 137, 169), `ShurikenWeaponRefactored` (línea 127), `ShurikenProjectileRefactored` (líneas 69, 91), `GalvanicCoreWeaponRefactored` (líneas 64, 134), `FireShoesWeaponRefactored` (línea 28).
+
+#### 3.2.2 ? Cacheo de `WaitForSeconds` en Corrutinas
+* **Estado**: PARCIALMENTE CORREGIDO.
+* **YA cacheado**: `OrbWeaponRefactored` (línea 13: `static readonly WaitForSeconds`).
+* **SIN cachear** (20+ instancias): `FireZoneRefactored`, `MeteorProjectileRefactored`, `CloudEntityRefactored`, `MushroomEntityRefactored`, `NEWEnemyGolem` (×2), `NEWEnemyFireSorcerer`, `NEWEnemyFireLine`, `NEWEnemyMagicSorcerer` (×2), `NEWEnemyKamikaze`, `NEWBossRootTrap` (×2), `NEWBossOrb`, `BossPlantRefactored` (×5).
+
+#### 3.2.3 ? `Camera.main` en `Update` de UI
+* **Estado**: PARCIALMENTE CORREGIDO.
+* `DamagePopup` ya cachea en `mainCamTransform` ?.
+* **SIN corregir**: `NEWCanvasLookCamera.cs` (línea 41-43) y `CanvasLookCamera.cs` (líneas 22-25) siguen consultando `Camera.main` cada frame en `Update`/`LateUpdate`.
+* **Solución**: Cachear `Camera.main.transform` en un campo en `Awake()` o `OnEnable()`.
+
+#### 3.2.4 ? Cacheo de `GetComponentsInChildren<Renderer>` (Pool Enemigos)
+* **Estado**: MEJORADO pero auditar.
+* `EnemyFlashController.Initialize()` usa `GetComponentsInChildren<Renderer>()` una sola vez al inicializar ?.
+* Verificar que `Initialize()` solo se ejecute una vez por instancia del pool (no por cada reciclaje).
+
+#### 3.2.5 ? Optimización del `EventManager`
+* **Estado**: SIN CORREGIR.
+* `EventManager` sigue usando `Dictionary<string, Delegate>` con búsquedas por string y casteo por operador `as`.
+* **Mejora recomendada**: Migrar gradualmente a constantes estáticas (`GameEventKeys` ya existe parcialmente) y considerar eventos tipados a futuro.
+
+---
+
+## GRUPO 4: NUEVOS HALLAZGOS (Detectados en esta auditoría)
+
+> [!WARNING]
+> Problemas adicionales encontrados durante la revisión completa del código actual.
+
+### 4.1 ? `FindGameObjectWithTag("Player")` Excesivo
+* **Problema**: Se encontraron **11 llamadas** a `GameObject.FindGameObjectWithTag("Player")` dispersas por todo el proyecto: `NEWExperienceOrb.OnEnable()`, `NEWBulletEnemy`, `GameManagerRefactored`, `EnemySpawnerRefactored`, `RingStormManager`, `WeaponUpgradeApplier`, `PurgadorUIRefactored`, `PauseInventoryUI` (×2), `NEWItemRewardUI`, `MenuMejorasRefactored`.
+* **Impacto**: Cada llamada recorre internamente la lista de tags de la escena. En scripts como `NEWExperienceOrb` que se ejecutan en `OnEnable()` con decenas de orbes, esto es innecesariamente costoso.
+* **Solución**: Centralizar la referencia al jugador en `GameManagerRefactored.Instance.Player` (ya existe) y usar esa referencia en todos lados en vez de búsquedas por tag.
+
+### 4.2 ? `NEWBulletEnemy` y `NEWEnemyFireLine` Usan `Destroy()` al Expirar
+* **Problema**: Estos proyectiles enemigos son **instanciados** desde el pool pero **destruidos** con `Destroy(gameObject)` al expirar, causando una fuga del pool (el pool pierde instancias que nunca retornan).
+* **Archivos**: `NEWBulletEnemy.cs` (línea 92), `NEWEnemyFireLine.cs` (línea 67).
+* **Solución**: Retornar al pool con `ProjectilePoolManager.Instance.ReturnProjectile(gameObject)`.
+
+### 4.3 ? Script `CanvasLookCamera.cs` Duplicado
+* **Problema**: Existen dos scripts que hacen exactamente lo mismo: `CanvasLookCamera.cs` y `NEWCanvasLookCamera.cs`. Ambos rotan un canvas hacia la cámara en `Update()`/`LateUpdate()`.
+* **Solución**: Eliminar `CanvasLookCamera.cs` (versión vieja), conservar `NEWCanvasLookCamera.cs` y migrar cualquier referencia en prefabs.
+
+### 4.4 ? `stormCheck.cs` y `stormCheck2.cs` — Scripts Sin Namespace y Duplicados
+* **Problema**: Los scripts `stormCheck.cs` y `stormCheck2.cs` en `Others/Storm/` son scripts que no siguen convenciones de nombre (PascalCase), no están dentro de un namespace, y `stormCheck2` parece ser una copia/variante de `stormCheck`.
+* **Solución**: Auditar si ambos están en uso, eliminar el duplicado, y renombrar a convención PascalCase dentro del namespace `PatronesAplicados`.
+
+### 4.5 ? `PojectilePayload.cs` — Typo en Nombre de Archivo
+* **Problema**: El archivo se llama `PojectilePayload.cs` (falta la "r" en "Projectile"). Si la clase interna se llama correctamente `ProjectilePayload`, el nombre del archivo no coincide. Si la clase también tiene el typo, hay inconsistencia.
+* **Solución**: Renombrar el archivo a `ProjectilePayload.cs`.
+
+### 4.6 ? `NEWCopiaMeleeEnemy.cs` — Nombre Desprolijio
+* **Problema**: El script del enemigo melee se llama `NEWCopiaMeleeEnemy`, conservando el prefijo "Copia" que indica que es una copia temporal. No es un nombre apropiado para código de producción.
+* **Solución**: Renombrar a `MeleeEnemyController.cs` o `NEWMeleeEnemy.cs` y actualizar las referencias en prefabs.
+
+### 4.7 ? `MagnetStructure.cs` y `WeaponChest.cs` Usan `Destroy(gameObject)`
+* **Problema**: Los interactables `MagnetStructure.cs` (líneas 31, 53) y `WeaponChest.cs` (línea 63) llaman a `Destroy(gameObject)`. Si estos objetos se reutilizan o son frecuentes, deberían usar pool.
+* **Impacto**: Bajo si son objetos únicos por partida, pero rompe la consistencia del patrón pool adoptado en el resto del proyecto.
+
+### 4.8 ? `ItemChestStructureRefactored.cs` Usa `Destroy(gameObject)`
+* **Problema**: La versión refactorizada del cofre de ítems (línea 86) sigue usando `Destroy(gameObject)` como fallback.
+* **Solución**: Evaluar si estos interactables necesitan pool o si el `Destroy` es aceptable dado que aparecen pocas veces por partida.
+
+### 4.9 ? Pre-calentamiento (Pre-warming) de Object Pools
+* **Estado**: SIN IMPLEMENTAR.
+* `EnemyPool`, `ProjectilePoolManager` y `VfxPoolManager` instancian objetos de manera perezosa (solo al solicitar).
+* Esto provoca micro-tirones (stutters) en los primeros segundos de juego al instanciarse los primeros enemigos, proyectiles y popups.
+* **Solución**: Agregar rutina de pre-warming en `Awake()`/`Start()` que instancie y desactive un cupo base configurable.
+
+### 4.10 ? Revisión de NavMesh — `GetRandomPositionOnNavMesh()` Fallback a `Vector3.zero`
+* **Estado**: SIN VERIFICAR.
+* Si `NavMeshSpawnLocator.GetRandomPositionOnNavMesh()` falla al samplear, el comportamiento de fallback podría devolver `Vector3.zero` y generar spawn de enemigos en el origen del mundo o reintentos infinitos.
+* **Solución**: Verificar y agregar un máximo de reintentos con posición de fallback segura.
+
+### 4.11 ? `EnemyData` ScriptableObject Sobrecargado
+* **Problema**: El ScriptableObject `EnemyData.cs` contiene campos para **todos** los tipos de enemigos (Melee, Range, Golem, Kamikaze, Sorcerer, BossPlant) en un solo archivo. Un enemigo melee carga innecesariamente campos de `explosionRadius`, `orbPrefab`, `beamMaterial`, etc.
+* **Impacto**: Dificulta la legibilidad en el Inspector (demasiados campos irrelevantes por enemigo) y viola SRP a nivel de datos.
+* **Solución**: Considerar herencia de ScriptableObjects (`EnemyDataBase` ? `GolemData`, `BossPlantData`, etc.) o usar sub-structs serializables agrupadas por tipo.
+
+---
+
+## SECCIÓN 5: VALIDACIONES EN EDITOR DE UNITY
+
+> [!NOTE]
+> Aspectos que deben verificarse manualmente en el Editor de Unity.
+
+1. **Valores de `expReward` en los assets `Data_Enemy*.asset`**: Actualmente en `0`. Deben configurarse antes de conectar la experiencia dinámica.
+2. **Auditoría de Escenas Activas**: Verificar que la escena principal de gameplay solo tenga componentes refactorizados/NEW asignados.
+3. **Prefabs con `CanvasLookCamera` (viejo)**: Migrar a `NEWCanvasLookCamera` antes de eliminar el script viejo.
+4. **Prefab del Melee**: Actualizar referencia de `NEWCopiaMeleeEnemy` si se renombra el script.
+
+
+
+
+
+
+
+
+
+
+# Auditoría de Código, Refactorización y Optimización — Rasphele (Actualizado)
+
+Este documento refleja el estado **actual** del proyecto tras la auditoría de código realizada el 25/10/2026.
+Los ítems completados fueron removidos. Solo quedan los **pendientes** y los **nuevos hallazgos**.
+
+---
+
+## RESUMEN DE LO COMPLETADO ?
+
+Lo siguiente **ya fue implementado** y no requiere acción adicional:
+
+| # | Ítem Completado | Evidencia |
+|---|---|---|
+| 1.1 | Falla del Spawner: contadores desincronizados | `activeEnemyCount` eliminado. `EnemyBaseRefactored` usa `EnemyFeedbackService` que dispara `EnemyDied`. Scripts viejos (`EnemyBase.cs`, `EnemySpawner.cs`) eliminados del proyecto. |
+| 1.2 | Proyectiles teledirigidos al desaparecer objetivo | `HomingProjectileRefactored.cs` línea 73: `if (_target == null \|\| !_target.gameObject.activeInHierarchy)` — corregido. |
+| 1.3 | Jefe no hace daño al jugador | `NEWBossOrb.cs` usa `PlayerHealthRefactored`. `NEWBossRootTrap.cs` usa `PlayerHealthRefactored` + `PlayerControllerRefactored.ApplyKnockback()`. |
+| 1.4 | `EnemySpawnInfo`/`WavePhase` dependían del script viejo | Extraídos y declarados dentro de `EnemySpawnerRefactored.cs` como clases independientes. Script viejo eliminado. |
+| 2.1.1 | `EnemyBaseRefactored` era clase dios (SRP) | DoT/estados extraídos a `EnemyStatusEffectHandler`. Flash extraído a `EnemyFlashController`. Recompensas/popups extraídos a `EnemyFeedbackService`. |
+| 2.1.3 | Spawner con demasiadas responsabilidades (SRP) | Separado en `EnemySpawnerRefactored`, `EnemyWaveLogic` y `NavMeshSpawnLocator`. |
+| 3.1.1 | Object Pool para `DamagePopup` | Implementado vía `VfxPoolManager.SpawnDamagePopup()`. `DamagePopup.ReturnOrDestroy()` usa `VfxPoolManager`. |
+| 3.1.2 | Cachear `Camera.main` en popups | `DamagePopup.cs` cachea en `mainCamTransform`. Solo hace fallback a `Camera.main` cuando es null. |
+| 3.1.3 | GC Alloc en bucles de DoT | `EnemyStatusEffectHandler` usa `_keysBuffer` (lista reutilizable) en vez de crear listas nuevas por frame. |
+| 3.1.4 | Object Pool para balas/trampas del jefe | `BossPlantRefactored` usa `ProjectilePoolManager` para orbes y trampas. `NEWBossOrb` y `NEWBossRootTrap` retornan al pool. |
+| 3.1.5 | Object Pool para VFX (humo spawner, explosiones) | `VfxPoolManager` implementado. `EnemySpawnerRefactored` usa `VfxPoolManager.GetVfx()` para humo. `NEWEnemyKamikaze` usa `VfxPoolManager` para explosiones. `PooledExplosionVisual` implementado. |
+| 3.1.6 | `OverlapSphereNonAlloc` | Migrado en: `HomingProjectileRefactored`, `OrbWeaponRefactored`, `NEWEnemyGolem`, `NEWEnemyKamikaze`, `NEWBossRootTrap`. |
+| 4.x | Eliminación de scripts viejos | Todos los scripts legacy eliminados (EnemyBase, EnemySpawner, BossPlant, BossOrb, etc.). Solo quedan las versiones refactorizadas/NEW. |
+| 2.1.2 | `MenuMejorasRefactored` monolito de UI (SRP parcial) | Dividido parcialmente en `UpgradeCenterCardsPanelUI`, `UpgradeLeftInventoryPanelUI`, `UpgradeRightStatsPanelUI` + `UpgradeMenuSessionLogic`. |
+
+---
+
+## GRUPO 1: PENDIENTES FUNCIONALES (Bugs y Comportamiento Incorrecto)
+
+> [!CAUTION]
+> Estos ítems provocan comportamiento incorrecto en gameplay y deben corregirse.
+
+### 1.1 ? Orbes de Experiencia Desconectados del ScriptableObject
+* **Estado**: SIN CORREGIR.
+* **Problema**: En `NEWExperienceOrb.cs`, el campo `xpAmount = 20f` sigue hardcodeado. El orbe **nunca recibe** el valor de `EnemyData.ExpReward`.
+* **Evidencia**: `EnemyFeedbackService.SpawnDeathRewards()` llama a `ProjectilePoolManager.GetProjectile(xpOrbPrefab, ...)` sin pasar el valor de experiencia. `ExpReward` solo se expone en `EnemyData.cs` pero no se usa en ningún otro script.
+* **Solución requerida**:
+  1. En `NEWExperienceOrb`, agregar un método `public void SetXpAmount(float amount)`.
+  2. En `EnemyFeedbackService.SpawnDeathRewards()`, tras obtener el orbe del pool, llamar `SetXpAmount(data.ExpReward)`.
+  3. Configurar valores reales de `expReward` en los assets `Data_Enemy*.asset` (actualmente están en `0`).
+
+### 1.2 ? `NEWBulletEnemy` y `NEWEnemyFireLine` Usan `Destroy()` sin Pool
+* **Estado**: PARCIALMENTE CORREGIDO.
+* **Problema**: `NEWEnemyRange` y `NEWEnemyFireSorcerer` ya usan `ProjectilePoolManager` para **instanciar** sus proyectiles, pero los proyectiles mismos (`NEWBulletEnemy.cs` línea 92, `NEWEnemyFireLine.cs` línea 67) terminan su vida con `Destroy(gameObject)` en vez de retornar al pool.
+* **Solución**: En ambos scripts, reemplazar `Destroy(gameObject)` por `ProjectilePoolManager.Instance.ReturnProjectile(gameObject)` con fallback a `Destroy`.
+
+---
+
+## GRUPO 2: ARQUITECTURA Y DISEÑO (SOLID — Pendientes)
+
+> [!IMPORTANT]
+> Ítems que degradan mantenibilidad y dificultan la expansión del juego.
+
+### 2.1 ? Principio Abierto/Cerrado: Efectos de Estado Hardcodeados (OCP)
+* **Estado**: PARCIALMENTE MEJORADO pero NO resuelto.
+* `EnemyStatusEffectHandler` sigue usando diccionarios separados para cada efecto (`_activeBurns`, `_activeBleeds`, `_activePoisons`) con métodos específicos por tipo.
+* Agregar un nuevo efecto (ej. *Electrocutado*, *Corrosión*) **todavía requiere modificar** la clase handler.
+* **Solución**: Diseñar una interfaz `IStatusEffect` con implementaciones polimórficas. El handler almacenaría una `List<IStatusEffect>` genérica.
+
+### 2.2 ? `DamagePopup` Colores Hardcodeados (OCP)
+* **Estado**: SIN CORREGIR.
+* `DamagePopup.Setup()` sigue usando un `switch(type)` con colores cableados en código para cada `DamageType`.
+* **Solución**: Usar un `DamageVisualConfigSO` (ScriptableObject) con paleta de colores configurable por tipo.
+
+### 2.3 ? Herencia del Jefe Viola LSP
+* **Estado**: SIN CORREGIR.
+* `BossPlantRefactored` hereda de `EnemyBaseRefactored` pero anula la navegación, tiene estados de fase únicos y eventos exclusivos.
+* **Solución a futuro**: Considerar composición en lugar de herencia para el jefe, o extraer una clase base más ligera compartida.
+
+### 2.4 ? Sobrecarga de `IDamageable` (ISP)
+* **Estado**: SIN CORREGIR.
+* La interfaz `IDamageable` sigue exigiendo `TakeDamage()` **y** `ApplyEffects()`. Un barril destructible se ve forzado a implementar efectos de estado.
+* **Solución**: Dividir en `IDamageable` (solo daño/muerte) e `IEffectReceivable` (estados alterados).
+
+### 2.5 ? Ausencia de Interfaces de Jugador (`IKnockbackable`, `IRootable`)
+* **Estado**: SIN IMPLEMENTAR.
+* Las trampas del jefe (`NEWBossRootTrap`, `NEWBossOrb`) buscan directamente `PlayerControllerRefactored` y `PlayerHealthRefactored` por tipo concreto. Si se cambia el controlador, fallan silenciosamente.
+* **Solución**: Crear interfaces `IKnockbackable` / `IRootable` que el controlador del jugador implemente.
+
+### 2.6 ? Manejo de Pausa con `Time.timeScale` (DIP)
+* **Estado**: SIN CORREGIR.
+* `GameManagerRefactored` sigue usando `Time.timeScale = 0f` para pausar (líneas 109, 133) y `Time.timeScale = 1f` para despausar (líneas 119, 153). `MenuPause.cs` también modifica `Time.timeScale`.
+* Riesgo: Congela partículas VFX, animaciones de UI, tweens, y puede generar bugs de despausa si múltiples paneles abren/cierran.
+* **Solución**: Implementar `IPausable` + `PauseManager` que registre entidades pausables sin alterar la escala global del motor.
+
+---
+
+## GRUPO 3: OPTIMIZACIÓN Y RENDIMIENTO (Pendientes)
+
+### Subgrupo 3.1: Alto Impacto
+
+> [!TIP]
+> Optimizaciones que resuelven caídas de FPS y picos de GC.
+
+#### 3.1.1 ? `Physics.OverlapSphere` Sin Buffer en Armas
+* **Estado**: PARCIALMENTE CORREGIDO.
+* **YA migrado** a `NonAlloc`: `HomingProjectileRefactored`, `OrbWeaponRefactored`, `NEWEnemyGolem`, `NEWEnemyKamikaze`, `NEWBossRootTrap`.
+* **SIN migrar**: `ShurikenWeaponRefactored.cs` (línea 121), `GalvanicCoreWeaponRefactored.cs` (línea 113), `CloudEntityRefactored.cs` (líneas 110, 134), `MushroomEntityRefactored.cs` (líneas 81, 95), `MeteorProjectileRefactored.cs` (línea 119).
+* **Solución**: Agregar un `static Collider[] buffer` en cada script y usar `OverlapSphereNonAlloc`.
+
+---
+
+### Subgrupo 3.2: Medio y Bajo Impacto
+
+#### 3.2.1 ? Reemplazo de `Vector3.Distance` por `sqrMagnitude`
+* **Estado**: PARCIALMENTE CORREGIDO.
+* **YA migrado**: `HomingProjectileRefactored`, `OrbWeaponRefactored`, `PlayerMovement`.
+* **SIN migrar** (14 usos restantes): `NEWExperienceOrb` (línea 28), `NEWEnemyRange` (línea 61), `NEWEnemySorcererBase` (línea 51), `NEWEnemyGolem` (línea 58), `NEWCopiaMeleeEnemy` (línea 54), `NEWEnemyKamikaze` (línea 64), `BossPlantRefactored` (líneas 137, 169), `ShurikenWeaponRefactored` (línea 127), `ShurikenProjectileRefactored` (líneas 69, 91), `GalvanicCoreWeaponRefactored` (líneas 64, 134), `FireShoesWeaponRefactored` (línea 28).
+
+#### 3.2.2 ? Cacheo de `WaitForSeconds` en Corrutinas
+* **Estado**: PARCIALMENTE CORREGIDO.
+* **YA cacheado**: `OrbWeaponRefactored` (línea 13: `static readonly WaitForSeconds`).
+* **SIN cachear** (20+ instancias): `FireZoneRefactored`, `MeteorProjectileRefactored`, `CloudEntityRefactored`, `MushroomEntityRefactored`, `NEWEnemyGolem` (×2), `NEWEnemyFireSorcerer`, `NEWEnemyFireLine`, `NEWEnemyMagicSorcerer` (×2), `NEWEnemyKamikaze`, `NEWBossRootTrap` (×2), `NEWBossOrb`, `BossPlantRefactored` (×5).
+
+#### 3.2.3 ? `Camera.main` en `Update` de UI
+* **Estado**: PARCIALMENTE CORREGIDO.
+* `DamagePopup` ya cachea en `mainCamTransform` ?.
+* **SIN corregir**: `NEWCanvasLookCamera.cs` (línea 41-43) y `CanvasLookCamera.cs` (líneas 22-25) siguen consultando `Camera.main` cada frame en `Update`/`LateUpdate`.
+* **Solución**: Cachear `Camera.main.transform` en un campo en `Awake()` o `OnEnable()`.
+
+#### 3.2.4 ? Cacheo de `GetComponentsInChildren<Renderer>` (Pool Enemigos)
+* **Estado**: MEJORADO pero auditar.
+* `EnemyFlashController.Initialize()` usa `GetComponentsInChildren<Renderer>()` una sola vez al inicializar ?.
+* Verificar que `Initialize()` solo se ejecute una vez por instancia del pool (no por cada reciclaje).
+
+#### 3.2.5 ? Optimización del `EventManager`
+* **Estado**: SIN CORREGIR.
+* `EventManager` sigue usando `Dictionary<string, Delegate>` con búsquedas por string y casteo por operador `as`.
+* **Mejora recomendada**: Migrar gradualmente a constantes estáticas (`GameEventKeys` ya existe parcialmente) y considerar eventos tipados a futuro.
+
+---
+
+## GRUPO 4: NUEVOS HALLAZGOS (Detectados en esta auditoría)
+
+> [!WARNING]
+> Problemas adicionales encontrados durante la revisión completa del código actual.
+
+### 4.1 ? `FindGameObjectWithTag("Player")` Excesivo
+* **Problema**: Se encontraron **11 llamadas** a `GameObject.FindGameObjectWithTag("Player")` dispersas por todo el proyecto: `NEWExperienceOrb.OnEnable()`, `NEWBulletEnemy`, `GameManagerRefactored`, `EnemySpawnerRefactored`, `RingStormManager`, `WeaponUpgradeApplier`, `PurgadorUIRefactored`, `PauseInventoryUI` (×2), `NEWItemRewardUI`, `MenuMejorasRefactored`.
+* **Impacto**: Cada llamada recorre internamente la lista de tags de la escena. En scripts como `NEWExperienceOrb` que se ejecutan en `OnEnable()` con decenas de orbes, esto es innecesariamente costoso.
+* **Solución**: Centralizar la referencia al jugador en `GameManagerRefactored.Instance.Player` (ya existe) y usar esa referencia en todos lados en vez de búsquedas por tag.
+
+### 4.2 ? `NEWBulletEnemy` y `NEWEnemyFireLine` Usan `Destroy()` al Expirar
+* **Problema**: Estos proyectiles enemigos son **instanciados** desde el pool pero **destruidos** con `Destroy(gameObject)` al expirar, causando una fuga del pool (el pool pierde instancias que nunca retornan).
+* **Archivos**: `NEWBulletEnemy.cs` (línea 92), `NEWEnemyFireLine.cs` (línea 67).
+* **Solución**: Retornar al pool con `ProjectilePoolManager.Instance.ReturnProjectile(gameObject)`.
+
+### 4.3 ? Script `CanvasLookCamera.cs` Duplicado
+* **Problema**: Existen dos scripts que hacen exactamente lo mismo: `CanvasLookCamera.cs` y `NEWCanvasLookCamera.cs`. Ambos rotan un canvas hacia la cámara en `Update()`/`LateUpdate()`.
+* **Solución**: Eliminar `CanvasLookCamera.cs` (versión vieja), conservar `NEWCanvasLookCamera.cs` y migrar cualquier referencia en prefabs.
+
+### 4.4 ? `stormCheck.cs` y `stormCheck2.cs` — Scripts Sin Namespace y Duplicados
+* **Problema**: Los scripts `stormCheck.cs` y `stormCheck2.cs` en `Others/Storm/` son scripts que no siguen convenciones de nombre (PascalCase), no están dentro de un namespace, y `stormCheck2` parece ser una copia/variante de `stormCheck`.
+* **Solución**: Auditar si ambos están en uso, eliminar el duplicado, y renombrar a convención PascalCase dentro del namespace `PatronesAplicados`.
+
+### 4.5 ? `PojectilePayload.cs` — Typo en Nombre de Archivo
+* **Problema**: El archivo se llama `PojectilePayload.cs` (falta la "r" en "Projectile"). Si la clase interna se llama correctamente `ProjectilePayload`, el nombre del archivo no coincide. Si la clase también tiene el typo, hay inconsistencia.
+* **Solución**: Renombrar el archivo a `ProjectilePayload.cs`.
+
+### 4.6 ? `NEWCopiaMeleeEnemy.cs` — Nombre Desprolijio
+* **Problema**: El script del enemigo melee se llama `NEWCopiaMeleeEnemy`, conservando el prefijo "Copia" que indica que es una copia temporal. No es un nombre apropiado para código de producción.
+* **Solución**: Renombrar a `MeleeEnemyController.cs` o `NEWMeleeEnemy.cs` y actualizar las referencias en prefabs.
+
+### 4.7 ? `MagnetStructure.cs` y `WeaponChest.cs` Usan `Destroy(gameObject)`
+* **Problema**: Los interactables `MagnetStructure.cs` (líneas 31, 53) y `WeaponChest.cs` (línea 63) llaman a `Destroy(gameObject)`. Si estos objetos se reutilizan o son frecuentes, deberían usar pool.
+* **Impacto**: Bajo si son objetos únicos por partida, pero rompe la consistencia del patrón pool adoptado en el resto del proyecto.
+
+### 4.8 ? `ItemChestStructureRefactored.cs` Usa `Destroy(gameObject)`
+* **Problema**: La versión refactorizada del cofre de ítems (línea 86) sigue usando `Destroy(gameObject)` como fallback.
+* **Solución**: Evaluar si estos interactables necesitan pool o si el `Destroy` es aceptable dado que aparecen pocas veces por partida.
+
+### 4.9 ? Pre-calentamiento (Pre-warming) de Object Pools
+* **Estado**: SIN IMPLEMENTAR.
+* `EnemyPool`, `ProjectilePoolManager` y `VfxPoolManager` instancian objetos de manera perezosa (solo al solicitar).
+* Esto provoca micro-tirones (stutters) en los primeros segundos de juego al instanciarse los primeros enemigos, proyectiles y popups.
+* **Solución**: Agregar rutina de pre-warming en `Awake()`/`Start()` que instancie y desactive un cupo base configurable.
+
+### 4.10 ? Revisión de NavMesh — `GetRandomPositionOnNavMesh()` Fallback a `Vector3.zero`
+* **Estado**: SIN VERIFICAR.
+* Si `NavMeshSpawnLocator.GetRandomPositionOnNavMesh()` falla al samplear, el comportamiento de fallback podría devolver `Vector3.zero` y generar spawn de enemigos en el origen del mundo o reintentos infinitos.
+* **Solución**: Verificar y agregar un máximo de reintentos con posición de fallback segura.
+
+### 4.11 ? `EnemyData` ScriptableObject Sobrecargado
+* **Problema**: El ScriptableObject `EnemyData.cs` contiene campos para **todos** los tipos de enemigos (Melee, Range, Golem, Kamikaze, Sorcerer, BossPlant) en un solo archivo. Un enemigo melee carga innecesariamente campos de `explosionRadius`, `orbPrefab`, `beamMaterial`, etc.
+* **Impacto**: Dificulta la legibilidad en el Inspector (demasiados campos irrelevantes por enemigo) y viola SRP a nivel de datos.
+* **Solución**: Considerar herencia de ScriptableObjects (`EnemyDataBase` ? `GolemData`, `BossPlantData`, etc.) o usar sub-structs serializables agrupadas por tipo.
+
+---
+
+## SECCIÓN 5: VALIDACIONES EN EDITOR DE UNITY
+
+> [!NOTE]
+> Aspectos que deben verificarse manualmente en el Editor de Unity.
+
+1. **Valores de `expReward` en los assets `Data_Enemy*.asset`**: Actualmente en `0`. Deben configurarse antes de conectar la experiencia dinámica.
+2. **Auditoría de Escenas Activas**: Verificar que la escena principal de gameplay solo tenga componentes refactorizados/NEW asignados.
+3. **Prefabs con `CanvasLookCamera` (viejo)**: Migrar a `NEWCanvasLookCamera` antes de eliminar el script viejo.
+4. **Prefab del Melee**: Actualizar referencia de `NEWCopiaMeleeEnemy` si se renombra el script.
+
+

@@ -1,26 +1,39 @@
-using PatronesAplicados.RealImplementation;
 using UnityEngine;
+using PatronesAplicados.RealImplementation;
 
 public class PooledExplosionVisual : MonoBehaviour
 {
-    [Tooltip("Tiempo antes de devolver el visual al pool")]
+    [Tooltip("Tiempo en segundos antes de devolver el efecto visual al Pool")]
     public float lifetime = 1f;
-    private float timer = 0f;
+    private float _timer = 0f;
 
-    private void OnEnable()
+    protected virtual void OnEnable()
     {
-        timer = 0f;
+        _timer = 0f;
     }
 
-    private void Update()
+    protected virtual void Update()
     {
-        timer += Time.deltaTime;
-        if (timer >= lifetime)
+        _timer += Time.deltaTime;
+        if (_timer >= lifetime)
         {
-            if (ProjectilePoolManager.Instance != null)
-                ProjectilePoolManager.Instance.ReturnProjectile(gameObject);
-            else
-                Destroy(gameObject);
+            ReturnToPool();
+        }
+    }
+
+    protected void ReturnToPool()
+    {
+        if (VfxPoolManager.Instance != null)
+        {
+            VfxPoolManager.Instance.ReturnVfx(gameObject);
+        }
+        else if (ProjectilePoolManager.Instance != null)
+        {
+            ProjectilePoolManager.Instance.ReturnProjectile(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
         }
     }
 }

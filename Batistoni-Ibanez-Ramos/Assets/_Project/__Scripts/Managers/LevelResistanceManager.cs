@@ -13,7 +13,6 @@ public class LevelResistanceManager : MonoBehaviour
 
     private void Awake()
     {
-        // Singleton
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
 
@@ -22,14 +21,12 @@ public class LevelResistanceManager : MonoBehaviour
 
     private void GenerateLevelResistances()
     {
-        // 1. Metemos todos los tipos de daño en una lista
         List<DamageType> allTypes = new List<DamageType>
         {
             DamageType.Magico, DamageType.Fuego,
             DamageType.Agua, DamageType.Veneno, DamageType.Electrico
         };
 
-        // 2. Barajamos la lista aleatoriamente (Shuffle)
         for (int i = 0; i < allTypes.Count; i++)
         {
             DamageType temp = allTypes[i];
@@ -38,7 +35,6 @@ public class LevelResistanceManager : MonoBehaviour
             allTypes[randomIndex] = temp;
         }
 
-        // 3. Repartimos: 2 Débiles, 2 Resistentes, 2 Normales
         weaknesses.Add(allTypes[0]);
         weaknesses.Add(allTypes[1]);
 
@@ -51,11 +47,10 @@ public class LevelResistanceManager : MonoBehaviour
         Debug.Log($" Resistencias del Nivel Generadas:\nDébiles a: {weaknesses[0]}, {weaknesses[1]}\nResistentes a: {resistances[0]}, {resistances[1]}");
     }
 
-    // Función que usarán los enemigos cuando reciban un golpe
     public float GetDamageMultiplier(DamageType typeReceived)
     {
-        if (weaknesses.Contains(typeReceived)) return 2f;    // Doble daño
-        if (resistances.Contains(typeReceived)) return 0.5f; // Mitad de daño
-        return 1f;                                           // Daño normal
+        if (weaknesses.Contains(typeReceived)) return 2f;    
+        if (resistances.Contains(typeReceived)) return 0.5f; 
+        return 1f;                                           
     }
 }

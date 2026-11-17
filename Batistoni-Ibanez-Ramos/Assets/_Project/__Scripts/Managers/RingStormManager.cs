@@ -1,6 +1,7 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using System.Collections.Generic;
+using PatronesAplicados;
 
 [System.Serializable]
 public class StormPhase
@@ -13,7 +14,7 @@ public class StormPhase
     public float closingSpeed = 0f;
 }
 
-public class RingStormManager : MonoBehaviour
+public class RingStormManager : MonoBehaviour, IPausable
 {
     [Header("Referencias del Mapa")]
     [Tooltip("El Empty colocado exactamente en el centro del anillo. Su eje Z (Azul) marca dónde empieza la tormenta.")]
@@ -40,121 +41,130 @@ public class RingStormManager : MonoBehaviour
     public Image stormScreenFilter;
     public float filterFadeSpeed = 2f;
 
-    // Relojes internos
-    private float levelTimer = 0f;
-    private float currentStormAngle = 0f; // Empieza en 0 (sin tormenta)
+    private float _levelTimer;
+    private float _currentStormAngle;
 
-    public bool isInStorm = false;
-    private float damageTimer = 0f;
+    public bool isInStorm;
+    private float _damageTimer;
+    private bool _isPaused;
+    private bool _wasFilterActive;
 
     public float rotationPerSec;
 
-    void Start()
+    private IDamageable _cachedPlayerDamageable;
+
+    private void OnEnable()
     {
-        levelTimer = 0f;
+        _isPaused = PauseManager.IsPaused;
+        PauseManager.Register(this);
+    }
+
+    private void OnDisable()
+    {
+        PauseManager.Unregister(this);
+    }
+
+    private void Start()
+    {
+        _levelTimer = 0f;
 
         if (player == null)
         {
-            GameObject pObj = GameObject.FindGameObjectWithTag("Player");
-            if (pObj != null) player = pObj.transform;
+            player = GameManagerRefactored.Instance != null ? GameManagerRefactored.Instance.Player : null;
+            if (player == null)
+            {
+                GameObject pObj = GameObject.FindGameObjectWithTag("Player");
+                if (pObj != null) player = pObj.transform;
+            }
+        }
+
+        if (player != null)
+        {
+            player.TryGetComponent(out _cachedPlayerDamageable);
+        }
+
+        if (stormScreenFilter != null)
+        {
+            stormScreenFilter.gameObject.SetActive(false);
+            _wasFilterActive = false;
         }
     }
 
-    void Update()
+    private void Update()
     {
-        if (mapCenter == null || player == null) return;
+        if (_isPaused || mapCenter == null || player == null) return;
 
-        // 1. AVANZAR EL RELOJ INTERNO Y BUSCAR LA FASE ACTUAL
-        levelTimer += Time.deltaTime;
+        float dt = Time.deltaTime;
+        _levelTimer += dt;
         StormPhase currentPhase = GetCurrentPhase();
 
-        // 2. HACER CRECER LA TORMENTA SEGÚN LA VELOCIDAD DE LA FASE
         if (currentPhase != null)
         {
             float maxStormAngle = 360f - minimumSafeAngle;
-            if (currentStormAngle < maxStormAngle)
+            if (_currentStormAngle < maxStormAngle)
             {
-                currentStormAngle += currentPhase.closingSpeed * Time.deltaTime;
-                if (currentStormAngle > maxStormAngle) currentStormAngle = maxStormAngle;
+                _currentStormAngle = Mathf.Min(maxStormAngle, _currentStormAngle + currentPhase.closingSpeed * dt);
             }
         }
 
-        if (movingWall != null)
+        if (movingWall != null && movingWall2 != null)
         {
-           
-            float direction = sweepClockwise ? currentStormAngle : -currentStormAngle;
-            //movingWall.rotation = mapCenter.rotation * Quaternion.Euler(0, direction, 0);
-            //movingWall.rotation *= Quaternion.Euler(0, direction * Time.deltaTime, 0);
-
-
-            if (movingWall2.eulerAngles.y < 204)
+            if (movingWall2.eulerAngles.y < 204f)
             {
-                movingWall.Rotate(0f, rotationPerSec * Time.deltaTime, 0f);
-                movingWall2.Rotate(0f, rotationPerSec * Time.deltaTime, 0f);
-               // print(movingWall2.eulerAngles.y);
+                float rotStep = rotationPerSec * dt;
+                movingWall.Rotate(0f, rotStep, 0f);
+                movingWall2.Rotate(0f, rotStep, 0f);
             }
-
         }
 
-        // 5. APLICAR FILTRO VISUAL Y DAÑO
-        HandleStormEffects();
+        HandleStormEffects(dt);
     }
 
     private StormPhase GetCurrentPhase()
     {
-        if (phases.Count == 0) return null;
+        if (phases == null || phases.Count == 0) return null;
 
-        foreach (StormPhase phase in phases)
+        for (int i = 0; i < phases.Count; i++)
         {
-            if (levelTimer >= phase.startTimeInSeconds && levelTimer < phase.endTimeInSeconds)
+            StormPhase phase = phases[i];
+            if (_levelTimer >= phase.startTimeInSeconds && _levelTimer < phase.endTimeInSeconds)
             {
                 return phase;
             }
         }
 
-        // Si el tiempo supera todas las fases, devolvemos la última
         return phases[phases.Count - 1];
     }
 
-    private void HandleStormEffects()
+    private void HandleStormEffects(float dt)
     {
-       /* if (stormScreenFilter != null)
+        if (stormScreenFilter != null && _wasFilterActive != isInStorm)
         {
-            Color c = stormScreenFilter.color;
-            float targetAlpha = isInStorm ? 0.45f : 0f;
-
-            c.a = Mathf.Lerp(c.a, targetAlpha, Time.deltaTime * filterFadeSpeed);
-            stormScreenFilter.color = c;
-        }*/
+            stormScreenFilter.gameObject.SetActive(isInStorm);
+            _wasFilterActive = isInStorm;
+        }
 
         if (isInStorm)
         {
-            damageTimer += Time.deltaTime;
-            if (damageTimer >= 1f)
+            _damageTimer += dt;
+            if (_damageTimer >= 1f)
             {
-                damageTimer -= 1f;
+                _damageTimer -= 1f;
 
-                var refHealth = player.GetComponent<PatronesAplicados.PlayerHealthRefactored>();
-                if (refHealth != null)
+                if (_cachedPlayerDamageable == null && player != null)
                 {
-                    refHealth.TakeDamage(damagePerSecond);
+                    player.TryGetComponent(out _cachedPlayerDamageable);
                 }
-                else
-                {
-                    PlayerHealth pHealth = player.GetComponent<PlayerHealth>();
-                    if (pHealth != null)
-                    {
-                        pHealth.TakeDamage(damagePerSecond);
-                    }
-                }
+
+                _cachedPlayerDamageable?.TakeDamage(damagePerSecond);
             }
-            stormScreenFilter.gameObject.SetActive(true);
         }
         else
         {
-            damageTimer = 0f;
-            stormScreenFilter.gameObject.SetActive(false);
+            _damageTimer = 0f;
         }
     }
 
+    public void OnPause() => _isPaused = true;
+    public void OnResume() => _isPaused = false;
 }
