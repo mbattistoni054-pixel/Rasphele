@@ -17,7 +17,7 @@ namespace PatronesAplicados.RealImplementation
         public float addHeatHeal;
         public float addProjectileSpeed;
 
-        [Header("Modificadores de Reemplazo (Opcionales)")]
+        [Header("Modificadores de Reemplazo")]
         public bool overrideCooldown;
         public float newCooldown = 1f;
 
