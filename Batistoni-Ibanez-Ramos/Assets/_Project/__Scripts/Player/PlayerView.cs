@@ -8,6 +8,18 @@ namespace PatronesAplicados
         [SerializeField] private Animator animator;
         [SerializeField] private ParticleSystem footstepParticles;
 
+        [Header("Partículas de Salto")]
+        [Tooltip("Arrastra aquí tu PS_JumpDust.")]
+        [SerializeField] private ParticleSystem jumpDustParticles;
+
+        [Header("Post-Proceso Fullscreen Shader Graph (Solo Dash)")]
+        [Tooltip("Arrastra aquí tu material 'Shader Graphs_Dash' (el mismo que pusiste en PC_Renderer -> Pass Material).")]
+        [SerializeField] private Material dashFullscreenMaterial;
+        [Tooltip("Tiempo que el efecto se mantiene al 100% mientras dura el Dash (0.2s).")]
+        [SerializeField] private float dashHoldDuration = 0.2f;
+        [Tooltip("Tiempo que tarda el efecto en volver suavemente a la cámara normal al terminar el Dash (0.1s).")]
+        [SerializeField] private float dashReturnDuration = 0.1f;
+
         [Header("Audio")]
         public AudioClip footstepSound;
         public float baseFootstepInterval = 0.4f;
@@ -21,10 +33,14 @@ namespace PatronesAplicados
         private static readonly int JumpHash = Animator.StringToHash("Jump");
         private static readonly int SlideHash = Animator.StringToHash("Slide");
 
+        private static readonly int DashIntensityId = Shader.PropertyToID("_DashIntensity");
+
         private PlayerModel _model;
         private float _footstepTimer;
         private bool _wasEmittingFootsteps;
-        private bool _isPaused;
+
+        private float _dashHoldTimer;
+        private float _currentDashEffectWeight;
 
         private void Awake()
         {
@@ -36,6 +52,8 @@ namespace PatronesAplicados
                 em.enabled = false;
                 footstepParticles.Play();
             }
+
+            SetDashShaderIntensity(0f);
         }
 
         public void Initialize(PlayerModel model)
@@ -51,8 +69,17 @@ namespace PatronesAplicados
             _model.OnDashCooldownUpdated += HandleDashCooldownUpdated;
         }
 
+        private void OnDisable()
+        {
+            _dashHoldTimer = 0f;
+            _currentDashEffectWeight = 0f;
+            SetDashShaderIntensity(0f);
+        }
+
         private void OnDestroy()
         {
+            SetDashShaderIntensity(0f);
+
             if (_model == null) return;
 
             _model.OnGroundedChanged -= HandleGroundedChanged;
@@ -64,24 +91,9 @@ namespace PatronesAplicados
             _model.OnDashCooldownUpdated -= HandleDashCooldownUpdated;
         }
 
-        public void SetPaused(bool paused)
-        {
-            _isPaused = paused;
-            if (animator != null)
-            {
-                animator.speed = paused ? 0f : 1f;
-            }
-
-            if (footstepParticles != null)
-            {
-                if (paused && footstepParticles.isPlaying) footstepParticles.Pause();
-                else if (!paused && footstepParticles.isPaused) footstepParticles.Play();
-            }
-        }
-
         public void TickView(float deltaTime)
         {
-            if (_model == null || _isPaused) return;
+            if (_model == null) return;
 
             bool isMovingOnGround = _model.IsGrounded && _model.CurrentState == PlayerState.Walking && _model.IsMoving;
 
@@ -105,6 +117,34 @@ namespace PatronesAplicados
             {
                 _footstepTimer = 0f;
             }
+
+            TickDashPostProcess(deltaTime);
+        }
+
+        private void TickDashPostProcess(float deltaTime)
+        {
+            if (_dashHoldTimer > 0f)
+            {
+                _dashHoldTimer -= deltaTime;
+                _currentDashEffectWeight = 1f;
+                SetDashShaderIntensity(1f);
+                return;
+            }
+
+            if (_currentDashEffectWeight > 0f)
+            {
+                float returnSpeed = dashReturnDuration > 0.001f ? (1f / dashReturnDuration) : 10f;
+                _currentDashEffectWeight = Mathf.MoveTowards(_currentDashEffectWeight, 0f, returnSpeed * deltaTime);
+                SetDashShaderIntensity(_currentDashEffectWeight);
+            }
+        }
+
+        private void SetDashShaderIntensity(float value)
+        {
+            if (dashFullscreenMaterial != null && dashFullscreenMaterial.HasProperty(DashIntensityId))
+            {
+                dashFullscreenMaterial.SetFloat(DashIntensityId, value);
+            }
         }
 
         private void HandleGroundedChanged(bool isGrounded)
@@ -126,11 +166,24 @@ namespace PatronesAplicados
         {
             if (animator != null) animator.SetTrigger(JumpHash);
             PlaySFX(jumpSound, "Jump");
+
+            if (jumpDustParticles != null)
+            {
+                jumpDustParticles.Clear();
+                jumpDustParticles.Play();
+            }
         }
 
         private void HandleDashed()
         {
             PlaySFX(dashSound, "Dash");
+
+            _dashHoldTimer = (_model != null && _model.Config != null && _model.Config.dashDuration > 0f)
+                ? _model.Config.dashDuration
+                : dashHoldDuration;
+
+            _currentDashEffectWeight = 1f;
+            SetDashShaderIntensity(1f);
         }
 
         private void HandleSlideChanged(bool isSliding)
@@ -151,6 +204,35 @@ namespace PatronesAplicados
         {
             if (clip != null && AudioManager.Instance != null)
                 AudioManager.Instance.PlaySFX(clip, category);
+        }
+
+        public void SetPaused(bool isPaused)
+        {
+            if (animator != null)
+            {
+                animator.speed = isPaused ? 0f : 1f;
+            }
+
+            if (isPaused)
+            {
+                if (footstepParticles != null && _wasEmittingFootsteps)
+                {
+                    var em = footstepParticles.emission;
+                    em.enabled = false;
+                    _wasEmittingFootsteps = false;
+                }
+                if (jumpDustParticles != null && jumpDustParticles.isPlaying)
+                {
+                    jumpDustParticles.Pause();
+                }
+            }
+            else
+            {
+                if (jumpDustParticles != null && jumpDustParticles.isPaused)
+                {
+                    jumpDustParticles.Play();
+                }
+            }
         }
     }
 }

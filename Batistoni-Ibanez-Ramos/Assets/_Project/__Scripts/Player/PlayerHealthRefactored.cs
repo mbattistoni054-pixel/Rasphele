@@ -15,6 +15,14 @@ namespace PatronesAplicados
         [Header("UI y Efectos")]
         public GameObject damagePopupPrefab;
 
+        [Header("Shader Graph Interactivo: Escudo (Unlit/Lit Shader Graph)")]
+        [Tooltip("Arrastra aquí la Esfera hija del jugador que tiene el Material creado desde tu Shader Graph del Escudo.")]
+        public Renderer shieldRenderer;
+        [Tooltip("Marca esta casilla para que el escudo arranque activo desde el segundo 0 y puedas mostrarlo en la entrega de Efectos Visuales.")]
+        public bool debugForceShieldOnStart = true;
+        [Tooltip("Velocidad con la que el escudo aparece o se disuelve al romperse.")]
+        public float shieldTransitionSpeed = 3.0f;
+
         [Header("Audio")]
         public AudioClip hurtSound;
 
@@ -25,6 +33,23 @@ namespace PatronesAplicados
 
         private Volume _volume;
         private Vignette _vignette;
+
+        private MaterialPropertyBlock _shieldPropBlock;
+        private float _currentShieldAlpha;
+        private float _targetShieldAlpha;
+        private float _currentDissolve;
+        private float _currentHitRipple;
+        private bool _isDissolvingBreak;
+
+        private static readonly int ShieldAlphaId = Shader.PropertyToID("_ShieldAlpha");
+        private static readonly int DissolveAmountId = Shader.PropertyToID("_DissolveAmount");
+        private static readonly int HitIntensityId = Shader.PropertyToID("_HitIntensity");
+
+        private void Awake()
+        {
+            _shieldPropBlock = new MaterialPropertyBlock();
+            InitializeShieldVisuals();
+        }
 
         private void OnEnable()
         {
@@ -54,6 +79,11 @@ namespace PatronesAplicados
                 EventManager.Instance.StartListening(GameEventKeys.PlayerStatsUpdated, UpdateMaxHealthFromStats);
             }
 
+            if (debugForceShieldOnStart)
+            {
+                ActivateHoneycombShield();
+            }
+
             UpdateHealthFeedbackEffects();
             Invoke(nameof(NotifyObservers), 0.1f);
         }
@@ -70,15 +100,108 @@ namespace PatronesAplicados
         {
             if (_isPaused) return;
 
-            if (!_hasShield && PlayerStatsRefactored.Instance != null && PlayerStatsRefactored.Instance.shieldStacks > 0)
+            float dt = Time.deltaTime;
+
+            bool canGenerateShield = debugForceShieldOnStart ||
+                                     (PlayerStatsRefactored.Instance != null && PlayerStatsRefactored.Instance.shieldStacks > 0);
+
+            if (!_hasShield && canGenerateShield)
             {
-                _timeSinceLastDamage += Time.deltaTime;
+                _timeSinceLastDamage += dt;
                 if (_timeSinceLastDamage >= 10f)
                 {
-                    _hasShield = true;
-                    Debug.Log("¡Escudo de Panal generado! Bloqueará el próximo golpe.");
+                    ActivateHoneycombShield();
                 }
             }
+
+            TickShieldShader(dt);
+        }
+
+        private void InitializeShieldVisuals()
+        {
+            if (shieldRenderer == null) return;
+
+            _currentShieldAlpha = 0f;
+            _targetShieldAlpha = 0f;
+            _currentDissolve = 0f;
+            _currentHitRipple = 0f;
+            _isDissolvingBreak = false;
+
+            ApplyShieldShaderProperties();
+            shieldRenderer.gameObject.SetActive(false);
+        }
+
+        [ContextMenu("Probar Activar Escudo")]
+        public void ActivateHoneycombShield()
+        {
+            _hasShield = true;
+            _isDissolvingBreak = false;
+            _currentDissolve = 0f;
+            _currentHitRipple = 0.6f;
+            _targetShieldAlpha = 1f;
+
+            if (shieldRenderer != null)
+            {
+                shieldRenderer.gameObject.SetActive(true);
+                ApplyShieldShaderProperties();
+            }
+        }
+
+        private void TriggerShieldBreakShaderEffect()
+        {
+            _hasShield = false;
+            _isDissolvingBreak = true;
+            _currentHitRipple = 1f;
+            _targetShieldAlpha = 0f;
+        }
+
+        private void TickShieldShader(float dt)
+        {
+            if (shieldRenderer == null || !shieldRenderer.gameObject.activeSelf) return;
+
+            bool needsUpdate = false;
+
+            if (_isDissolvingBreak)
+            {
+                _currentDissolve = Mathf.MoveTowards(_currentDissolve, 1f, shieldTransitionSpeed * 0.8f * dt);
+                _currentShieldAlpha = Mathf.MoveTowards(_currentShieldAlpha, 0f, shieldTransitionSpeed * dt);
+                needsUpdate = true;
+
+                if (_currentDissolve >= 0.99f && _currentShieldAlpha <= 0.01f)
+                {
+                    _isDissolvingBreak = false;
+                    shieldRenderer.gameObject.SetActive(false);
+                    return;
+                }
+            }
+            else if (!Mathf.Approximately(_currentShieldAlpha, _targetShieldAlpha))
+            {
+                _currentShieldAlpha = Mathf.MoveTowards(_currentShieldAlpha, _targetShieldAlpha, shieldTransitionSpeed * dt);
+                needsUpdate = true;
+            }
+
+            if (_currentHitRipple > 0f)
+            {
+                _currentHitRipple = Mathf.MoveTowards(_currentHitRipple, 0f, shieldTransitionSpeed * 1.5f * dt);
+                needsUpdate = true;
+            }
+
+            if (needsUpdate)
+            {
+                ApplyShieldShaderProperties();
+            }
+        }
+
+        private void ApplyShieldShaderProperties()
+        {
+            if (shieldRenderer == null) return;
+            if (_shieldPropBlock == null) _shieldPropBlock = new MaterialPropertyBlock();
+
+            shieldRenderer.GetPropertyBlock(_shieldPropBlock);
+            _shieldPropBlock.SetFloat(ShieldAlphaId, _currentShieldAlpha);
+            _shieldPropBlock.SetFloat(DissolveAmountId, _currentDissolve);
+            _shieldPropBlock.SetFloat(HitIntensityId, _currentHitRipple);
+            shieldRenderer.SetPropertyBlock(_shieldPropBlock);
         }
 
         private void CachePostProcessingVolume()
@@ -139,6 +262,11 @@ namespace PatronesAplicados
 
             if (currentHealth > maxHealth) currentHealth = maxHealth;
 
+            if (!_hasShield && PlayerStatsRefactored.Instance.shieldStacks > 0 && _timeSinceLastDamage <= 0.01f)
+            {
+                ActivateHoneycombShield();
+            }
+
             UpdateHealthFeedbackEffects();
             NotifyObservers();
         }
@@ -171,8 +299,7 @@ namespace PatronesAplicados
 
             if (_hasShield)
             {
-                _hasShield = false;
-                Debug.Log("¡Escudo de Panal generado destruido! Golpe bloqueado.");
+                TriggerShieldBreakShaderEffect();
                 ShowDamagePopup(0f);
                 return;
             }
