@@ -3,6 +3,8 @@ using PatronesAplicados;
 
 public abstract class NEWEnemySorcererBase : EnemyBaseRefactored
 {
+
+
     [Header("Animación")]
     public Animator animator;
     protected bool hasMoveParam;

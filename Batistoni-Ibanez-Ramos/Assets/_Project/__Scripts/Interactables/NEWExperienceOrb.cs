@@ -4,10 +4,10 @@ using PatronesAplicados.RealImplementation;
 
 public class NEWExperienceOrb : MonoBehaviour
 {
+    [SerializeField] private XpOrbData data;
+
     [Header("Ajustes de la Gema")]
     public float xpAmount = 20f;
-    public float magnetRadius = 5f;
-    public float baseMoveSpeed = 10f;
 
     private float _defaultXpAmount;
     private float _currentMoveSpeed;
@@ -24,17 +24,12 @@ public class NEWExperienceOrb : MonoBehaviour
     {
         _isAttracted = false;
         _isCollected = false;
-        _currentMoveSpeed = baseMoveSpeed;
+        _currentMoveSpeed = data.BaseMoveSpeed;
         xpAmount = _defaultXpAmount;
 
         if (GameManagerRefactored.Instance != null && GameManagerRefactored.Instance.Player != null)
         {
             _player = GameManagerRefactored.Instance.Player;
-        }
-        else
-        {
-            GameObject p = GameObject.FindGameObjectWithTag("Player");
-            if (p != null) _player = p.transform;
         }
     }
 
@@ -53,7 +48,7 @@ public class NEWExperienceOrb : MonoBehaviour
         if (!_isAttracted)
         {
             float sqrDist = (_player.position - transform.position).sqrMagnitude;
-            if (sqrDist <= magnetRadius * magnetRadius)
+            if (sqrDist <= data.MagnetRadius * data.MagnetRadius)
             {
                 _isAttracted = true;
             }
@@ -69,7 +64,7 @@ public class NEWExperienceOrb : MonoBehaviour
     {
         _player = targetPlayer;
         _isAttracted = true;
-        _currentMoveSpeed = baseMoveSpeed * 2f;
+        _currentMoveSpeed = data.BaseMoveSpeed * 2f;
     }
 
     private void OnTriggerEnter(Collider other)

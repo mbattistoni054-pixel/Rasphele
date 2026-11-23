@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 555a7cb3709e93e4cbfc136725d81f9b, type: 3}
+  m_Name: Data_BossPlant
+  m_EditorClassIdentifier: 
+  maxHealth: 2000
+  baseSpeed: 0
+  attackDamage: 30
+  attackCooldown: 3
+  rangeAttack: 0
+  fleeDistance: 0
+  goldReward: 5
+  expReward: 20
+  xpOrb: {fileID: 4151671228204215311, guid: f0f5c3e19b95e644d8886b80bbdb3cbc, type: 3}
+  popUp: {fileID: 3592148569616233406, guid: 61ebab5bd050aba4583e7948ea50b804, type: 3}
+  orbPrefab: {fileID: 7476912289024568721, guid: 294d963ca581936419cdc00c3d52d7e9, type: 3}
+  orbsPerBurst: 6
+  timeBetweenOrbs: 0.15
+  rootTrapPrefab: {fileID: 4680616909745959054, guid: 36f185b1ac913544bafa452e1bff0355, type: 3}
+  orbsPerBurstPhase2: 12
+  rootsPhase2: 3
+  delayBetweenRootsPhase2: 1
+  meleeRange: 15
+  meleeDamage: 40
+  bossKnockbackHorizontal: 25
+  bossKnockbackUpward: 5
+  meleeHitDelay: 0.5

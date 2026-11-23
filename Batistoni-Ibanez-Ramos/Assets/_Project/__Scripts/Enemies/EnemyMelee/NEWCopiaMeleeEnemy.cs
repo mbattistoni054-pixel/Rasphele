@@ -3,11 +3,11 @@ using PatronesAplicados;
 
 public class NEWCopiaMeleeEnemy : EnemyBaseRefactored
 {
-    private const float StopDistance = 1.5f;
-    private const float StopDistanceSqr = StopDistance * StopDistance;
-    private const float HitRange = 2f;
-    private const float HitRangeSqr = HitRange * HitRange;
-    private const float AttackHitDelay = 0.3f;
+    //private const float StopDistance = 1.5f;
+    //private const float StopDistanceSqr = StopDistance * StopDistance;
+    //private const float HitRange = 2f;
+    //private const float HitRangeSqr = HitRange * HitRange;
+    //private const float AttackHitDelay = 0.3f;
 
     private float _attackCooldownTimer;
     private float _attackHitTimer;
@@ -50,7 +50,7 @@ public class NEWCopiaMeleeEnemy : EnemyBaseRefactored
 
         if (agent != null)
         {
-            agent.stoppingDistance = StopDistance;
+            agent.stoppingDistance = data.RangeAttack;
             agent.acceleration = 60f;
             agent.angularSpeed = 600f;
         }
@@ -83,7 +83,7 @@ public class NEWCopiaMeleeEnemy : EnemyBaseRefactored
         {
             float sqrDistance = (player.position - transform.position).sqrMagnitude;
 
-            if (!_onAttack && sqrDistance > StopDistanceSqr)
+            if (!_onAttack && sqrDistance > data.RangeAttack * data.RangeAttack)
             {
                 agent.isStopped = false;
 
@@ -102,19 +102,19 @@ public class NEWCopiaMeleeEnemy : EnemyBaseRefactored
                 if (animator != null && _hasMoveParam) animator.SetBool(MoveHash, false);
             }
 
-            if (sqrDistance <= HitRangeSqr || _onAttack)
+            if (sqrDistance <= data.RangeAttack * data.RangeAttack || _onAttack)
             {
                 RotateTowardsPlayer(dt, 15f);
             }
 
-            if (sqrDistance <= StopDistanceSqr || _onAttack)
+            if (sqrDistance <= data.RangeAttack * data.RangeAttack || _onAttack)
             {
                 if (!_onAttack && _attackCooldownTimer >= data.AttackCooldown)
                 {
                     if (animator != null) animator.SetTrigger(AttackHash);
 
                     _attackCooldownTimer = 0f;
-                    _attackHitTimer = AttackHitDelay;
+                    _attackHitTimer = data.AttackCooldown;
                     _onAttack = true;
                 }
 
@@ -123,7 +123,7 @@ public class NEWCopiaMeleeEnemy : EnemyBaseRefactored
                     _attackHitTimer -= dt;
                     if (_attackHitTimer <= 0f)
                     {
-                        if (sqrDistance <= HitRangeSqr && player.TryGetComponent(out PlayerHealthRefactored newHealth))
+                        if (sqrDistance <= data.RangeAttack * data.RangeAttack && player.TryGetComponent(out PlayerHealthRefactored newHealth))
                         {
                             newHealth.TakeDamage(data.AttackDamage * damageMultiplier);
                         }

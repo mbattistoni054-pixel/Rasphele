@@ -38,7 +38,7 @@ public class RingStormManager : MonoBehaviour, IPausable
 
     [Header("Filtro de Pantalla y Daño")]
     public float damagePerSecond = 5f;
-    public Image stormScreenFilter;
+    public Material stormScreenFilter;
     public float filterFadeSpeed = 2f;
 
     private float _levelTimer;
@@ -62,6 +62,11 @@ public class RingStormManager : MonoBehaviour, IPausable
     private void OnDisable()
     {
         PauseManager.Unregister(this);
+        if (stormScreenFilter != null)
+        {
+            stormScreenFilter.SetFloat("_ActiveLerp", 0f);
+            _wasFilterActive = false;
+        }
     }
 
     private void Start()
@@ -85,7 +90,7 @@ public class RingStormManager : MonoBehaviour, IPausable
 
         if (stormScreenFilter != null)
         {
-            stormScreenFilter.gameObject.SetActive(false);
+            stormScreenFilter.SetFloat("_ActiveLerp",0f);
             _wasFilterActive = false;
         }
     }
@@ -140,7 +145,12 @@ public class RingStormManager : MonoBehaviour, IPausable
     {
         if (stormScreenFilter != null && _wasFilterActive != isInStorm)
         {
-            stormScreenFilter.gameObject.SetActive(isInStorm);
+            //stormScreenFilter.SetFloat("_ActiveLerp",1f);
+            //stormScreenFilter.gameObject.SetActive(isInStorm)
+
+            if (isInStorm) stormScreenFilter.SetFloat("_ActiveLerp", 1f);
+            else stormScreenFilter.SetFloat("_ActiveLerp", 0f);
+
             _wasFilterActive = isInStorm;
         }
 

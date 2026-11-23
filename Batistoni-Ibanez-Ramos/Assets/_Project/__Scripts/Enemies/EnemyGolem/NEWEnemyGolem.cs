@@ -5,14 +5,13 @@ using PatronesAplicados.RealImplementation;
 
 public class NEWEnemyGolem : EnemyBaseRefactored
 {
+    EnemyData_Golem golemData => (EnemyData_Golem)data;
+
     [Header("Efectos")]
-    [Tooltip("Si se deja vacío, usará automáticamente data.SlamVisualPrefab")]
-    public GameObject slamVisualPrefab;
     public Animator animator;
 
     [Header("Control de Empuje y Stun")]
     [Tooltip("Duración del aturdimiento que este Golem aplica al jugador al golpearlo.")]
-    public float knockbackStunDuration = 0.4f;
 
     private bool _isAttacking;
     private bool _hasMoveParam;
@@ -120,7 +119,7 @@ public class NEWEnemyGolem : EnemyBaseRefactored
 
         if (animator != null) animator.SetTrigger(AttackHash);
 
-        float hitDelayTimer = data.HitDelay;
+        float hitDelayTimer = golemData.HitDelay;
         while (hitDelayTimer > 0f)
         {
             if (isDead || isStunned)
@@ -143,22 +142,19 @@ public class NEWEnemyGolem : EnemyBaseRefactored
         }
 
         Vector3 impactCenter = transform.position + (transform.forward * 2.5f);
-        GameObject visualPrefabToUse = slamVisualPrefab != null ? slamVisualPrefab : data.SlamVisualPrefab;
 
-        if (visualPrefabToUse != null)
+        GameObject visual = VfxPoolManager.Instance != null
+            ? VfxPoolManager.Instance.GetVfx(golemData.SlamVisualPrefab, impactCenter, Quaternion.identity, 1.5f)
+            : Instantiate(golemData.SlamVisualPrefab, impactCenter, Quaternion.identity);
+
+        if (visual != null)
         {
-            GameObject visual = VfxPoolManager.Instance != null
-                ? VfxPoolManager.Instance.GetVfx(visualPrefabToUse, impactCenter, Quaternion.identity, 1.5f)
-                : Instantiate(visualPrefabToUse, impactCenter, Quaternion.identity);
-
-            if (visual != null)
-            {
-                float visualScale = data.AttackRadius * 2f;
-                visual.transform.localScale = new Vector3(visualScale, visualScale, visualScale);
-            }
+            float visualScale = golemData.AttackRadius * 2f;
+            visual.transform.localScale = new Vector3(visualScale, visualScale, visualScale);
         }
 
-        int hitCount = Physics.OverlapSphereNonAlloc(impactCenter, data.AttackRadius, _slamHitsBuffer);
+
+        int hitCount = Physics.OverlapSphereNonAlloc(impactCenter, golemData.AttackRadius, _slamHitsBuffer);
         for (int i = 0; i < hitCount; i++)
         {
             Collider hit = _slamHitsBuffer[i];
@@ -178,20 +174,20 @@ public class NEWEnemyGolem : EnemyBaseRefactored
                 Vector3 pushDir = hit.transform.position - transform.position;
                 pushDir.y = 0f;
                 pushDir.Normalize();
-                Vector3 finalKnockback = (pushDir * data.KnockbackHorizontal) + (Vector3.up * data.KnockbackUpward);
+                Vector3 finalKnockback = (pushDir * golemData.KnockbackHorizontal) + (Vector3.up * golemData.KnockbackUpward);
 
                 if (hit.TryGetComponent(out IKnockbackable knockbackable))
                 {
-                    knockbackable.ApplyKnockback(finalKnockback, knockbackStunDuration);
+                    knockbackable.ApplyKnockback(finalKnockback, golemData.KnockbackStunDuration);
                 }
                 else if (hit.TryGetComponent(out PlayerControllerRefactored pcRefactored))
                 {
-                    pcRefactored.ApplyKnockback(finalKnockback, knockbackStunDuration);
+                    pcRefactored.ApplyKnockback(finalKnockback, golemData.KnockbackStunDuration);
                 }
             }
         }
 
-        float cooldownTimer = data.AttackCooldown;
+        float cooldownTimer = golemData.AttackCooldown;
         while (cooldownTimer > 0f)
         {
             if (isDead)
@@ -219,6 +215,6 @@ public class NEWEnemyGolem : EnemyBaseRefactored
 
         Gizmos.color = Color.red;
         Vector3 impactCenter = transform.position + (transform.forward * 2.5f);
-        Gizmos.DrawWireSphere(impactCenter, data.AttackRadius);
+        Gizmos.DrawWireSphere(impactCenter, golemData.AttackRadius);
     }
 }

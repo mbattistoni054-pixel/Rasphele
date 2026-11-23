@@ -185,7 +185,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 42f5e135924ccd849a1f4afd6fc7a674, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  data: {fileID: 11400000, guid: 07d4273f6828a8b4683748fd806b0701, type: 2}
+  data: {fileID: 11400000, guid: bf88b9ff4069fd34f8a9f680ee066b39, type: 2}
   poolKey: 
   maxHealth: 0
   xpOrbPrefab: {fileID: 4151671228204215311, guid: f0f5c3e19b95e644d8886b80bbdb3cbc, type: 3}
@@ -193,6 +193,9 @@ MonoBehaviour:
   flashMaterial: {fileID: 2100000, guid: 6f40a55d7b6a753448c0da4dcb51b4e2, type: 2}
   enemyVisual: {fileID: 1254490254673969702}
   animator: {fileID: 8881607466535959581}
+  fireLineDurationOverride: 0
+  fireLineLength: 50
+  castRecoveryDuration: 1.5
 --- !u!114 &1254490254673969702
 MonoBehaviour:
   m_ObjectHideFlags: 0

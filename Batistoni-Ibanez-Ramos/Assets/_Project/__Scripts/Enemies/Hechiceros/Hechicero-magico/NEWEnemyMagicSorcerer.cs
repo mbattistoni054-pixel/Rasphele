@@ -5,6 +5,8 @@ using PatronesAplicados;
 [RequireComponent(typeof(LineRenderer))]
 public class NEWEnemyMagicSorcerer : NEWEnemySorcererBase
 {
+    EnemyData_MagicSorcerer sorcererData => (EnemyData_MagicSorcerer)data;
+
     [Tooltip("El punto desde donde sale el láser (ej: la punta del báculo)")]
     public Transform firePoint;
 
@@ -28,9 +30,9 @@ public class NEWEnemyMagicSorcerer : NEWEnemySorcererBase
         _lineRenderer.enabled = false;
         _lineRenderer.positionCount = 2;
 
-        if (data != null && data.BeamMaterial != null)
+        if (data != null && sorcererData.BeamMaterial != null)
         {
-            _lineRenderer.sharedMaterial = data.BeamMaterial;
+            _lineRenderer.sharedMaterial = sorcererData.BeamMaterial;
         }
         else
         {
@@ -107,7 +109,7 @@ public class NEWEnemyMagicSorcerer : NEWEnemySorcererBase
         float timer = 0f;
         _blinkAccumulator = 0f;
         Vector3 targetPos = player.position + Vector3.up * 1f;
-        float trackingDuration = Mathf.Max(0.01f, data.TrackingTime);
+        float trackingDuration = Mathf.Max(0.01f, sorcererData.TrackingTime);
 
         while (timer < trackingDuration)
         {
@@ -143,7 +145,7 @@ public class NEWEnemyMagicSorcerer : NEWEnemySorcererBase
         _lineRenderer.startColor = Color.white;
         _lineRenderer.endColor = Color.white;
 
-        float lockedTimer = data.LockedTime;
+        float lockedTimer = sorcererData.LockedTime;
         while (lockedTimer > 0f)
         {
             if (isDead || isStunned)
@@ -194,7 +196,7 @@ public class NEWEnemyMagicSorcerer : NEWEnemySorcererBase
             }
         }
 
-        float laserTimer = data.LaserDuration;
+        float laserTimer = sorcererData.LaserDuration;
         while (laserTimer > 0f)
         {
             if (isDead || isStunned)

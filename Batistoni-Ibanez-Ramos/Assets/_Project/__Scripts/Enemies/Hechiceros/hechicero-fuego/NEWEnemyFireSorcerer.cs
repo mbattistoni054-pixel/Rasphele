@@ -5,6 +5,8 @@ using PatronesAplicados.RealImplementation;
 
 public class NEWEnemyFireSorcerer : NEWEnemySorcererBase
 {
+    EnemyData_FireSorcerer sorcererData => (EnemyData_FireSorcerer)data;
+
     [Header("Ajustes de Línea de Fuego (Inspector)")]
     [Tooltip("Si es mayor a 0, sobrescribe la duración de la línea de fuego. Si es 0, usa la del EnemyData o la del Prefab.")]
     public float fireLineDurationOverride = 0f;
@@ -25,7 +27,7 @@ public class NEWEnemyFireSorcerer : NEWEnemySorcererBase
 
         TriggerAttackAnimation();
 
-        if (data != null && data.FireLinePrefab != null && player != null)
+        if (data != null && sorcererData.FireLinePrefab != null && player != null)
         {
             Vector3 spawnPos = transform.position;
 
@@ -55,26 +57,26 @@ public class NEWEnemyFireSorcerer : NEWEnemySorcererBase
             NEWEnemyFireLine fireLine = null;
             if (ProjectilePoolManager.Instance != null)
             {
-                fireLine = ProjectilePoolManager.Instance.GetProjectile<NEWEnemyFireLine>(data.FireLinePrefab, spawnPos, fireLineRotation);
+                fireLine = ProjectilePoolManager.Instance.GetProjectile<NEWEnemyFireLine>(sorcererData.FireLinePrefab, spawnPos, fireLineRotation);
             }
             else
             {
-                GameObject lineObj = Instantiate(data.FireLinePrefab, spawnPos, fireLineRotation);
+                GameObject lineObj = Instantiate(sorcererData.FireLinePrefab, spawnPos, fireLineRotation);
                 lineObj.TryGetComponent(out fireLine);
             }
 
             if (fireLine != null)
             {
-                float lengthToUse = data.FireLineLength > 0f ? data.FireLineLength : fireLineLength;
+                float lengthToUse = sorcererData.FireLineLength > 0f ? sorcererData.FireLineLength : fireLineLength;
                 float durationToUse = fireLineDurationOverride > 0f
                     ? fireLineDurationOverride
-                    : data.FireLineDuration;
+                    : sorcererData.FireLineDuration;
 
                 fireLine.Setup(
                     data.AttackDamage * damageMultiplier,
                     lengthToUse,
                     durationToUse,
-                    data.FireLineWarningTime
+                    sorcererData.FireLineWarningTime
                 );
             }
         }

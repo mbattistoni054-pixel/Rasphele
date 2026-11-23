@@ -4,6 +4,8 @@ using PatronesAplicados.RealImplementation;
 
 public class NEWEnemyRange : EnemyBaseRefactored
 {
+    EnemyData_Range rangeData => (EnemyData_Range)data;
+
     private float _cooldownTimer;
     private float _pathTimer;
     private float _attackLockTimer;
@@ -125,14 +127,14 @@ public class NEWEnemyRange : EnemyBaseRefactored
 
     public void Shoot()
     {
-        if (isDead || isPaused || isStunned || data == null || data.Bullet == null || firePoint == null) return;
+        if (isDead || isPaused || isStunned || data == null || rangeData.Bullet == null || firePoint == null) return;
 
         float finalDamage = data.AttackDamage * damageMultiplier;
 
         if (ProjectilePoolManager.Instance != null)
         {
             NEWBulletEnemy pooledBullet = ProjectilePoolManager.Instance.GetProjectile<NEWBulletEnemy>(
-                data.Bullet,
+                rangeData.Bullet,
                 firePoint.position,
                 firePoint.rotation);
 
@@ -143,7 +145,7 @@ public class NEWEnemyRange : EnemyBaseRefactored
         }
         else
         {
-            GameObject obj = Instantiate(data.Bullet, firePoint.position, firePoint.rotation);
+            GameObject obj = Instantiate(rangeData.Bullet, firePoint.position, firePoint.rotation);
             if (obj.TryGetComponent(out NEWBulletEnemy newBullet))
             {
                 newBullet.Setup(finalDamage, player);

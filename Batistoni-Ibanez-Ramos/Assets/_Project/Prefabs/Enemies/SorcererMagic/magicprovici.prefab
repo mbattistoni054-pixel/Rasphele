@@ -334,7 +334,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bddb186bb0e0d0b4bb90abe7e1ef6038, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  data: {fileID: 11400000, guid: 030c1353189615b40ad083593f3b89c9, type: 2}
+  data: {fileID: 11400000, guid: 7ac14aba49d2ac344b43b12eb4376b64, type: 2}
   poolKey: 
   maxHealth: 0
   xpOrbPrefab: {fileID: 4151671228204215311, guid: f0f5c3e19b95e644d8886b80bbdb3cbc, type: 3}

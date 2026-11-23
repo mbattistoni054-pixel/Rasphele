@@ -2094,8 +2094,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 1, y: 3.0200214, z: 1}
+  m_Center: {x: 0, y: 1.0100107, z: 0}
 --- !u!195 &1685725992154204368
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -2130,15 +2130,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0b4dc98265c4e149b169b36d81f9010, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  data: {fileID: 11400000, guid: 84bec2f23fe98a14aae0b5d3e762ba64, type: 2}
+  data: {fileID: 11400000, guid: fb026b57122a48940a7c4b1af45af19d, type: 2}
   poolKey: NEWGolem
   maxHealth: 200
-  xpOrbPrefab: {fileID: 4151671228204215311, guid: f0f5c3e19b95e644d8886b80bbdb3cbc, type: 3}
-  damagePopupPrefab: {fileID: 3592148569616233406, guid: 61ebab5bd050aba4583e7948ea50b804, type: 3}
   flashMaterial: {fileID: 0}
   enemyVisual: {fileID: 0}
-  slamVisualPrefab: {fileID: 9136211849381488765, guid: 828397ef250a4bf409792e5c26adc5a3, type: 3}
   animator: {fileID: 7713929273709877327}
+  knockbackStunDuration: 0.4
 --- !u!114 &1867700627138794550
 MonoBehaviour:
   m_ObjectHideFlags: 0

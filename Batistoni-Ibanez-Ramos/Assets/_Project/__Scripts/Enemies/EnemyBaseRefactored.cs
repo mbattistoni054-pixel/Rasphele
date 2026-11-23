@@ -14,7 +14,7 @@ namespace PatronesAplicados
 
         private readonly List<IObserver> _allObservers = new List<IObserver>(4);
 
-        [SerializeField] protected EnemyData data;
+        [SerializeField] protected EnemyData_Base data; 
 
         [Header("Object Pool")]
         public string poolKey;
@@ -33,9 +33,9 @@ namespace PatronesAplicados
         protected Rigidbody rb;
         protected Collider enemyCollider;
 
-        [Header("UI y Recompensas")]
-        public GameObject xpOrbPrefab;
-        public GameObject damagePopupPrefab;
+        //[Header("UI y Recompensas")]
+        //public GameObject xpOrbPrefab;
+        //public GameObject damagePopupPrefab;
 
         [Header("Efectos Visuales")]
         public Material flashMaterial;
@@ -235,7 +235,7 @@ namespace PatronesAplicados
             currentHealth -= finalDamage;
 
             NotifyObservers(ActionTakeDamage);
-            EnemyFeedbackService.SpawnDamagePopup(damagePopupPrefab, transform.position, finalDamage, type, isCrit, isBleed);
+            EnemyFeedbackService.SpawnDamagePopup(data.PopUp, transform.position, finalDamage, type, isCrit, isBleed);
 
             if (currentHealth <= 0f)
             {
@@ -317,7 +317,7 @@ namespace PatronesAplicados
             if (agent != null && agent.enabled && agent.isOnNavMesh) agent.isStopped = true;
 
             NotifyObservers(ActionDie);
-            EnemyFeedbackService.SpawnDeathRewards(xpOrbPrefab, transform.position, data);
+            EnemyFeedbackService.SpawnDeathRewards(data.XpOrb, transform.position, data);
 
             if (enemyVisual == null && _allObservers.Count == 0)
             {

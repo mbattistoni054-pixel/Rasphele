@@ -4,6 +4,8 @@ using PatronesAplicados.RealImplementation;
 
 public class NEWEnemyKamikaze : EnemyBaseRefactored
 {
+    EnemyData_Kamikaze kamikazeData => (EnemyData_Kamikaze)data;
+
     private bool _isTriggered;
     private float _explosionTimer;
     private int _lastBlinkPhase = -1;
@@ -122,7 +124,7 @@ public class NEWEnemyKamikaze : EnemyBaseRefactored
     private void StartKamikazeCountdown()
     {
         _isTriggered = true;
-        _explosionTimer = data.ExplosionDelay;
+        _explosionTimer = kamikazeData.ExplosionDelay;
         _lastBlinkPhase = -1;
 
         if (agent != null && agent.enabled && agent.isOnNavMesh) agent.isStopped = true;
@@ -178,20 +180,20 @@ public class NEWEnemyKamikaze : EnemyBaseRefactored
         if (enemyCollider != null) enemyCollider.enabled = false;
         if (agent != null && agent.enabled && agent.isOnNavMesh) agent.isStopped = true;
 
-        if (data.ExplosionVisualPrefab != null)
+        if (kamikazeData.ExplosionVisualPrefab != null)
         {
             GameObject visual = VfxPoolManager.Instance != null
-                ? VfxPoolManager.Instance.GetVfx(data.ExplosionVisualPrefab, transform.position, Quaternion.identity, 1.5f)
-                : Instantiate(data.ExplosionVisualPrefab, transform.position, Quaternion.identity);
+                ? VfxPoolManager.Instance.GetVfx(kamikazeData.ExplosionVisualPrefab, transform.position, Quaternion.identity, 1.5f)
+                : Instantiate(kamikazeData.ExplosionVisualPrefab, transform.position, Quaternion.identity);
 
             if (visual != null)
             {
-                float visualScale = data.ExplosionRadius * 2f;
+                float visualScale = kamikazeData.ExplosionRadius * 2f;
                 visual.transform.localScale = new Vector3(visualScale, visualScale, visualScale);
             }
         }
 
-        int hitCount = Physics.OverlapSphereNonAlloc(transform.position, data.ExplosionRadius, _explosionHitsBuffer);
+        int hitCount = Physics.OverlapSphereNonAlloc(transform.position, kamikazeData.ExplosionRadius, _explosionHitsBuffer);
         for (int i = 0; i < hitCount; i++)
         {
             Collider hit = _explosionHitsBuffer[i];
@@ -219,6 +221,6 @@ public class NEWEnemyKamikaze : EnemyBaseRefactored
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, data.RangeAttack);
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, data.ExplosionRadius);
+        Gizmos.DrawWireSphere(transform.position, kamikazeData.ExplosionRadius);
     }
 }

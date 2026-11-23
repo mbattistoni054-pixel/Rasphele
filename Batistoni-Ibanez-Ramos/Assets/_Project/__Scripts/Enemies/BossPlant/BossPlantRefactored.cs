@@ -6,6 +6,8 @@ namespace PatronesAplicados
 {
     public class BossPlantRefactored : EnemyBaseRefactored
     {
+        EnemyData_BossPlant plantData => (EnemyData_BossPlant)data;
+
         [Header("Ajustes de Escena (Todo lo demás se configura en EnemyData)")]
         public string bossDisplayName = "Planta Mutante";
         public float spawnHeightOffset = 0f;
@@ -81,7 +83,7 @@ namespace PatronesAplicados
                 _attackTimer = 0f;
 
                 float sqrDistance = (player.position - transform.position).sqrMagnitude;
-                float meleeRange = data.MeleeRange;
+                float meleeRange = plantData.MeleeRange;
 
                 if (sqrDistance <= meleeRange * meleeRange)
                 {
@@ -150,13 +152,13 @@ namespace PatronesAplicados
 
             if (animator != null) animator.SetTrigger(AttackHash);
 
-            yield return StartCoroutine(WaitPausableSeconds(data.MeleeHitDelay));
+            yield return StartCoroutine(WaitPausableSeconds(plantData.MeleeHitDelay));
 
-            float hitRadius = data.MeleeRange + 1f;
+            float hitRadius = plantData.MeleeRange + 1f;
             if (!isDead && !isStunned && player != null &&
                 (player.position - transform.position).sqrMagnitude <= hitRadius * hitRadius)
             {
-                float finalMeleeDmg = data.MeleeDamage * damageMultiplier;
+                float finalMeleeDmg = plantData.MeleeDamage * damageMultiplier;
 
                 if (player.TryGetComponent(out IDamageable damageable))
                 {
@@ -170,7 +172,7 @@ namespace PatronesAplicados
                 Vector3 pushDir = player.position - transform.position;
                 pushDir.y = 0f;
                 pushDir.Normalize();
-                Vector3 finalKnockback = (pushDir * data.BossKnockbackHorizontal) + (Vector3.up * data.BossKnockbackUpward);
+                Vector3 finalKnockback = (pushDir * plantData.BossKnockbackHorizontal) + (Vector3.up * plantData.BossKnockbackUpward);
 
                 if (player.TryGetComponent(out IKnockbackable knockbackable))
                 {
@@ -205,10 +207,10 @@ namespace PatronesAplicados
 
         private IEnumerator AttackA_Burst()
         {
-            if (data == null || data.OrbPrefab == null) yield break;
+            if (data == null || plantData.OrbPrefab == null) yield break;
             if (animator != null) animator.SetTrigger(ShootHash);
 
-            int orbsToShoot = _isPhase2 ? data.OrbsPerBurstPhase2 : data.OrbsPerBurst;
+            int orbsToShoot = _isPhase2 ? plantData.OrbsPerBurstPhase2 : plantData.OrbsPerBurst;
             float finalDamage = data.AttackDamage * damageMultiplier;
 
             for (int i = 0; i < orbsToShoot; i++)
@@ -223,7 +225,7 @@ namespace PatronesAplicados
 
                 if (ProjectilePoolManager.Instance != null)
                 {
-                    NEWBossOrb orbScript = ProjectilePoolManager.Instance.GetProjectile<NEWBossOrb>(data.OrbPrefab, spawnOrigin, rot);
+                    NEWBossOrb orbScript = ProjectilePoolManager.Instance.GetProjectile<NEWBossOrb>(plantData.OrbPrefab, spawnOrigin, rot);
                     if (orbScript != null)
                     {
                         orbScript.Setup(finalDamage);
@@ -231,22 +233,22 @@ namespace PatronesAplicados
                 }
                 else
                 {
-                    GameObject orbObj = Instantiate(data.OrbPrefab, spawnOrigin, rot);
+                    GameObject orbObj = Instantiate(plantData.OrbPrefab, spawnOrigin, rot);
                     if (orbObj.TryGetComponent(out NEWBossOrb orbScript))
                     {
                         orbScript.Setup(finalDamage);
                     }
                 }
 
-                yield return StartCoroutine(WaitPausableSeconds(data.TimeBetweenOrbs));
+                yield return StartCoroutine(WaitPausableSeconds(plantData.TimeBetweenOrbs));
             }
         }
 
         private IEnumerator AttackB_Roots_Routine()
         {
-            if (data == null || data.RootTrapPrefab == null) yield break;
+            if (data == null || plantData.RootTrapPrefab == null) yield break;
 
-            int rootsToSpawn = _isPhase2 ? Mathf.Max(1, data.RootsPhase2) : 1;
+            int rootsToSpawn = _isPhase2 ? Mathf.Max(1, plantData.RootsPhase2) : 1;
             float finalDamage = data.AttackDamage * damageMultiplier;
 
             for (int i = 0; i < rootsToSpawn; i++)
@@ -258,7 +260,7 @@ namespace PatronesAplicados
 
                 if (ProjectilePoolManager.Instance != null)
                 {
-                    NEWBossRootTrap trapScript = ProjectilePoolManager.Instance.GetProjectile<NEWBossRootTrap>(data.RootTrapPrefab, player.position, Quaternion.identity);
+                    NEWBossRootTrap trapScript = ProjectilePoolManager.Instance.GetProjectile<NEWBossRootTrap>(plantData.RootTrapPrefab, player.position, Quaternion.identity);
                     if (trapScript != null)
                     {
                         trapScript.Setup(player, finalDamage);
@@ -266,7 +268,7 @@ namespace PatronesAplicados
                 }
                 else
                 {
-                    GameObject trapObj = Instantiate(data.RootTrapPrefab, player.position, Quaternion.identity);
+                    GameObject trapObj = Instantiate(plantData.RootTrapPrefab, player.position, Quaternion.identity);
                     if (trapObj.TryGetComponent(out NEWBossRootTrap trapScript))
                     {
                         trapScript.Setup(player, finalDamage);
@@ -275,7 +277,7 @@ namespace PatronesAplicados
 
                 if (i < rootsToSpawn - 1)
                 {
-                    yield return StartCoroutine(WaitPausableSeconds(data.DelayBetweenRootsPhase2));
+                    yield return StartCoroutine(WaitPausableSeconds(plantData.DelayBetweenRootsPhase2));
                 }
             }
 
@@ -301,10 +303,10 @@ namespace PatronesAplicados
             if (data == null) return;
 
             Gizmos.color = new Color(1f, 0f, 0f, 0.3f);
-            Gizmos.DrawSphere(transform.position, data.MeleeRange);
+            Gizmos.DrawSphere(transform.position, plantData.MeleeRange);
 
             Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(transform.position, data.MeleeRange);
+            Gizmos.DrawWireSphere(transform.position, plantData.MeleeRange);
         }
     }
 }

@@ -27,7 +27,7 @@ namespace PatronesAplicados
             }
         }
 
-        public static void SpawnDeathRewards(GameObject xpOrbPrefab, Vector3 deathPosition, EnemyData data)
+        public static void SpawnDeathRewards(GameObject xpOrbPrefab, Vector3 deathPosition, EnemyData_Base data)
         {
             if (xpOrbPrefab != null)
             {

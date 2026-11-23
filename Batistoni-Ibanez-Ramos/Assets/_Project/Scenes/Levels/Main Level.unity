@@ -159864,11 +159864,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 847334368}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1 &849879222 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 6740361351818204727, guid: 28db9b9a91c0c7d41b528e901842294e, type: 3}
-  m_PrefabInstance: {fileID: 5195093521149362373}
-  m_PrefabAsset: {fileID: 0}
 --- !u!114 &850118657 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 5139150934361398459, guid: 55a7e23127988a8459d812ecfd5553e5, type: 3}
@@ -300812,7 +300807,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -1}
+  m_AnchoredPosition: {x: 0, y: -0.9998779}
   m_SizeDelta: {x: -730.46, y: 0}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &1866728760
@@ -314986,12 +314981,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 296427ee95e195649ad8d8a8f34f1acb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  boss: {fileID: 1603238169270002714, guid: b3ab31206a3a2c24cbd8048e899bbe97, type: 3}
-  bossCheck: {fileID: 0}
-  barrier: {fileID: 348492963}
-  winZone: {fileID: 1280429127}
-  spawnPoint: {fileID: 757859039}
-  Spawner: {fileID: 849879222}
 --- !u!136 &2001082428
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -345137,7 +345126,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 4494375285769748720, guid: 336bf779a8e8a2d4cb548dfd0d1436c3, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -1
+      value: -0.9998779
+      objectReference: {fileID: 0}
+    - target: {fileID: 4686580447307226106, guid: 336bf779a8e8a2d4cb548dfd0d1436c3, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6890720805622928382, guid: 336bf779a8e8a2d4cb548dfd0d1436c3, type: 3}
       propertyPath: m_Pivot.x
