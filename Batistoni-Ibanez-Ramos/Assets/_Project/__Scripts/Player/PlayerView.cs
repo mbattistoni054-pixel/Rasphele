@@ -7,6 +7,8 @@ namespace PatronesAplicados
         [Header("Componentes Visuales")]
         [SerializeField] private Animator animator;
         [SerializeField] private ParticleSystem footstepParticles;
+        [SerializeField] private ParticleSystem grabXp;
+        [SerializeField] private Renderer[] renderers;
 
         [Header("Partículas de Salto")]
         [Tooltip("Arrastra aquí tu PS_JumpDust.")]
@@ -234,5 +236,47 @@ namespace PatronesAplicados
                 }
             }
         }
+
+        float xpCount;
+        float actualXp;
+        public void GrabXp()
+        {
+            grabXp.Emit(Random.Range(4, 9));
+
+            if (xpCount <= 1)
+            {
+                xpCount += 0.1f;
+            }
+            else
+            {
+                xpCount = 1;
+            }
+        }
+
+        private void Update()
+        {
+            if (xpCount > 0)
+            {
+                foreach (Renderer renderer in renderers)
+                {
+                    if (actualXp <= xpCount)
+                    {
+                        actualXp += Time.deltaTime / 5;
+                    }
+                    else
+                    {
+                        actualXp -= Time.deltaTime / 10;
+                        xpCount -= Time.deltaTime / 10;
+                    }
+                    renderer.material.SetFloat("_xpValue", actualXp);
+                }
+            }
+            else
+            {
+               xpCount = 0;
+               actualXp = 0;
+            }
+        }
     }
+
 }

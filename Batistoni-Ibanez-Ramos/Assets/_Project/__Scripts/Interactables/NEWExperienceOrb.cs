@@ -8,6 +8,7 @@ public class NEWExperienceOrb : MonoBehaviour
 
     [Header("Ajustes de la Gema")]
     public float xpAmount = 20f;
+    [SerializeField] GameObject grabXP;
 
     private float _defaultXpAmount;
     private float _currentMoveSpeed;
@@ -78,6 +79,10 @@ public class NEWExperienceOrb : MonoBehaviour
                 _isCollected = true;
                 newXp.AddExperience(xpAmount);
                 ReturnToPool();
+            }
+            if (other.TryGetComponent(out PlayerView playerView))
+            {
+                playerView.GrabXp();
             }
         }
     }
