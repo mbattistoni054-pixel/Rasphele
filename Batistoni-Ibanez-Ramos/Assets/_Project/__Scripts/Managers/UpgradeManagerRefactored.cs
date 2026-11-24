@@ -143,10 +143,17 @@ namespace PatronesAplicados
         {
             if (data == null) return;
 
+            IUpgradeStrategy strategy = WeaponUpgradeApplier.ResolveStrategy(data.type);
+            if (strategy == null)
+            {
+                Debug.LogWarning($"[UpgradeManagerRefactored] No existe estrategia registrada para '{data.type}'.");
+                return;
+            }
+
             if (data.type == UpgradeType.Heal)
             {
                 float healVal = (data.levelValues != null && data.levelValues.Length > 0) ? data.levelValues[0] : 25f;
-                WeaponUpgradeApplier.ApplyStatModification(data, weapon, healVal, false);
+                strategy.Execute(weapon, healVal, false);
                 return;
             }
 
@@ -178,7 +185,7 @@ namespace PatronesAplicados
 
             profile.levels[data] = currentLevel + 1;
 
-            WeaponUpgradeApplier.ApplyStatModification(data, weapon, valueToApply, false);
+            strategy.Execute(weapon, valueToApply, false);
         }
 
         public int GetPurgeCost(WeaponBaseRealRefactored weapon)
@@ -245,9 +252,12 @@ namespace PatronesAplicados
 
                 if (uData == null || uData.levelValues == null) continue;
 
+                IUpgradeStrategy strategy = WeaponUpgradeApplier.ResolveStrategy(uData.type);
+                if (strategy == null) continue;
+
                 for (int i = 0; i < levelReached && i < uData.levelValues.Length; i++)
                 {
-                    WeaponUpgradeApplier.ApplyStatModification(uData, weapon, uData.levelValues[i], true);
+                    strategy.Execute(weapon, uData.levelValues[i], true);
                 }
             }
         }

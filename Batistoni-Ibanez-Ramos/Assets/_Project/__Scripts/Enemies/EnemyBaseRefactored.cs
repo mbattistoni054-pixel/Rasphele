@@ -33,10 +33,6 @@ namespace PatronesAplicados
         protected Rigidbody rb;
         protected Collider enemyCollider;
 
-        //[Header("UI y Recompensas")]
-        //public GameObject xpOrbPrefab;
-        //public GameObject damagePopupPrefab;
-
         [Header("Efectos Visuales")]
         public Material flashMaterial;
 
@@ -64,10 +60,6 @@ namespace PatronesAplicados
 
         protected virtual void OnEnable()
         {
-            if (enemyCollider != null)
-            {
-                DamageableRegistry.Register(enemyCollider, this, transform);
-            }
 
             isPaused = PauseManager.IsPaused;
             PauseManager.Register(this);
@@ -95,26 +87,22 @@ namespace PatronesAplicados
             enemyCollider = GetComponent<Collider>();
             _cachedAnimator = GetComponentInChildren<Animator>();
 
-            if (enemyCollider != null)
-            {
-                DamageableRegistry.Register(enemyCollider, this, transform);
-            }
+            DamageableRegistry.Register(enemyCollider, this, transform);
+            
 
             _flashController.Initialize(this);
 
-            if (data != null)
-            {
-                maxHealth = data.MaxHealth;
-                currentHealth = maxHealth;
-                currentSpeed = UsesNavigation ? data.BaseSpeed : 0f;
-            }
+            maxHealth = data.MaxHealth;
+            currentHealth = maxHealth;
+            currentSpeed = UsesNavigation ? data.BaseSpeed : 0f;
+            
         }
 
         protected virtual void Start()
         {
             InitializeComponents();
 
-            if (player == null && GameManagerRefactored.Instance != null)
+            if (player == null)
             {
                 player = GameManagerRefactored.Instance.Player;
             }
@@ -141,10 +129,7 @@ namespace PatronesAplicados
         {
             PauseManager.Unregister(this);
 
-            if (enemyCollider != null)
-            {
-                DamageableRegistry.Unregister(enemyCollider);
-            }
+            DamageableRegistry.Unregister(enemyCollider);
         }
 
         public virtual void ResetStats()
@@ -159,13 +144,11 @@ namespace PatronesAplicados
             _flashController.RestoreOriginalMaterials();
 
             currentHealth = maxHealth;
-            currentSpeed = UsesNavigation ? (data != null ? data.BaseSpeed : currentSpeed) : 0f;
+            currentSpeed = UsesNavigation ? (currentSpeed) : 0f; 
 
-            if (enemyCollider != null)
-            {
-                enemyCollider.enabled = true;
-                DamageableRegistry.Register(enemyCollider, this, transform);
-            }
+            enemyCollider.enabled = true;
+            DamageableRegistry.Register(enemyCollider, this, transform);
+            
 
             if (agent != null)
             {
@@ -182,7 +165,7 @@ namespace PatronesAplicados
         {
             InitializeComponents();
 
-            float baseHp = data != null ? data.MaxHealth : maxHealth;
+            float baseHp = maxHealth;
             maxHealth = baseHp * hpMult;
             currentHealth = maxHealth;
             damageMultiplier = dmgMult;
@@ -197,10 +180,7 @@ namespace PatronesAplicados
         {
             if (isDead || isPaused) return;
 
-            if (player == null && GameManagerRefactored.Instance != null)
-            {
-                player = GameManagerRefactored.Instance.Player;
-            }
+            if (player == null) return;
 
             float dt = Time.deltaTime;
             _flashController.Tick(dt);
@@ -252,7 +232,7 @@ namespace PatronesAplicados
         {
             if (isDead) return;
 
-            float baseSpd = data != null ? data.BaseSpeed : currentSpeed;
+            float baseSpd = currentSpeed;
             _statusHandler.ApplyAllEffects(in effects, sourceWeaponID, baseSpd);
         }
 
@@ -260,7 +240,7 @@ namespace PatronesAplicados
         {
             if (!UsesNavigation) return;
 
-            float baseSpd = data != null ? data.BaseSpeed : currentSpeed;
+            float baseSpd = currentSpeed;
             currentSpeed = _statusHandler.CalculateCurrentSpeed(baseSpd);
             if (agent != null && agent.enabled) agent.speed = currentSpeed;
         }
@@ -283,11 +263,9 @@ namespace PatronesAplicados
                 agent.velocity = Vector3.zero;
                 agent.isStopped = true;
             }
-            if (_cachedAnimator == null) _cachedAnimator = GetComponentInChildren<Animator>();
-            if (_cachedAnimator != null)
-            {
-                _cachedAnimator.speed = 0f;
-            }
+
+            _cachedAnimator.speed = 0f;
+            
         }
 
         public virtual void OnResume()
@@ -298,11 +276,9 @@ namespace PatronesAplicados
                 agent.isStopped = false;
                 agent.velocity = _savedAgentVelocity;
             }
-            if (_cachedAnimator == null) _cachedAnimator = GetComponentInChildren<Animator>();
-            if (_cachedAnimator != null)
-            {
-                _cachedAnimator.speed = 1f;
-            }
+
+            _cachedAnimator.speed = 1f;
+
         }
 
         protected virtual void Die()
@@ -313,7 +289,7 @@ namespace PatronesAplicados
             StopAllCoroutines();
             _flashController.RestoreOriginalMaterials();
 
-            if (enemyCollider != null) enemyCollider.enabled = false;
+            enemyCollider.enabled = false;
             if (agent != null && agent.enabled && agent.isOnNavMesh) agent.isStopped = true;
 
             NotifyObservers(ActionDie);

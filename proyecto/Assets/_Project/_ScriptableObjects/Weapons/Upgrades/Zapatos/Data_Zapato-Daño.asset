@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79fa657cfae0d234cb4f6c97a7ba2dae, type: 3}
+  m_Name: "Data_Zapato-Da\xF1o"
+  m_EditorClassIdentifier: 
+  exclusiveWeapon: {fileID: 11400000, guid: df4b216446cdbe44ea98e6dba24cea74, type: 2}
+  baseName: "Da\xF1o"
+  icon: {fileID: 1129087042, guid: 6cb0a7c997780bc408dcb06de40fdc8d, type: 3}
+  category: 0
+  type: 5
+  levelValues:
+  - 2
+  - 3
+  - 3
+  - 2
+  levelDescriptions:
+  - "aumenta el da\xF1o a 7"
+  - "aumenta el da\xF1o a 10"
+  - "aumenta el da\xF1o a 13"
+  - "aumenta el da\xF1o a 15"

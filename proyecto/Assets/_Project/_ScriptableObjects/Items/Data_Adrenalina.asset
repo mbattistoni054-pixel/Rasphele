@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba1f33207d729ce4fb4653189358ba01, type: 3}
+  m_Name: Data_Adrenalina
+  m_EditorClassIdentifier: 
+  itemName: Adrenalina
+  tier: 2
+  icon: {fileID: 21300000, guid: 6145bf0d8832fca40868efb205501db9, type: 3}
+  description: aumenta la velocidad un 50%
+  effect: 3
+  value: 50

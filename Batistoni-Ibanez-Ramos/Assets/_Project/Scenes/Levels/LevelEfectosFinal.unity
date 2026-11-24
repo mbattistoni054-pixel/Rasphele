@@ -306554,7 +306554,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f19f25f3199c2c545a95fac188377f9d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  boss: {fileID: 9211679119524723407, guid: e2a6abf1b814b3945894a36e7631ec85, type: 3}
+  boss: {fileID: 1555716958205919064, guid: d5e688053fb8514419a33daf0cfb6ff3, type: 3}
   bossCheck: {fileID: 0}
   barrier: {fileID: 348492963}
   winZone: {fileID: 1280429127}
@@ -335899,11 +335899,11 @@ PrefabInstance:
     - target: {fileID: 1086346224349335833, guid: 28db9b9a91c0c7d41b528e901842294e, type: 3}
       propertyPath: waves.Array.data[5].availableEnemies.Array.data[0].enemyPrefab
       value: 
-      objectReference: {fileID: 2804109342156569821, guid: cfa570707f90a144e9f2d59aabcaa705, type: 3}
+      objectReference: {fileID: 7100043890508789198, guid: 5f8ea3debf14dda4c9459508bc5538a0, type: 3}
     - target: {fileID: 1086346224349335833, guid: 28db9b9a91c0c7d41b528e901842294e, type: 3}
       propertyPath: waves.Array.data[5].availableEnemies.Array.data[1].enemyPrefab
       value: 
-      objectReference: {fileID: 6009963287580798659, guid: c500b6e51dc39984eb556323cbbb5b8b, type: 3}
+      objectReference: {fileID: 8278686067846594994, guid: 73e17f03177c7d041857d918f4219f53, type: 3}
     - target: {fileID: 1086346224349335833, guid: 28db9b9a91c0c7d41b528e901842294e, type: 3}
       propertyPath: waves.Array.data[6].availableEnemies.Array.data[0].enemyPrefab
       value: 
@@ -336158,11 +336158,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1086346224349335833, guid: 28db9b9a91c0c7d41b528e901842294e, type: 3}
       propertyPath: waves.Array.data[5].availableEnemies.Array.data[0].spawnProbability
-      value: 50
+      value: 30.3
       objectReference: {fileID: 0}
     - target: {fileID: 1086346224349335833, guid: 28db9b9a91c0c7d41b528e901842294e, type: 3}
       propertyPath: waves.Array.data[5].availableEnemies.Array.data[1].spawnProbability
-      value: 50
+      value: 56.8
       objectReference: {fileID: 0}
     - target: {fileID: 1086346224349335833, guid: 28db9b9a91c0c7d41b528e901842294e, type: 3}
       propertyPath: waves.Array.data[6].availableEnemies.Array.data[0].spawnProbability

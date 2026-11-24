@@ -65,19 +65,13 @@ namespace PatronesAplicados
 
         private void Start()
         {
-            if (PlayerStatsRefactored.Instance != null && PlayerStatsRefactored.Instance.baseMaxHealth > 0f)
-            {
-                maxHealth = PlayerStatsRefactored.Instance.GetTotalMaxHealth();
-            }
+            maxHealth = PlayerStatsRefactored.Instance.GetTotalMaxHealth();
 
             currentHealth = maxHealth;
 
             CachePostProcessingVolume();
 
-            if (EventManager.Instance != null)
-            {
-                EventManager.Instance.StartListening(GameEventKeys.PlayerStatsUpdated, UpdateMaxHealthFromStats);
-            }
+            EventManager.Instance.StartListening(GameEventKeys.PlayerStatsUpdated, UpdateMaxHealthFromStats);
 
             if (debugForceShieldOnStart)
             {
@@ -90,10 +84,7 @@ namespace PatronesAplicados
 
         private void OnDestroy()
         {
-            if (EventManager.Instance != null)
-            {
-                EventManager.Instance.StopListening(GameEventKeys.PlayerStatsUpdated, UpdateMaxHealthFromStats);
-            }
+            EventManager.Instance.StopListening(GameEventKeys.PlayerStatsUpdated, UpdateMaxHealthFromStats);
         }
 
         private void Update()
@@ -102,8 +93,7 @@ namespace PatronesAplicados
 
             float dt = Time.deltaTime;
 
-            bool canGenerateShield = debugForceShieldOnStart ||
-                                     (PlayerStatsRefactored.Instance != null && PlayerStatsRefactored.Instance.shieldStacks > 0);
+            bool canGenerateShield = debugForceShieldOnStart || (PlayerStatsRefactored.Instance.shieldStacks > 0);
 
             if (!_hasShield && canGenerateShield)
             {
@@ -119,7 +109,6 @@ namespace PatronesAplicados
 
         private void InitializeShieldVisuals()
         {
-            if (shieldRenderer == null) return;
 
             _currentShieldAlpha = 0f;
             _targetShieldAlpha = 0f;
@@ -140,11 +129,9 @@ namespace PatronesAplicados
             _currentHitRipple = 0.6f;
             _targetShieldAlpha = 1f;
 
-            if (shieldRenderer != null)
-            {
-                shieldRenderer.gameObject.SetActive(true);
-                ApplyShieldShaderProperties();
-            }
+            shieldRenderer.gameObject.SetActive(true);
+            ApplyShieldShaderProperties();
+
         }
 
         private void TriggerShieldBreakShaderEffect()
@@ -157,7 +144,6 @@ namespace PatronesAplicados
 
         private void TickShieldShader(float dt)
         {
-            if (shieldRenderer == null || !shieldRenderer.gameObject.activeSelf) return;
 
             bool needsUpdate = false;
 
@@ -194,7 +180,6 @@ namespace PatronesAplicados
 
         private void ApplyShieldShaderProperties()
         {
-            if (shieldRenderer == null) return;
             if (_shieldPropBlock == null) _shieldPropBlock = new MaterialPropertyBlock();
 
             shieldRenderer.GetPropertyBlock(_shieldPropBlock);
@@ -206,13 +191,10 @@ namespace PatronesAplicados
 
         private void CachePostProcessingVolume()
         {
-            if (GameManagerRefactored.Instance != null && GameManagerRefactored.Instance.globalVolume != null)
+           _volume = GameManagerRefactored.Instance.globalVolume.GetComponent<Volume>();
+            if (_volume != null && _volume.profile != null)
             {
-                _volume = GameManagerRefactored.Instance.globalVolume.GetComponent<Volume>();
-                if (_volume != null && _volume.profile != null)
-                {
-                    _volume.profile.TryGet(out _vignette);
-                }
+               _volume.profile.TryGet(out _vignette);
             }
         }
 
@@ -231,20 +213,15 @@ namespace PatronesAplicados
                 _vignette.intensity.overrideState = true;
             }
 
-            if (AudioManager.Instance != null && AudioManager.Instance.mainMixer != null)
-            {
-                AudioMixer mixer = AudioManager.Instance.mainMixer;
-                float targetPitch = (currentHealth < maxHealth * 0.5f) ? (0.5f + healthRatio) : 1f;
-                mixer.SetFloat("MasterPitch", targetPitch);
-            }
+            AudioMixer mixer = AudioManager.Instance.mainMixer;
+            float targetPitch = (currentHealth < maxHealth * 0.5f) ? (0.5f + healthRatio) : 1f;
+            mixer.SetFloat("MasterPitch", targetPitch);
+
         }
 
         public void NotifyObservers()
         {
-            if (EventManager.Instance != null)
-            {
-                EventManager.Instance.TriggerEvent(GameEventKeys.PlayerHealthChanged, currentHealth, maxHealth);
-            }
+            EventManager.Instance.TriggerEvent(GameEventKeys.PlayerHealthChanged, currentHealth, maxHealth);
         }
 
         public void UpdateMaxHealthFromStats()
@@ -277,18 +254,8 @@ namespace PatronesAplicados
 
             Vector3 spawnPosition = transform.position + Vector3.up * 2.5f;
 
-            if (VfxPoolManager.Instance != null)
-            {
-                VfxPoolManager.Instance.SpawnDamagePopup(damagePopupPrefab, spawnPosition, damageAmount, DamageType.Fisico, false, true);
-            }
-            else
-            {
-                GameObject popup = Instantiate(damagePopupPrefab, spawnPosition, Quaternion.identity);
-                if (popup.TryGetComponent(out DamagePopup popupScript))
-                {
-                    popupScript.Setup(damageAmount, DamageType.Fisico, false, true);
-                }
-            }
+            VfxPoolManager.Instance.SpawnDamagePopup(damagePopupPrefab, spawnPosition, damageAmount, DamageType.Fisico, false, true);
+
         }
 
         public void TakeDamage(float amount, bool isCrit = false, DamageType type = DamageType.Fisico, bool isBleed = false)
@@ -304,10 +271,7 @@ namespace PatronesAplicados
                 return;
             }
 
-            if (PlayerStatsRefactored.Instance != null)
-            {
-                amount *= PlayerStatsRefactored.Instance.itemDamageTakenMultiplier;
-            }
+            amount *= PlayerStatsRefactored.Instance.itemDamageTakenMultiplier;
 
             if (hurtSound != null && AudioManager.Instance != null)
             {
@@ -337,18 +301,10 @@ namespace PatronesAplicados
 
         public void IncreaseMaxHealth(float amount)
         {
-            if (PlayerStatsRefactored.Instance != null)
-            {
-                PlayerStatsRefactored.Instance.baseMaxHealth += amount;
-                UpdateMaxHealthFromStats();
-            }
-            else
-            {
-                maxHealth += amount;
-                currentHealth += amount;
-                UpdateHealthFeedbackEffects();
-                NotifyObservers();
-            }
+
+            PlayerStatsRefactored.Instance.baseMaxHealth += amount;
+            UpdateMaxHealthFromStats();
+
         }
 
         private void Die()
@@ -356,10 +312,7 @@ namespace PatronesAplicados
             if (_isDead) return;
             _isDead = true;
 
-            if (EventManager.Instance != null)
-            {
-                EventManager.Instance.TriggerEvent(GameEventKeys.PlayerDeath);
-            }
+            EventManager.Instance.TriggerEvent(GameEventKeys.PlayerDeath);
 
             Destroy(gameObject);
         }

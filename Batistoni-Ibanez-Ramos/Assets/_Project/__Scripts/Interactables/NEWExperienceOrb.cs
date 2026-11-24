@@ -28,10 +28,8 @@ public class NEWExperienceOrb : MonoBehaviour
         _currentMoveSpeed = data.BaseMoveSpeed;
         xpAmount = _defaultXpAmount;
 
-        if (GameManagerRefactored.Instance != null && GameManagerRefactored.Instance.Player != null)
-        {
-            _player = GameManagerRefactored.Instance.Player;
-        }
+        _player = GameManagerRefactored.Instance.Player;
+        
     }
 
     public void SetXpAmount(float amount)
@@ -89,13 +87,6 @@ public class NEWExperienceOrb : MonoBehaviour
 
     private void ReturnToPool()
     {
-        if (ProjectilePoolManager.Instance != null)
-        {
-            ProjectilePoolManager.Instance.ReturnProjectile(gameObject);
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
+        ProjectilePoolManager.Instance.ReturnProjectile(gameObject);
     }
 }

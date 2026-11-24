@@ -46,6 +46,7 @@ GameObject:
   - component: {fileID: 716200630992402111}
   - component: {fileID: 6317251116508110323}
   - component: {fileID: -5197728577194544881}
+  - component: {fileID: -1170487624146348077}
   m_Layer: 7
   m_Name: BossPlant
   m_TagString: Untagged
@@ -209,11 +210,31 @@ MonoBehaviour:
   data: {fileID: 11400000, guid: 5074b78dfdfc3cc49ae6324ac4c845ea, type: 2}
   poolKey: 
   maxHealth: 60
-  xpOrbPrefab: {fileID: 4151671228204215311, guid: f0f5c3e19b95e644d8886b80bbdb3cbc, type: 3}
-  damagePopupPrefab: {fileID: 3592148569616233406, guid: 61ebab5bd050aba4583e7948ea50b804, type: 3}
   flashMaterial: {fileID: 0}
   enemyVisual: {fileID: 0}
   bossDisplayName: Planta Mutante
   spawnHeightOffset: 0
   firePoint: {fileID: 5177454110042539609}
-  animator: {fileID: 0}
+  animator: {fileID: -1170487624146348077}
+--- !u!95 &-1170487624146348077
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9211679119524723407}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 0}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0

@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b5b74255d27ede48964f71c55645c67, type: 3}
+  m_Name: Data_Range
+  m_EditorClassIdentifier: 
+  maxHealth: 20
+  baseSpeed: 25
+  attackDamage: 10
+  attackCooldown: 4
+  rangeAttack: 20
+  fleeDistance: 0
+  goldReward: 5
+  expReward: 20
+  xpOrb: {fileID: 4151671228204215311, guid: f0f5c3e19b95e644d8886b80bbdb3cbc, type: 3}
+  popUp: {fileID: 3592148569616233406, guid: 61ebab5bd050aba4583e7948ea50b804, type: 3}
+  bullet: {fileID: 6437847595553601300, guid: 4e682759276efb649a562f0832de3aea, type: 3}
+  bulletSpeed: 80

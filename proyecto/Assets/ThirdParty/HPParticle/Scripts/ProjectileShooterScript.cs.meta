@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 06201ad3758a64e05832c7dbab2cf960
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 21856
+  packageName: HP Particles
+  packageVersion: 1.1
+  assetPath: Assets/HPParticle/Scripts/ProjectileShooterScript.cs
+  uploadId: 103078

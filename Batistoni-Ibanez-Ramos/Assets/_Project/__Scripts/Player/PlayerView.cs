@@ -151,22 +151,22 @@ namespace PatronesAplicados
 
         private void HandleGroundedChanged(bool isGrounded)
         {
-            if (animator != null) animator.SetBool(GroundedHash, isGrounded);
+            animator.SetBool(GroundedHash, isGrounded);
         }
 
         private void HandleMovingChanged(bool isMoving)
         {
-            if (animator != null) animator.SetBool(MovingHash, isMoving);
+            animator.SetBool(MovingHash, isMoving);
         }
 
         private void HandleRunToggled(bool isRunning)
         {
-            if (animator != null) animator.SetFloat(WalkHash, isRunning ? 0f : 1f);
+            animator.SetFloat(WalkHash, isRunning ? 0f : 1f);
         }
 
         private void HandleJumped()
         {
-            if (animator != null) animator.SetTrigger(JumpHash);
+            animator.SetTrigger(JumpHash);
             PlaySFX(jumpSound, "Jump");
 
             if (jumpDustParticles != null)
@@ -190,30 +190,25 @@ namespace PatronesAplicados
 
         private void HandleSlideChanged(bool isSliding)
         {
-            if (animator != null) animator.SetBool(SlideHash, isSliding);
+            animator.SetBool(SlideHash, isSliding);
             if (isSliding) PlaySFX(slideSound, "Slide");
         }
 
         private void HandleDashCooldownUpdated(float current, float max)
         {
-            if (EventManager.Instance != null)
-            {
-                EventManager.Instance.TriggerEvent(GameEventKeys.DashCooldownChanged, current, max);
-            }
+            EventManager.Instance.TriggerEvent(GameEventKeys.DashCooldownChanged, current, max);
         }
 
         private void PlaySFX(AudioClip clip, string category)
         {
-            if (clip != null && AudioManager.Instance != null)
+            if (clip != null)
                 AudioManager.Instance.PlaySFX(clip, category);
         }
 
         public void SetPaused(bool isPaused)
         {
-            if (animator != null)
-            {
-                animator.speed = isPaused ? 0f : 1f;
-            }
+
+            animator.speed = isPaused ? 0f : 1f;
 
             if (isPaused)
             {

@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace PatronesAplicados.RealImplementation
 {
+
     [Serializable]
     public class WeaponStatModifier : IWeaponUpgrade
     {
@@ -33,6 +34,33 @@ namespace PatronesAplicados.RealImplementation
         [Header("Modificadores de Efectos de Impacto")]
         public WeaponData.ImpactEffects addEffects;
 
+        public WeaponStatModifier Reset()
+        {
+            addDamage = 0f;
+            addRange = 0f;
+            addMultipleShots = 0;
+            addChainBounces = 0;
+            addExplosiveRadius = 0f;
+            addDuration = 0f;
+            addElectricStormChance = 0f;
+            addHeatHeal = 0f;
+            addProjectileSpeed = 0f;
+
+            overrideCooldown = false;
+            newCooldown = 1f;
+
+            overrideMaxDamageCap = false;
+            newMaxDamageCap = 200f;
+
+            overrideRampUpInterval = false;
+            newRampUpInterval = 1f;
+
+            overrideRangeMultiplier = false;
+            newRangeMultiplier = 1f;
+
+            addEffects = default;
+            return this;
+        }
 
         public void Apply(ref WeaponRuntimeStats stats)
         {

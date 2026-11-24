@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 41df93de34f0c4041ab3c1fe8e1f7a68
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 21856
+  packageName: HP Particles
+  packageVersion: 1.1
+  assetPath: Assets/HPParticle/Scripts/CameraScript.cs
+  uploadId: 103078

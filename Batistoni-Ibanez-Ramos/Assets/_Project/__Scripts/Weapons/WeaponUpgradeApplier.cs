@@ -1,151 +1,66 @@
+using System.Collections.Generic;
 using UnityEngine;
 using PatronesAplicados.RealImplementation;
 
 namespace PatronesAplicados
 {
+
     public static class WeaponUpgradeApplier
     {
-        private static Transform _cachedPlayerTransform;
-        private static PlayerHealthRefactored _cachedPlayerHealth;
+        private static readonly Dictionary<UpgradeType, IUpgradeStrategy> Strategies =
+            new Dictionary<UpgradeType, IUpgradeStrategy>(32)
+            {
+                { UpgradeType.Heal, new PlayerHealUpgradeStrategy() },
 
-        public static void ApplyStatModification(UpgradeData data, WeaponBaseRealRefactored weapon, float valueToApply, bool isRecalculation = false)
+                { UpgradeType.Explosive,       new WeaponStatUpgradeStrategy((m, v) => m.WithExplosiveRadius(v)) },
+                { UpgradeType.Chain,           new WeaponStatUpgradeStrategy((m, v) => m.WithChainBounces(Mathf.RoundToInt(v))) },
+                { UpgradeType.Multiple,        new WeaponStatUpgradeStrategy((m, v) => m.WithMultipleShots(Mathf.RoundToInt(v))) },
+                { UpgradeType.FireRate,        new WeaponStatUpgradeStrategy((m, v) => m.WithCooldown(v)) },
+                { UpgradeType.Range,           new WeaponStatUpgradeStrategy((m, v) => m.WithRange(v)) },
+                { UpgradeType.Damage,          new WeaponStatUpgradeStrategy((m, v) => m.WithDamage(v)) },
+                { UpgradeType.Bleed,           new WeaponStatUpgradeStrategy((m, v) => m.WithBleedPercent(v)) },
+                { UpgradeType.Burn,            new WeaponStatUpgradeStrategy((m, v) => m.WithBurnDamage(v)) },
+                { UpgradeType.Poison,          new WeaponStatUpgradeStrategy((m, v) => m.WithPoisonDamage(v)) },
+                { UpgradeType.Freeze,          new WeaponStatUpgradeStrategy((m, v) => m.WithFreezePercent(v)) },
+                { UpgradeType.Stun,            new WeaponStatUpgradeStrategy((m, v) => m.WithStunChance(v)) },
+                { UpgradeType.Crit,            new WeaponStatUpgradeStrategy((m, v) => m.WithCritChance(v)) },
+                { UpgradeType.Duration,        new WeaponStatUpgradeStrategy((m, v) => m.WithDuration(v)) },
+                { UpgradeType.ElectricStorm,   new WeaponStatUpgradeStrategy((m, v) => m.WithElectricStormChance(v)) },
+                { UpgradeType.HeatHeal,        new WeaponStatUpgradeStrategy((m, v) => m.WithHeatHeal(v)) },
+                { UpgradeType.RangeMultiplier, new WeaponStatUpgradeStrategy((m, v) => m.WithRangeMultiplier(v)) },
+                { UpgradeType.MaxDamageCap,    new WeaponStatUpgradeStrategy((m, v) => m.WithMaxDamageCap(v)) },
+                { UpgradeType.RampUpInterval,  new WeaponStatUpgradeStrategy((m, v) => m.WithRampUpInterval(v)) },
+                { UpgradeType.ProjectileSpeed, new WeaponStatUpgradeStrategy((m, v) => m.WithProjectileSpeed(v)) },
+
+                { UpgradeType.PlayerSpeed,     new PlayerSpeedEventUpgradeStrategy(GameEventKeys.AddGlobalSpeed) },
+                { UpgradeType.PlayerSpeedFlat, new PlayerSpeedEventUpgradeStrategy(GameEventKeys.AddWeaponSpeedFlat) },
+
+                { UpgradeType.CometMode,   new WeaponBehaviorUpgradeStrategy<MeteorWeaponRefactored>((w, _) => w.isCometMode = true) },
+                { UpgradeType.ScatterMode, new WeaponBehaviorUpgradeStrategy<MeteorWeaponRefactored>((w, v) => w.scatterAmount = Mathf.Max(2, Mathf.RoundToInt(v))) },
+                { UpgradeType.MagicMode,   new WeaponBehaviorUpgradeStrategy<ShurikenWeaponRefactored>((w, _) => w.isMagicMode = true) }
+            };
+
+
+        public static void RegisterStrategy(UpgradeType type, IUpgradeStrategy strategy)
+        {
+            if (strategy == null) return;
+            Strategies[type] = strategy;
+        }
+
+        public static IUpgradeStrategy ResolveStrategy(UpgradeType type)
+        {
+            return Strategies.TryGetValue(type, out IUpgradeStrategy strategy) ? strategy : null;
+        }
+        public static void ApplyUpgrade(UpgradeData data, WeaponBaseRealRefactored weapon, float valueToApply, bool isRecalculation = false)
         {
             if (data == null) return;
 
-            if (data.type == UpgradeType.Heal)
+            IUpgradeStrategy strategy = ResolveStrategy(data.type);
+            if (strategy != null)
             {
-                if (!isRecalculation)
-                {
-                    HealPlayer(valueToApply);
-                }
-                return;
-            }
-
-            if (weapon == null) return;
-
-            weapon.EnsureInitialized();
-            ref WeaponRuntimeStats stats = ref weapon.Stats;
-
-            switch (data.type)
-            {
-                case UpgradeType.Explosive:
-                    stats.explosiveRadius += valueToApply;
-                    break;
-                case UpgradeType.Chain:
-                    stats.chainBounces += Mathf.RoundToInt(valueToApply);
-                    break;
-                case UpgradeType.Multiple:
-                    stats.multipleShots += Mathf.RoundToInt(valueToApply);
-                    break;
-                case UpgradeType.FireRate:
-                    stats.baseCooldown = valueToApply;
-                    break;
-                case UpgradeType.Range:
-                    stats.range += valueToApply;
-                    break;
-                case UpgradeType.Damage:
-                    stats.baseDamage += valueToApply;
-                    break;
-                case UpgradeType.Bleed:
-                    stats.effects.bleedPercent += valueToApply;
-                    break;
-                case UpgradeType.Burn:
-                    stats.effects.burnDamage += valueToApply;
-                    break;
-                case UpgradeType.Poison:
-                    stats.effects.poisonDamage += valueToApply;
-                    break;
-                case UpgradeType.Freeze:
-                    stats.effects.freezePercent += valueToApply;
-                    break;
-                case UpgradeType.Stun:
-                    stats.effects.stunChance += valueToApply;
-                    break;
-                case UpgradeType.Crit:
-                    stats.effects.critChance += valueToApply;
-                    break;
-                case UpgradeType.Duration:
-                    stats.duration += valueToApply;
-                    break;
-                case UpgradeType.ElectricStorm:
-                    stats.electricStormChance += valueToApply;
-                    break;
-                case UpgradeType.HeatHeal:
-                    stats.heatHeal += valueToApply;
-                    break;
-                case UpgradeType.RangeMultiplier:
-                    stats.rangeMultiplier = valueToApply;
-                    break;
-                case UpgradeType.MaxDamageCap:
-                    stats.maxDamageCap = valueToApply;
-                    break;
-                case UpgradeType.RampUpInterval:
-                    stats.rampUpInterval = valueToApply;
-                    break;
-                case UpgradeType.ProjectileSpeed:
-                    stats.projectileSpeed += valueToApply;
-                    break;
-
-                case UpgradeType.PlayerSpeed:
-                case UpgradeType.PlayerSpeedFlat:
-                    if (!isRecalculation && EventManager.Instance != null)
-                    {
-                        string evt = data.type == UpgradeType.PlayerSpeed
-                            ? GameEventKeys.AddGlobalSpeed
-                            : GameEventKeys.AddWeaponSpeedFlat;
-                        EventManager.Instance.TriggerEvent(evt, valueToApply);
-                    }
-                    break;
-
-                case UpgradeType.CometMode:
-                    if (weapon is MeteorWeaponRefactored cometMeteor)
-                    {
-                        cometMeteor.isCometMode = true;
-                    }
-                    break;
-
-                case UpgradeType.ScatterMode:
-                    if (weapon is MeteorWeaponRefactored scatterMeteor)
-                    {
-                        scatterMeteor.scatterAmount = Mathf.Max(2, Mathf.RoundToInt(valueToApply));
-                    }
-                    break;
-
-                case UpgradeType.MagicMode:
-                    if (weapon is ShurikenWeaponRefactored shuriMagico)
-                    {
-                        shuriMagico.isMagicMode = true;
-                    }
-                    break;
-            }
-
-            stats.Validate();
-        }
-
-        private static void HealPlayer(float amount)
-        {
-            Transform currentTransform = GameManagerRefactored.Instance != null
-                ? GameManagerRefactored.Instance.Player
-                : null;
-
-            if (currentTransform == null)
-            {
-                GameObject p = GameObject.FindGameObjectWithTag("Player");
-                if (p != null) currentTransform = p.transform;
-            }
-
-            if (currentTransform == null) return;
-
-            if (_cachedPlayerTransform != currentTransform || _cachedPlayerHealth == null)
-            {
-                _cachedPlayerTransform = currentTransform;
-                currentTransform.TryGetComponent(out _cachedPlayerHealth);
-            }
-
-            if (_cachedPlayerHealth != null)
-            {
-                _cachedPlayerHealth.Heal(amount);
+                strategy.Execute(weapon, valueToApply, isRecalculation);
             }
         }
+
     }
 }

@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f052e2990228e345adb22c4af6c5eb2, type: 3}
+  m_Name: Data_Golem
+  m_EditorClassIdentifier: 
+  maxHealth: 200
+  baseSpeed: 25
+  attackDamage: 30
+  attackCooldown: 2
+  rangeAttack: 3
+  fleeDistance: 0
+  goldReward: 50
+  expReward: 20
+  xpOrb: {fileID: 4151671228204215311, guid: f0f5c3e19b95e644d8886b80bbdb3cbc, type: 3}
+  popUp: {fileID: 3592148569616233406, guid: 61ebab5bd050aba4583e7948ea50b804, type: 3}
+  attackRadius: 4.5
+  hitDelay: 1.5
+  knockbackHorizontal: 65
+  knockbackUpward: 23
+  slamVisualPrefab: {fileID: 9136211849381488765, guid: 828397ef250a4bf409792e5c26adc5a3, type: 3}

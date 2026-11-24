@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79fa657cfae0d234cb4f6c97a7ba2dae, type: 3}
+  m_Name: Sangrado
+  m_EditorClassIdentifier: 
+  exclusiveWeapon: {fileID: 11400000, guid: 3988dd44f222d1344aa6b69e520f9548, type: 2}
+  baseName: Sangrado
+  icon: {fileID: 21300000, guid: 1785373a48f261f4ead66c09230e677b, type: 3}
+  category: 2
+  type: 6
+  levelValues:
+  - 5
+  - 7
+  - 10
+  - 13
+  - 15
+  levelDescriptions:
+  - "quita un 5% de la vida actual del enemigo por sec \r\n"
+  - "quita un 7% de la vida actual del enemigo por sec \r\n"
+  - "quita un 10% de la vida actual del enemigo por sec \r\n"
+  - "quita un 13% de la vida actual del enemigo por sec \r\n"
+  - "quita un 15% de la vida actual del enemigo por sec \r\n"

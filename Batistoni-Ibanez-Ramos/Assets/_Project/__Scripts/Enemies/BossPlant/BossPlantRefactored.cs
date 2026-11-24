@@ -30,10 +30,6 @@ namespace PatronesAplicados
         protected override void Awake()
         {
             base.Awake();
-            if (data == null)
-            {
-                Debug.LogWarning($"[BossPlantRefactored] '{name}' no tiene asignado un EnemyData en el campo 'Data'.", this);
-            }
         }
 
         protected override void Start()
@@ -73,7 +69,7 @@ namespace PatronesAplicados
         protected override void Update()
         {
             base.Update();
-            if (isDead || isPaused || data == null || player == null || isStunned || _isAttacking) return;
+            if (isDead || isPaused || player == null || isStunned || _isAttacking) return;
 
             RotateTowardsPlayer(Time.deltaTime, 3f);
 
@@ -114,23 +110,20 @@ namespace PatronesAplicados
                     _isPhase2 = true;
                 }
 
-                if (EventManager.Instance != null)
-                {
-                    EventManager.Instance.TriggerEvent(GameEventKeys.BossHealthChanged, currentHealth, maxHealth);
-                }
+                EventManager.Instance.TriggerEvent(GameEventKeys.BossHealthChanged, currentHealth, maxHealth);
             }
         }
 
         public override void OnPause()
         {
             base.OnPause();
-            if (animator != null) animator.speed = 0f;
+            animator.speed = 0f;
         }
 
         public override void OnResume()
         {
             base.OnResume();
-            if (animator != null) animator.speed = 1f;
+            animator.speed = 1f;
         }
 
         private IEnumerator WaitPausableSeconds(float seconds)
@@ -150,7 +143,7 @@ namespace PatronesAplicados
         {
             _isAttacking = true;
 
-            if (animator != null) animator.SetTrigger(AttackHash);
+            animator.SetTrigger(AttackHash);
 
             yield return StartCoroutine(WaitPausableSeconds(plantData.MeleeHitDelay));
 
@@ -207,8 +200,7 @@ namespace PatronesAplicados
 
         private IEnumerator AttackA_Burst()
         {
-            if (data == null || plantData.OrbPrefab == null) yield break;
-            if (animator != null) animator.SetTrigger(ShootHash);
+            animator.SetTrigger(ShootHash);
 
             int orbsToShoot = _isPhase2 ? plantData.OrbsPerBurstPhase2 : plantData.OrbsPerBurst;
             float finalDamage = data.AttackDamage * damageMultiplier;
@@ -223,22 +215,10 @@ namespace PatronesAplicados
                 if (aimDirection == Vector3.zero) aimDirection = transform.forward;
                 Quaternion rot = Quaternion.LookRotation(aimDirection);
 
-                if (ProjectilePoolManager.Instance != null)
-                {
-                    NEWBossOrb orbScript = ProjectilePoolManager.Instance.GetProjectile<NEWBossOrb>(plantData.OrbPrefab, spawnOrigin, rot);
-                    if (orbScript != null)
-                    {
-                        orbScript.Setup(finalDamage);
-                    }
-                }
-                else
-                {
-                    GameObject orbObj = Instantiate(plantData.OrbPrefab, spawnOrigin, rot);
-                    if (orbObj.TryGetComponent(out NEWBossOrb orbScript))
-                    {
-                        orbScript.Setup(finalDamage);
-                    }
-                }
+
+                NEWBossOrb orbScript = ProjectilePoolManager.Instance.GetProjectile<NEWBossOrb>(plantData.OrbPrefab, spawnOrigin, rot);
+
+                orbScript.Setup(finalDamage);
 
                 yield return StartCoroutine(WaitPausableSeconds(plantData.TimeBetweenOrbs));
             }
@@ -246,7 +226,6 @@ namespace PatronesAplicados
 
         private IEnumerator AttackB_Roots_Routine()
         {
-            if (data == null || plantData.RootTrapPrefab == null) yield break;
 
             int rootsToSpawn = _isPhase2 ? Mathf.Max(1, plantData.RootsPhase2) : 1;
             float finalDamage = data.AttackDamage * damageMultiplier;
@@ -256,24 +235,13 @@ namespace PatronesAplicados
                 while (isPaused || PauseManager.IsPaused) yield return null;
                 if (isDead || isStunned || player == null) break;
 
-                if (animator != null) animator.SetTrigger(CastHash);
+                animator.SetTrigger(CastHash);
 
-                if (ProjectilePoolManager.Instance != null)
-                {
-                    NEWBossRootTrap trapScript = ProjectilePoolManager.Instance.GetProjectile<NEWBossRootTrap>(plantData.RootTrapPrefab, player.position, Quaternion.identity);
-                    if (trapScript != null)
-                    {
-                        trapScript.Setup(player, finalDamage);
-                    }
-                }
-                else
-                {
-                    GameObject trapObj = Instantiate(plantData.RootTrapPrefab, player.position, Quaternion.identity);
-                    if (trapObj.TryGetComponent(out NEWBossRootTrap trapScript))
-                    {
-                        trapScript.Setup(player, finalDamage);
-                    }
-                }
+
+                NEWBossRootTrap trapScript = ProjectilePoolManager.Instance.GetProjectile<NEWBossRootTrap>(plantData.RootTrapPrefab, player.position, Quaternion.identity);
+
+                trapScript.Setup(player, finalDamage);
+
 
                 if (i < rootsToSpawn - 1)
                 {

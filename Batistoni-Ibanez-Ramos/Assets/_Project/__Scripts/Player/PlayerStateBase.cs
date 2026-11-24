@@ -11,11 +11,7 @@ namespace PatronesAplicados
         protected readonly PlayerControls Controls;
         protected readonly PlayerConfigSO Config;
 
-        protected PlayerStateBase(
-            PlayerControllerRefactored controller,
-            PlayerModel model,
-            PlayerMovement movement,
-            PlayerControls controls)
+        protected PlayerStateBase(PlayerControllerRefactored controller, PlayerModel model, PlayerMovement movement, PlayerControls controls)
         {
             Controller = controller;
             Model = model;
@@ -51,8 +47,7 @@ namespace PatronesAplicados
 
     public class WalkingState : PlayerStateBase
     {
-        public WalkingState(PlayerControllerRefactored controller, PlayerModel model, PlayerMovement movement, PlayerControls controls)
-            : base(controller, model, movement, controls) { }
+        public WalkingState(PlayerControllerRefactored controller, PlayerModel model, PlayerMovement movement, PlayerControls controls) : base(controller, model, movement, controls) { }
 
         public override void HandleInput(float deltaTime)
         {

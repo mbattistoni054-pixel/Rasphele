@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3bc7c10dd0c87084b8bdc1b5e4cb1a83, type: 3}
+  m_Name: Data_FireSorcerer
+  m_EditorClassIdentifier: 
+  maxHealth: 50
+  baseSpeed: 25
+  attackDamage: 20
+  attackCooldown: 10
+  rangeAttack: 40
+  fleeDistance: 20
+  goldReward: 10
+  expReward: 40
+  xpOrb: {fileID: 4151671228204215311, guid: f0f5c3e19b95e644d8886b80bbdb3cbc, type: 3}
+  popUp: {fileID: 3592148569616233406, guid: 61ebab5bd050aba4583e7948ea50b804, type: 3}
+  fireLinePrefab: {fileID: 6763164848866311026, guid: 1a8f93f648d69f14bb5158f9f886c632, type: 3}
+  fireLineDuration: 5
+  fireLineWarningTime: 1
+  fireLineLength: 50

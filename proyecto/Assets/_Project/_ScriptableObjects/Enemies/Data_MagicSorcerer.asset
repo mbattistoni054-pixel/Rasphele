@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0bd39baebe024864ebba1bd1c4edb2dc, type: 3}
+  m_Name: Data_MagicSorcerer
+  m_EditorClassIdentifier: 
+  maxHealth: 50
+  baseSpeed: 25
+  attackDamage: 20
+  attackCooldown: 10
+  rangeAttack: 40
+  fleeDistance: 20
+  goldReward: 10
+  expReward: 40
+  xpOrb: {fileID: 4151671228204215311, guid: f0f5c3e19b95e644d8886b80bbdb3cbc, type: 3}
+  popUp: {fileID: 3592148569616233406, guid: 61ebab5bd050aba4583e7948ea50b804, type: 3}
+  trackingTime: 2
+  lockedTime: 1
+  laserDuration: 3
+  beamMaterial: {fileID: 2100000, guid: 6f40a55d7b6a753448c0da4dcb51b4e2, type: 2}

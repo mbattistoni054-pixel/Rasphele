@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71a5dffc95c0b964bb45e34b6e808f9b, type: 3}
+  m_Name: Data_Kamikaze
+  m_EditorClassIdentifier: 
+  maxHealth: 20
+  baseSpeed: 40
+  attackDamage: 40
+  attackCooldown: 0
+  rangeAttack: 3
+  fleeDistance: 0
+  goldReward: 10
+  expReward: 25
+  xpOrb: {fileID: 4151671228204215311, guid: f0f5c3e19b95e644d8886b80bbdb3cbc, type: 3}
+  popUp: {fileID: 3592148569616233406, guid: 61ebab5bd050aba4583e7948ea50b804, type: 3}
+  explosionRadius: 8
+  explosionDelay: 0.75
+  explosionVisualPrefab: {fileID: 9136211849381488765, guid: 828397ef250a4bf409792e5c26adc5a3, type: 3}

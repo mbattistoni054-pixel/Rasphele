@@ -79,61 +79,37 @@ namespace PatronesAplicados
         {
             if (_playerTransform == null)
             {
-                _playerTransform = GameManagerRefactored.Instance != null ? GameManagerRefactored.Instance.Player : null;
-                if (_playerTransform == null)
-                {
-                    GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-                    if (playerObj != null) _playerTransform = playerObj.transform;
-                }
+                _playerTransform =  GameManagerRefactored.Instance.Player;
             }
 
             if (_cachedPlayerExperience == null)
             {
-                if (_playerTransform != null)
-                {
-                    _playerTransform.TryGetComponent(out _cachedPlayerExperience);
-                }
-
-                if (_cachedPlayerExperience == null)
-                {
-                    _cachedPlayerExperience = UnityEngine.Object.FindFirstObjectByType<PlayerExperienceRefactored>();
-                }
+                _cachedPlayerExperience = UnityEngine.Object.FindFirstObjectByType<PlayerExperienceRefactored>();
             }
 
-            _playerActiveWeapons = _playerTransform != null
-                ? _playerTransform.GetComponentsInChildren<WeaponBaseRealRefactored>()
-                : Array.Empty<WeaponBaseRealRefactored>();
+            _playerActiveWeapons = _playerTransform != null ? _playerTransform.GetComponentsInChildren<WeaponBaseRealRefactored>() : Array.Empty<WeaponBaseRealRefactored>();
         }
 
         private void OpenNewWeaponMode()
         {
-            if (leftPanelUI != null) leftPanelUI.SetPanelActive(false);
-            if (rightStatsUI != null) rightStatsUI.SetPanelActive(false);
+            leftPanelUI.SetPanelActive(false);
+            rightStatsUI.SetPanelActive(false);
 
             _weaponRewardService.RollAvailableWeapons(allWeaponPrefabs, _playerActiveWeapons, 3, buttonWeapons, _cardsViewBuffer);
 
-            if (centerCardsUI != null)
-            {
-                centerCardsUI.RenderCards("ELIGE UN ARMA NUEVA", _cardsViewBuffer);
-            }
+            centerCardsUI.RenderCards("ELIGE UN ARMA NUEVA", _cardsViewBuffer);
         }
 
         private void OpenUpgradeMode()
         {
-            if (leftPanelUI != null) leftPanelUI.SetPanelActive(true);
-            if (rightStatsUI != null) rightStatsUI.SetPanelActive(true);
+            leftPanelUI.SetPanelActive(true);
+            rightStatsUI.SetPanelActive(true);
 
             _sessionLogic.GenerateGlobalUpgradeCards(3, _playerActiveWeapons, buttonWeapons, _cardsViewBuffer);
 
-            if (centerCardsUI != null)
-            {
-                centerCardsUI.RenderCards("ELIGE UNA MEJORA", _cardsViewBuffer);
-            }
+            centerCardsUI.RenderCards("ELIGE UNA MEJORA", _cardsViewBuffer);
 
-            if (leftPanelUI != null)
-            {
-                leftPanelUI.RenderEquippedWeaponButtons(_playerActiveWeapons);
-            }
+            leftPanelUI.RenderEquippedWeaponButtons(_playerActiveWeapons);
 
             if (currentWeapon == null || !IsWeaponEquipped(currentWeapon))
             {
@@ -166,7 +142,6 @@ namespace PatronesAplicados
 
         public void RefreshRightStats()
         {
-            if (rightStatsUI == null) return;
 
             rightStatsUI.RenderPlayerStats(_sessionLogic.PlayerStats);
             rightStatsUI.RenderWeaponStats(currentWeapon, _sessionLogic.AllAvailableUpgrades, _sessionLogic.ChosenUpgrades);
@@ -174,7 +149,6 @@ namespace PatronesAplicados
 
         private void RefreshLeftPanel()
         {
-            if (leftPanelUI == null) return;
 
             WeaponUpgradeProfile profile = _sessionLogic.RequestWeaponProfile(currentWeapon);
             leftPanelUI.RenderWeaponSlots(currentWeapon, profile);
@@ -186,7 +160,7 @@ namespace PatronesAplicados
 
         private void HandleCardSelection(int index)
         {
-            if (TooltipManager.Instance != null) TooltipManager.Instance.HideTooltip();
+            TooltipManager.Instance.HideTooltip();
 
             if (_isWeaponMode)
             {
@@ -203,7 +177,7 @@ namespace PatronesAplicados
 
         public void CloseMenu()
         {
-            if (TooltipManager.Instance != null) TooltipManager.Instance.HideTooltip();
+            TooltipManager.Instance.HideTooltip();
             ReleasePauseOnce();
             gameObject.SetActive(false);
         }

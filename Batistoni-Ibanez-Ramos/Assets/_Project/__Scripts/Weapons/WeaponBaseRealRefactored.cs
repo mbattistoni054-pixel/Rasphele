@@ -62,11 +62,8 @@ namespace PatronesAplicados.RealImplementation
         {
             EnsureInitialized();
 
-            if (EventManager.Instance != null)
-            {
-                EventManager.Instance.TriggerEvent(GameEventKeys.RequestCurrentStats, _cachedStatsCallback);
-                EventManager.Instance.StartListening(GameEventKeys.PlayerStatsUpdated, RequestStatsUpdate);
-            }
+            EventManager.Instance.TriggerEvent(GameEventKeys.RequestCurrentStats, _cachedStatsCallback);
+            EventManager.Instance.StartListening(GameEventKeys.PlayerStatsUpdated, RequestStatsUpdate);
         }
 
         protected virtual void OnDestroy()
@@ -77,12 +74,13 @@ namespace PatronesAplicados.RealImplementation
             {
                 EventManager.Instance.StopListening(GameEventKeys.PlayerStatsUpdated, RequestStatsUpdate);
             }
+
+
         }
 
         public void EnsureInitialized()
         {
             if (_cachedWeaponId == 0) _cachedWeaponId = gameObject.GetInstanceID();
-            if (_cachedStatsCallback == null) _cachedStatsCallback = OnReceiveStats;
 
             if (!_isStatsInitialized && data != null)
             {
@@ -100,10 +98,7 @@ namespace PatronesAplicados.RealImplementation
 
         private void RequestStatsUpdate()
         {
-            if (EventManager.Instance != null)
-            {
-                EventManager.Instance.TriggerEvent(GameEventKeys.RequestCurrentStats, _cachedStatsCallback);
-            }
+            EventManager.Instance.TriggerEvent(GameEventKeys.RequestCurrentStats, _cachedStatsCallback); 
         }
 
         private void OnReceiveStats(PlayerStatsRefactored stats)
@@ -116,7 +111,7 @@ namespace PatronesAplicados.RealImplementation
 
         protected virtual void Update()
         {
-            if (data == null || isPaused) return;
+            if (isPaused) return;
 
             currentCooldownTimer += Time.deltaTime;
             float actualCooldown = runtimeStats.baseCooldown * cachedGlobalFireRateMult;
@@ -141,12 +136,12 @@ namespace PatronesAplicados.RealImplementation
 
         protected float GetFinalDamage()
         {
-            return data != null ? runtimeStats.baseDamage * cachedGlobalDamageMult : 0f;
+            return runtimeStats.baseDamage * cachedGlobalDamageMult;
         }
 
         protected float GetFinalRange()
         {
-            return data != null ? runtimeStats.range * runtimeStats.rangeMultiplier * cachedGlobalRangeMult : 0f;
+            return runtimeStats.range * runtimeStats.rangeMultiplier * cachedGlobalRangeMult;
         }
 
         protected ProjectilePayload CreateProjectilePayload(Transform target, LayerMask enemyLayer)

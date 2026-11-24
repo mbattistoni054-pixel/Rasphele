@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79fa657cfae0d234cb4f6c97a7ba2dae, type: 3}
+  m_Name: Data_Shuriken-magico
+  m_EditorClassIdentifier: 
+  exclusiveWeapon: {fileID: 11400000, guid: a4bdebff3eadfe54fbebd66cbdf3e11a, type: 2}
+  baseName: Shuriken Magico
+  icon: {fileID: 21300000, guid: ae876c5a92e6d284c89e8d529ca1104e, type: 3}
+  category: 1
+  type: 23
+  levelValues:
+  - 0
+  levelDescriptions:
+  - "cambia el da\xF1o a magico"

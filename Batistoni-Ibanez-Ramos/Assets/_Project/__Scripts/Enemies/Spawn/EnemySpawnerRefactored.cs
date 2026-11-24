@@ -68,12 +68,6 @@ namespace PatronesAplicados
         private readonly NavMeshSpawnLocator _spawnLocator = new NavMeshSpawnLocator();
         private bool _isPaused;
 
-        private void Awake()
-        {
-            if (enemyFactory == null) enemyFactory = FindFirstObjectByType<EnemyFactory>();
-            if (enemyPool == null) enemyPool = EnemyPool.Instance != null ? EnemyPool.Instance : FindFirstObjectByType<EnemyPool>();
-        }
-
         private void OnEnable()
         {
             _isPaused = PauseManager.IsPaused;
@@ -92,29 +86,18 @@ namespace PatronesAplicados
 
             if (player == null)
             {
-                player = GameManagerRefactored.Instance != null ? GameManagerRefactored.Instance.Player : null;
-                if (player == null)
-                {
-                    GameObject pObj = GameObject.FindGameObjectWithTag("Player");
-                    if (pObj != null) player = pObj.transform;
-                }
+                player = GameManagerRefactored.Instance.Player;
             }
 
-            if (enemyPool == null) enemyPool = EnemyPool.Instance;
+            EventManager.Instance.StartListening(GameEventKeys.EnemyDied, OnEnemyDied);
 
-            if (EventManager.Instance != null)
-            {
-                EventManager.Instance.StartListening(GameEventKeys.EnemyDied, OnEnemyDied);
-            }
         }
 
         private void OnDestroy()
         {
             PauseManager.Unregister(this);
-            if (EventManager.Instance != null)
-            {
-                EventManager.Instance.StopListening(GameEventKeys.EnemyDied, OnEnemyDied);
-            }
+
+            EventManager.Instance.StopListening(GameEventKeys.EnemyDied, OnEnemyDied);
         }
 
         private void OnEnemyDied()
@@ -149,17 +132,8 @@ namespace PatronesAplicados
 
             if (spawnSmokePrefab != null)
             {
-                if (VfxPoolManager.Instance != null)
-                {
-                    VfxPoolManager.Instance.GetVfx(spawnSmokePrefab, spawnPos, Quaternion.identity, 2f);
-                }
-                else
-                {
-                    Instantiate(spawnSmokePrefab, spawnPos, Quaternion.identity);
-                }
+                VfxPoolManager.Instance.GetVfx(spawnSmokePrefab, spawnPos, Quaternion.identity, 2f);
             }
-
-            if (enemyPool == null || enemyFactory == null) return;
 
             EnemyBaseRefactored enemyScript = enemyPool.GetEnemy(selectedInfo.enemyPrefab, spawnPos);
             if (enemyScript != null)

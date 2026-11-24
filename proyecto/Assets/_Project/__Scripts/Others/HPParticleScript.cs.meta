@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: a3e2df21aacc6487ca07a03d93b9ee13
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 21856
+  packageName: HP Particles
+  packageVersion: 1.1
+  assetPath: Assets/HPParticle/Scripts/HPParticleScript.cs
+  uploadId: 103078

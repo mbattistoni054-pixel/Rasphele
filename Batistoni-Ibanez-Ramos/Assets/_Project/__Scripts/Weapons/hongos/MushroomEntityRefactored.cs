@@ -170,15 +170,8 @@ namespace PatronesAplicados.RealImplementation
 
         private void TryHealPlayerInRadius()
         {
-            Transform playerTransform = GameManagerRefactored.Instance != null ? GameManagerRefactored.Instance.Player : null;
+            Transform playerTransform = GameManagerRefactored.Instance.Player;
 
-            if (playerTransform == null)
-            {
-                GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-                if (playerObj != null) playerTransform = playerObj.transform;
-            }
-
-            if (playerTransform == null) return;
 
             Vector3 diff = playerTransform.position - transform.position;
             diff.y = 0f;
@@ -214,14 +207,8 @@ namespace PatronesAplicados.RealImplementation
             if (_isReturned) return;
             _isReturned = true;
 
-            if (ProjectilePoolManager.Instance != null)
-            {
-                ProjectilePoolManager.Instance.ReturnProjectile(gameObject);
-            }
-            else
-            {
-                Destroy(gameObject);
-            }
+            ProjectilePoolManager.Instance.ReturnProjectile(gameObject);
+
         }
 
         public void OnPause() => _isPaused = true;

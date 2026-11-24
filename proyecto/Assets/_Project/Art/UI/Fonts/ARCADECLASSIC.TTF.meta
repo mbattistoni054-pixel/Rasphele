@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: ba26238b9cbfc4c00b86c1648f26f4cd
+TrueTypeFontImporter:
+  serializedVersion: 2
+  fontSize: 16
+  forceTextureCase: -2
+  characterSpacing: 1
+  characterPadding: 0
+  includeFontData: 1
+  use2xBehaviour: 0
+  fontNames: []
+  customCharacters: 
+  fontRenderingMode: 0
+  userData: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 21856
+  packageName: HP Particles
+  packageVersion: 1.1
+  assetPath: Assets/HPParticle/Fonts/ARCADECLASSIC.TTF
+  uploadId: 103078
