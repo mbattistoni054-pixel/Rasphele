@@ -19,8 +19,8 @@ MonoBehaviour:
   type: 24
   levelValues:
   - 5
-  - 10
-  - 15
+  - 5
+  - 5
   levelDescriptions:
   - aumenta la velocidad del shuriken 5
   - aumenta la velocidad del shuriken 10

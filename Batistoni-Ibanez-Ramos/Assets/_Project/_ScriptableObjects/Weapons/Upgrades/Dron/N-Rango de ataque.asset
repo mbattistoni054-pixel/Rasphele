@@ -18,9 +18,9 @@ MonoBehaviour:
   category: 1
   type: 4
   levelValues:
-  - 33
-  - 36
-  - 40
+  - 3
+  - 3
+  - 4
   levelDescriptions:
   - Aumenta el rango a 33
   - Aumenta el rango a 36

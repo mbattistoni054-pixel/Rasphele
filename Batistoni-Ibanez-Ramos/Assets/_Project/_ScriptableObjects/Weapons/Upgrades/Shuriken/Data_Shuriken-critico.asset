@@ -19,10 +19,10 @@ MonoBehaviour:
   type: 10
   levelValues:
   - 1
-  - 2
-  - 3
-  - 4
-  - 5
+  - 1
+  - 1
+  - 1
+  - 1
   levelDescriptions:
   - 1%
   - 2%

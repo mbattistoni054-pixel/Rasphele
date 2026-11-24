@@ -17,5 +17,11 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 5700135133e67154a92b0786c5090298, type: 3}
   category: 2
   type: 10
-  levelValues: []
-  levelDescriptions: []
+  levelValues:
+  - 4
+  - 4
+  - 4
+  levelDescriptions:
+  - '%de critico 4%'
+  - '%de critico 8%'
+  - '%de critico 12%'

@@ -17,5 +17,11 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 0d24b393889c9bb42ab4070584e7e655, type: 3}
   category: 2
   type: 8
-  levelValues: []
-  levelDescriptions: []
+  levelValues:
+  - 5
+  - 5
+  - 5
+  levelDescriptions:
+  - relentiza 5
+  - relentiza 10
+  - relentiza 15

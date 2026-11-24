@@ -19,9 +19,9 @@ MonoBehaviour:
   type: 19
   levelValues:
   - 5
-  - 10
-  - 15
-  - 20
+  - 5
+  - 5
+  - 5
   levelDescriptions:
   - aumenta en 5 la velocidad
   - aumenta en 10 la velocidad

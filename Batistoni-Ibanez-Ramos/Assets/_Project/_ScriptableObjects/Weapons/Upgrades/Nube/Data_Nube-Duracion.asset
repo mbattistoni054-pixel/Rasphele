@@ -18,9 +18,9 @@ MonoBehaviour:
   category: 1
   type: 13
   levelValues:
-  - 7
-  - 8
-  - 9
+  - 2
+  - 1
+  - 1
   levelDescriptions:
   - nube
   - 

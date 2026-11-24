@@ -19,9 +19,9 @@ MonoBehaviour:
   type: 8
   levelValues:
   - 10
-  - 20
-  - 30
-  - 40
+  - 10
+  - 10
+  - 10
   levelDescriptions:
   - ralentiza al enemigo durante 5 segundos (10%)
   - ralentiza al enemigo durante 5 segundos (20%)

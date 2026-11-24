@@ -23,6 +23,7 @@ MonoBehaviour:
   baseCooldown: 1
   baseRange: 15
   baseDuration: 0
+  baseProjectileSpeed: 35
   multipleShots: 3
   chainBounces: 0
   explosiveRadius: 0

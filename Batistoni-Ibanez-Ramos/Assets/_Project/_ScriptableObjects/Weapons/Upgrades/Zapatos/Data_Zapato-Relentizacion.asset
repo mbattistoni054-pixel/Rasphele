@@ -19,8 +19,8 @@ MonoBehaviour:
   type: 8
   levelValues:
   - 5
-  - 10
-  - 15
+  - 5
+  - 5
   levelDescriptions:
   - relentiza un 5%
   - relentiza un 10%

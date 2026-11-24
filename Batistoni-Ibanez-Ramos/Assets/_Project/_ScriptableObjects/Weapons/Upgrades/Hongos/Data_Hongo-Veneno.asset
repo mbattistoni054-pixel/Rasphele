@@ -19,11 +19,11 @@ MonoBehaviour:
   type: 11
   levelValues:
   - 5
-  - 7
-  - 10
-  - 13
-  - 15
-  - 20
+  - 2
+  - 3
+  - 3
+  - 2
+  - 5
   levelDescriptions:
   - "envenena causando 5 de da\xF1o"
   - "envenena causando 7 de da\xF1o"

@@ -19,11 +19,11 @@ MonoBehaviour:
   type: 7
   levelValues:
   - 5
-  - 7
-  - 10
-  - 13
-  - 16
-  - 20
+  - 2
+  - 3
+  - 3
+  - 3
+  - 4
   levelDescriptions:
   - "da\xF1o por segundo 5"
   - "da\xF1o por segundo 7"

@@ -16,7 +16,7 @@ MonoBehaviour:
   baseName: Area
   icon: {fileID: 21300000, guid: 9762e68d59da04c41aad6f527ff6742d, type: 3}
   category: 1
-  type: 4
+  type: 22
   levelValues:
   - 1.2
   - 1.4

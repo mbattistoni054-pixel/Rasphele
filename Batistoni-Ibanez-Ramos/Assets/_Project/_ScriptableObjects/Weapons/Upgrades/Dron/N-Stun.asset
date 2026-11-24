@@ -19,10 +19,10 @@ MonoBehaviour:
   type: 9
   levelValues:
   - 1
-  - 2
-  - 3
-  - 4
-  - 5
+  - 1
+  - 1
+  - 1
+  - 1
   levelDescriptions:
   - posibilidad de aturdir durante 3 seg 1%
   - posibilidad de aturdir durante 3 seg 2%

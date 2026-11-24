@@ -19,10 +19,10 @@ MonoBehaviour:
   type: 6
   levelValues:
   - 5
-  - 7
-  - 10
-  - 13
-  - 15
+  - 2
+  - 3
+  - 3
+  - 2
   levelDescriptions:
   - "quita un 5% de la vida actual del enemigo por sec \r\n"
   - "quita un 7% de la vida actual del enemigo por sec \r\n"

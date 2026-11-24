@@ -18,11 +18,11 @@ MonoBehaviour:
   category: 1
   type: 13
   levelValues:
-  - 12
-  - 14
-  - 16
-  - 18
-  - 20
+  - 2
+  - 2
+  - 2
+  - 2
+  - 2
   levelDescriptions:
   - aumenta la duracion a 12
   - aumenta la duracion a 14

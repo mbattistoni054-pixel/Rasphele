@@ -19,11 +19,11 @@ MonoBehaviour:
   type: 10
   levelValues:
   - 4
-  - 8
-  - 12
-  - 16
-  - 20
-  - 25
+  - 4
+  - 4
+  - 4
+  - 4
+  - 5
   levelDescriptions:
   - '% de critico 4'
   - '% de critico 8'
